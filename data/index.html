@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A&amp;A Global 1940 — Game Tracker</title>
+  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="4" fill="%230d1117"/><text x="16" y="22" font-size="20" text-anchor="middle" fill="%23f59e0b" font-family="serif">⚔</text></svg>'>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-wrap">
+
+    <!-- ══════════════ HEADER ══════════════ -->
+    <header>
+      <span class="logo">⚔️</span>
+
+      <button class="btn btn-ghost btn-sm hdr-nav-btn" id="btnPrevTurn" title="Forrige tur">◀</button>
+
+      <div class="hdr-turn-pill" id="turnPill">
+        <span class="htp-flag" id="turnFlag">🇩🇪</span>
+        <span class="htp-name" id="turnName">Germany</span>
+        <span class="htp-sep">·</span>
+        <span class="htp-round" id="roundBadge">Runde 1</span>
+      </div>
+
+      <button class="btn btn-primary btn-sm hdr-nav-btn hdr-next-btn" id="btnNextTurn" title="Neste tur">Neste ▶</button>
+
+      <details class="action-menu" id="actionMenu">
+        <summary class="btn btn-ghost btn-sm action-menu-trigger" title="Meny">⋮</summary>
+        <div class="action-menu-dropdown">
+          <button class="action-menu-item" id="btnNewGame">🎮 Nytt spill</button>
+          <button class="action-menu-item action-menu-item--accent" id="btnServerSave">☁️ Lagring</button>
+          <button class="action-menu-item" id="btnExport">💾 Eksporter</button>
+          <label class="action-menu-item" style="cursor:pointer">
+            📂 Importer
+            <input type="file" id="importFile" accept="application/json" class="hidden">
+          </label>
+        </div>
+      </details>
+    </header>
+
+    <!-- ══════════════ TAB NAV ══════════════ -->
+    <nav class="tab-bar" role="tablist">
+      <button class="tab-btn active" data-tab="overview"    role="tab">📊 Oversikt</button>
+      <button class="tab-btn"        data-tab="nations"     role="tab">🌍 Nasjoner</button>
+      <button class="tab-btn"        data-tab="territories" role="tab">🗺️ Territorier</button>
+      <button class="tab-btn"        data-tab="rules"       role="tab">📚 Regler</button>
+      <button class="tab-btn"        data-tab="history"     role="tab">📜 Historikk</button>
+      <button class="tab-btn"        data-tab="battle"      role="tab">⚔️ Slag</button>
+      <button class="tab-btn"        data-tab="setup"       role="tab">🎯 Oppsett</button>
+    </nav>
+
+    <!-- ══════════════ MAIN ══════════════ -->
+    <div id="fixedSpacer" aria-hidden="true"></div>
+    <main>
+
+      <!-- ── OVERVIEW TAB ─────────────────── -->
+      <div id="tab-overview" class="tab-panel active" role="tabpanel">
+
+        <!-- Turn strip (klikk for å navigere til nasjon) -->
+        <div class="turn-strip-wrap">
+          <div class="turn-strip-title">Tur-rekkefølge · klikk for å gå til nasjon</div>
+          <div class="turn-strip" id="turnStrip"></div>
+        </div>
+
+        <!-- Victory meter -->
+        <div class="victory-meter-wrap">
+          <div class="victory-meter-title">🏆 Seiersbyer — Akse trenger 13 for å vinne</div>
+          <div class="victory-bar-outer">
+            <div class="victory-bar-axis" id="victoryBarAxis" style="width:30%"></div>
+            <div class="victory-bar-allies" id="victoryBarAllies"></div>
+          </div>
+          <div class="victory-labels">
+            <span id="victoryLabelAxis">Akse: 0</span>
+            <span id="victoryLabelAllies">Allierte: 0</span>
+          </div>
+          <div class="win-indicator" id="winIndicator"></div>
+        </div>
+
+        <!-- B+C Dashboard: Active nation focus card + Chronicle log -->
+        <div class="ov-dashboard">
+          <div class="ov-left">
+            <div id="ovFocusCard"></div>
+            <div id="ovNationGrid"></div>
+          </div>
+          <div class="ov-right">
+            <div id="ovChronicle"></div>
+          </div>
+        </div>
+
+        <!-- Victory cities (collapsible) -->
+        <details class="vc-inline-wrap">
+          <summary class="vc-inline-summary">⭐ Seiersbyer</summary>
+          <div class="vc-inline-cols" id="vcGrid"></div>
+        </details>
+
+      </div>
+
+      <!-- ── NATIONS TAB ───────────────────── -->
+      <div id="tab-nations" class="tab-panel" role="tabpanel">
+        <div class="nations-grid" id="nationsGrid"></div>
+      </div>
+
+      <!-- ── TERRITORIES TAB ──────────────── -->
+      <div id="tab-territories" class="tab-panel" role="tabpanel">
+
+        <div class="territory-controls">
+          <input type="search" id="terSearch" placeholder="🔍 Søk territorier…" aria-label="Søk">
+          <select id="terFilterContinent" title="Filtrer etter kontinent">
+            <option value="">Alle kontinenter</option>
+            <option>North America</option>
+            <option>South America</option>
+            <option>Europe</option>
+            <option>Africa</option>
+            <option>Middle East</option>
+            <option>Asia</option>
+            <option>Pacific</option>
+          </select>
+          <div class="ter-nation-pair">
+            <select id="terFilterNation" title="Nasjon 1">
+              <option value="">Alle eiere</option>
+              <option value="germany">🇩🇪 Germany</option>
+              <option value="italy">🇮🇹 Italy</option>
+              <option value="japan">🇯🇵 Japan</option>
+              <option value="soviet">🇷🇺 Soviet Union</option>
+              <option value="usa">🇺🇸 United States</option>
+              <option value="uk_europe">🇬🇧 UK Europe</option>
+              <option value="uk_pacific">🏴 UK Pacific</option>
+              <option value="anzac">🇦🇺 ANZAC</option>
+              <option value="china">🇨🇳 China</option>
+              <option value="france">🇫🇷 France</option>
+              <option value="neutral">⚪ Nøytral</option>
+              <option value="dutch">🇳🇱 Dutch</option>
+            </select>
+            <span class="ter-vs-badge">vs</span>
+            <select id="terFilterNation2" title="Nasjon 2 (valgfri)">
+              <option value="">— 2. nasjon —</option>
+              <option value="germany">🇩🇪 Germany</option>
+              <option value="italy">🇮🇹 Italy</option>
+              <option value="japan">🇯🇵 Japan</option>
+              <option value="soviet">🇷🇺 Soviet Union</option>
+              <option value="usa">🇺🇸 United States</option>
+              <option value="uk_europe">🇬🇧 UK Europe</option>
+              <option value="uk_pacific">🏴 UK Pacific</option>
+              <option value="anzac">🇦🇺 ANZAC</option>
+              <option value="china">🇨🇳 China</option>
+              <option value="france">🇫🇷 France</option>
+              <option value="neutral">⚪ Nøytral</option>
+              <option value="dutch">🇳🇱 Dutch</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="territory-count-bar">
+          <span class="tcb-item"><span class="tcb-label">Totalt:</span><span class="tcb-val" id="tcbTotal">—</span></span>
+          <span class="tcb-item" style="color:var(--red)"><span class="tcb-label">Akse:</span><span class="tcb-val" id="tcbAxis">—</span></span>
+          <span class="tcb-item" style="color:var(--blue)"><span class="tcb-label">Allierte:</span><span class="tcb-val" id="tcbAllies">—</span></span>
+          <span class="tcb-item"><span class="tcb-label">Nøytral:</span><span class="tcb-val" id="tcbNeutral">—</span></span>
+        </div>
+
+        <div id="territoryGroups"></div>
+      </div>
+
+
+
+      <!-- ── HISTORY TAB ────────────────────── -->
+      <div id="tab-history" class="tab-panel" role="tabpanel">
+        <div class="history-list" id="historyList"></div>
+      </div>
+
+      <!-- ── BATTLE BOARD TAB ──────────────── -->
+      <div id="tab-battle" class="tab-panel" role="tabpanel">
+
+        <div class="battle-header-bar">
+          <h2 class="battle-main-title">⚔️ Slagbord</h2>
+          <button class="btn btn-ghost btn-sm" onclick="resetBattle()">🗑️ Nullstill</button>
+        </div>
+
+        <div class="battle-board">
+
+          <!-- ATTACKER -->
+          <div class="battle-side attacker-side">
+            <div class="battle-side-header attacker-header">
+              <span class="battle-side-icon">🗡️</span>
+              <span class="battle-side-label">ANGRIPER</span>
+              <span class="battle-side-dice" id="atk-total-dice">0 terninger</span>
+            </div>
+            <div class="battle-nation-select-wrap">
+              <select class="battle-nation-select" id="battle-nation-atk" onchange="onBattleNationChange()">
+                <option value="">— Velg nasjon —</option>
+              </select>
+              <span class="battle-adv-art-badge hidden" id="adv-art-badge">⚗️ Adv. Artillery</span>
+            </div>
+            <div class="battle-units" id="atk-units"></div>
+          </div>
+
+          <!-- VS divider -->
+          <div class="battle-vs">
+            <div class="battle-vs-circle">VS</div>
+            <div class="battle-rolls-summary" id="battle-summary">
+              <div class="brs-row"><span class="brs-label">Forventet treff (ang.)</span><span class="brs-val atk" id="atk-expected">0</span></div>
+              <div class="brs-row"><span class="brs-label">Forventet treff (for.)</span><span class="brs-val def" id="def-expected">0</span></div>
+            </div>
+            <div class="battle-pairing-info" id="battle-pairing-info"></div>
+            <button class="btn btn-primary battle-roll-btn" id="btnBattleRoll" onclick="rollBattle()" disabled>
+              🎲 Kast terninger
+            </button>
+            <div id="battle-result"></div>
+          </div>
+
+          <!-- DEFENDER -->
+          <div class="battle-side defender-side">
+            <div class="battle-side-header defender-header">
+              <span class="battle-side-icon">🛡️</span>
+              <span class="battle-side-label">FORSVARER</span>
+              <span class="battle-side-dice" id="def-total-dice">0 terninger</span>
+            </div>
+            <div class="battle-nation-select-wrap">
+              <select class="battle-nation-select" id="battle-nation-def" onchange="onBattleNationChange()">
+                <option value="">— Velg nasjon —</option>
+              </select>
+            </div>
+            <div class="battle-units" id="def-units"></div>
+          </div>
+
+        </div>
+
+        <!-- Hit value legend -->
+        <div class="battle-legend">
+          <div class="bl-item"><span class="bl-dot" style="background:var(--text-muted)"></span>Treffer på 1</div>
+          <div class="bl-item"><span class="bl-dot" style="background:#d97706"></span>Treffer på 1–2</div>
+          <div class="bl-item"><span class="bl-dot" style="background:#ea580c"></span>Treffer på 1–3</div>
+          <div class="bl-item"><span class="bl-dot" style="background:#dc2626"></span>Treffer på 1–4</div>
+        </div>
+
+      </div>
+
+      <!-- ── RULES TAB ─────────────────── -->
+      <div id="tab-rules" class="tab-panel" role="tabpanel" style="padding:0;height:calc(100vh - 110px);">
+        <iframe src="rules.html" title="Rules" style="width:100%;height:100%;border:none;" loading="lazy"></iframe>
+      </div>
+
+      <!-- ── SETUP TAB ─────────────────── -->
+      <div id="tab-setup" class="tab-panel" style="padding:0;height:calc(100vh - 110px);" role="tabpanel">
+        <iframe src="setup.html" title="Game play setup" style="width:100%;height:100%;border:none;" loading="lazy"></iframe>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ══════════════ MODALS ══════════════ -->
+
+  <!-- Server Save/Load Modal -->
+  <div class="modal-backdrop hidden" id="serverSaveModal" onclick="if(event.target===this)closeServerSaveModal()">
+    <div class="modal" style="min-width:340px;max-width:520px;width:95vw">
+      <div class="modal-header">
+        <span class="modal-title">☁️ Server-lagring</span>
+        <button class="btn btn-ghost btn-sm" onclick="closeServerSaveModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Save row -->
+        <div class="ssave-save-row">
+          <input type="text" id="ssaveName" placeholder="Lagrenavn…" maxlength="64" class="ssave-name-input">
+          <button class="btn btn-accent btn-sm" onclick="saveToServer()">💾 Lagre</button>
+        </div>
+        <!-- Save list -->
+        <div class="ssave-list-header">
+          <span>Lagrede spill</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadSavesList()">🔄 Oppdater</button>
+        </div>
+        <div id="ssaveList" class="ssave-list">
+          <div class="ssave-empty">Laster…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Game Modal -->
+  <div class="modal-backdrop hidden" id="newGameModal" onclick="if(event.target===this)closeNewGameModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">🎮 Nytt spill</span>
+        <button class="btn btn-ghost btn-sm" onclick="closeNewGameModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-dim);font-size:.9rem">
+          Er du sikker på at du vil starte et nytt spill?<br>
+          <strong style="color:var(--red)">All nåværende spillprogresjon vil slettes.</strong>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost"   id="btnNewGameCancel">Avbryt</button>
+        <button class="btn btn-danger"  id="btnNewGameConfirm">🗑️ Start nytt spill</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Owner Picker Modal -->
+  <div class="modal-backdrop hidden" id="ownerPickerModal" onclick="if(event.target===this)closeOwnerPicker()">
+    <div class="modal owner-picker-modal">
+      <div class="modal-header">
+        <span class="modal-title" id="ownerPickerTitle">Endre eier</span>
+        <button class="btn btn-ghost btn-sm" onclick="closeOwnerPicker()">✕</button>
+      </div>
+      <div class="owner-picker-grid" id="ownerPickerGrid"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ TOASTS ══════════════ -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ══════════════ SCRIPTS ══════════════ -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

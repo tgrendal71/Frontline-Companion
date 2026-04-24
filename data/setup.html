@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A&amp;A Global 1940 — Oppsett</title>
+  <style>
+    :root {
+      --bg:         #0d1117;
+      --bg2:        #161b22;
+      --bg3:        #1c2128;
+      --border:     #30363d;
+      --text:       #e6edf3;
+      --text-dim:   #8b949e;
+      --text-muted: #656d76;
+      --gold:       #f59e0b;
+      --green:      #22c55e;
+      --red:        #ef4444;
+      --blue:       #58a6ff;
+      --radius:     6px;
+
+      /* Nation accent colors */
+      --de: #a3b38c; --de-bg: rgba(163,179,140,.12);
+      --su: #ef5a35; --su-bg: rgba(239,90,53,.12);
+      --jp: #d4a352; --jp-bg: rgba(212,163,82,.12);
+      --us: #4fa3e0; --us-bg: rgba(79,163,224,.12);
+      --ch: #e8834e; --ch-bg: rgba(232,131,78,.12);
+      --uk: #5a9fd4; --uk-bg: rgba(90,159,212,.12);
+      --it: #b0a070; --it-bg: rgba(176,160,112,.12);
+      --an: #7ec87e; --an-bg: rgba(126,200,126,.12);
+      --fr: #7090b0; --fr-bg: rgba(112,144,176,.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: .85rem;
+      line-height: 1.5;
+      padding: 1.2rem 1rem 3rem;
+    }
+
+    h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: .2rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .subtitle { color: var(--text-muted); font-size: .78rem; margin-bottom: 1.4rem; }
+
+    /* ── Special rules callout ─────────── */
+    .rules-callout {
+      background: var(--bg2);
+      border: 1px solid var(--gold);
+      border-left: 4px solid var(--gold);
+      border-radius: var(--radius);
+      padding: .75rem 1rem;
+      margin-bottom: 1.4rem;
+    }
+    .rules-callout h2 {
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: .5rem;
+    }
+    .rules-callout ul { padding-left: 1.2rem; }
+    .rules-callout li {
+      font-size: .8rem;
+      color: var(--text-dim);
+      margin-bottom: .3rem;
+      line-height: 1.4;
+    }
+    .rules-callout li strong { color: var(--text); }
+    .highlight-red { color: var(--red); font-weight: 700; }
+    .highlight-green { color: var(--green); font-weight: 700; }
+
+    /* ── Starting IPC table ─────────────── */
+    .ipc-table-wrap { margin-bottom: 1.6rem; }
+    .ipc-table-wrap h2 {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-muted);
+      margin-bottom: .5rem;
+    }
+    .ipc-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+    }
+    .ipc-pill {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: .25rem .7rem;
+      font-size: .78rem;
+    }
+    .ipc-pill .flag { font-size: 1rem; }
+    .ipc-pill .nation-name { color: var(--text-dim); }
+    .ipc-pill .ipc-val { font-weight: 700; color: var(--gold); }
+
+    /* ── Nation sections ─────────────────── */
+    .nation-section { margin-bottom: 1.6rem; }
+    .nation-header {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .45rem .75rem;
+      border-radius: var(--radius) var(--radius) 0 0;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      font-weight: 700;
+      font-size: .88rem;
+    }
+    .nation-header .flag { font-size: 1.1rem; }
+    .nation-header .side-badge {
+      margin-left: auto;
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      padding: .1rem .4rem;
+      border-radius: 3px;
+    }
+    .axis-badge { background: rgba(239,68,68,.15); color: #ef4444; border: 1px solid rgba(239,68,68,.3); }
+    .allied-badge { background: rgba(34,197,94,.12); color: #22c55e; border: 1px solid rgba(34,197,94,.25); }
+
+    /* ── Territory table ─────────────────── */
+    .territory-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: 0 0 var(--radius) var(--radius);
+      overflow: hidden;
+      font-size: .78rem;
+    }
+    .territory-table th {
+      background: var(--bg3);
+      color: var(--text-muted);
+      font-size: .66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      padding: .3rem .5rem;
+      text-align: center;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .territory-table th.col-territory { text-align: left; min-width: 150px; }
+    .territory-table td {
+      padding: .25rem .5rem;
+      border: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-dim);
+    }
+    .territory-table td.col-territory {
+      text-align: left;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .territory-table td.sea-zone { color: var(--text-muted); font-style: italic; }
+    .territory-table tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+    .territory-table td.unit-val { font-weight: 700; color: var(--text); }
+    .territory-table td.global-rule { text-align: left; }
+    .global-note {
+      display: inline-block;
+      background: rgba(245,158,11,.12);
+      color: var(--gold);
+      border: 1px solid rgba(245,158,11,.25);
+      border-radius: 3px;
+      padding: .05rem .35rem;
+      font-size: .65rem;
+      font-weight: 700;
+    }
+    .special-note {
+      display: inline-block;
+      background: rgba(239,68,68,.12);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,.25);
+      border-radius: 3px;
+      padding: .05rem .35rem;
+      font-size: .65rem;
+      font-weight: 700;
+    }
+
+    /* Category rows */
+    .cat-row td {
+      background: var(--bg3) !important;
+      color: var(--text-muted);
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      padding: .2rem .5rem;
+    }
+
+    /* ── Nation color overrides ─────────── */
+    .nation-de .nation-header { background: var(--de-bg); color: var(--de); border-color: rgba(163,179,140,.3); }
+    .nation-su .nation-header { background: var(--su-bg); color: var(--su); border-color: rgba(239,90,53,.3); }
+    .nation-jp .nation-header { background: var(--jp-bg); color: var(--jp); border-color: rgba(212,163,82,.3); }
+    .nation-us .nation-header { background: var(--us-bg); color: var(--us); border-color: rgba(79,163,224,.3); }
+    .nation-ch .nation-header { background: var(--ch-bg); color: var(--ch); border-color: rgba(232,131,78,.3); }
+    .nation-uk .nation-header { background: var(--uk-bg); color: var(--uk); border-color: rgba(90,159,212,.3); }
+    .nation-ukp .nation-header { background: var(--uk-bg); color: var(--uk); border-color: rgba(90,159,212,.3); }
+    .nation-it .nation-header { background: var(--it-bg); color: var(--it); border-color: rgba(176,160,112,.3); }
+    .nation-an .nation-header { background: var(--an-bg); color: var(--an); border-color: rgba(126,200,126,.3); }
+    .nation-fr .nation-header { background: var(--fr-bg); color: var(--fr); border-color: rgba(112,144,176,.3); }
+
+    .nation-de .territory-table,
+    .nation-de .territory-table th { border-color: rgba(163,179,140,.2); }
+    .nation-su .territory-table,
+    .nation-su .territory-table th { border-color: rgba(239,90,53,.2); }
+    .nation-jp .territory-table,
+    .nation-jp .territory-table th { border-color: rgba(212,163,82,.2); }
+    .nation-us .territory-table,
+    .nation-us .territory-table th { border-color: rgba(79,163,224,.2); }
+    .nation-ch .territory-table,
+    .nation-ch .territory-table th { border-color: rgba(232,131,78,.2); }
+    .nation-uk .territory-table,
+    .nation-uk .territory-table th { border-color: rgba(90,159,212,.2); }
+    .nation-ukp .territory-table,
+    .nation-ukp .territory-table th { border-color: rgba(90,159,212,.2); }
+    .nation-it .territory-table,
+    .nation-it .territory-table th { border-color: rgba(176,160,112,.2); }
+    .nation-an .territory-table,
+    .nation-an .territory-table th { border-color: rgba(126,200,126,.2); }
+    .nation-fr .territory-table,
+    .nation-fr .territory-table th { border-color: rgba(112,144,176,.2); }
+
+    @media (max-width: 700px) {
+      body { padding: .7rem .4rem 2rem; }
+      .territory-table { font-size: .7rem; }
+      .territory-table th, .territory-table td { padding: .2rem .3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎲 Game Play Setup</h1>
+<p class="subtitle">A&amp;A Global 1940 — Startoppsett for alle nasjoner. Basert på offisielle oppsettskjemaer.</p>
+
+<!-- ── Special rules ──────────────────────────────── -->
+<div class="rules-callout">
+  <h2>⚠️ Spesielle oppsettregler (Global 1940)</h2>
+  <ul>
+    <li>Koble vestlig kant av Pacific 1940-kartet med østlig kant av Europe 1940-kartet. Kartet er rundt horisontelt.</li>
+    <li>Sett opp enheter som vist på oppsettskjemaene i Pacific 1940 og Europe 1940, pluss følgende tilleggsenheter:</li>
+    <li><strong>Amur:</strong> <span class="highlight-green">+ 6 Sovjet Infantry</span></li>
+    <li><strong>Sakha:</strong> <span class="highlight-green">+ 6 Sovjet Infantry + 2 Sovjet AAA</span></li>
+    <li><strong>Buryatia:</strong> <span class="highlight-green">+ 6 Sovjet Infantry</span></li>
+    <li><strong>Egypt:</strong> <span class="highlight-green">+ 2 ANZAC Infantry</span> — men <span class="highlight-red">fjern 1 UK Infantry fra Egypt!</span></li>
+  </ul>
+</div>
+
+<!-- ── Starting IPC ───────────────────────────────── -->
+<div class="ipc-table-wrap">
+  <h2>💰 Startinntekt og skattkammer</h2>
+  <div class="ipc-grid">
+    <div class="ipc-pill"><span class="flag">🇩🇪</span><span class="nation-name">Germany</span><span class="ipc-val">30 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🇷🇺</span><span class="nation-name">Soviet Union</span><span class="ipc-val">37 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🇯🇵</span><span class="nation-name">Japan</span><span class="ipc-val">26 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🇺🇸</span><span class="nation-name">United States</span><span class="ipc-val">52 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🇨🇳</span><span class="nation-name">China</span><span class="ipc-val">12 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🇬🇧</span><span class="nation-name">UK Europe</span><span class="ipc-val">28 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🏴</span><span class="nation-name">UK Pacific</span><span class="ipc-val">17 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🇮🇹</span><span class="nation-name">Italy</span><span class="ipc-val">10 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🦘</span><span class="nation-name">ANZAC</span><span class="ipc-val">10 IPC</span></div>
+    <div class="ipc-pill"><span class="flag">🇫🇷</span><span class="nation-name">France</span><span class="ipc-val">19 IPC</span></div>
+  </div>
+</div>
+
+<!-- helper macro: unit columns header -->
+<!-- Inf | Art | Mech | Tank | AAA | Fig | Tac | SB | BB | CV | CA | DD | SS | TP | MIC | MajIC | AB | NB -->
+
+<!-- ════════════════════════════════════════════ GERMANY ════ -->
+<div class="nation-section nation-de">
+  <div class="nation-header">
+    <span class="flag">🇩🇪</span> Germany
+    <span class="side-badge axis-badge">Akse</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">Germany (Berlin)</td><td class="unit-val">11</td><td class="unit-val">3</td><td></td><td></td><td class="unit-val">3</td><td></td><td class="unit-val">1</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td></tr>
+      <tr><td class="col-territory">Western Germany</td><td class="unit-val">3</td><td class="unit-val">1</td><td class="unit-val">4</td><td></td><td class="unit-val">3</td><td class="unit-val">2</td><td class="unit-val">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Denmark</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Norway</td><td class="unit-val">3</td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Holland Belgium</td><td class="unit-val">4</td><td class="unit-val">2</td><td></td><td class="unit-val">3</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Greater Southern Germany</td><td class="unit-val">6</td><td class="unit-val">2</td><td></td><td class="unit-val">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Slovakia Hungary</td><td class="unit-val">2</td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Romania</td><td class="unit-val">2</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Poland (Warsaw)</td><td class="unit-val">3</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 103</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 108</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 113</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 114</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 117</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 118</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 124</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ SOVIET UNION ════ -->
+<div class="nation-section nation-su">
+  <div class="nation-header">
+    <span class="flag">🇷🇺</span> Soviet Union
+    <span class="side-badge allied-badge">Alliert</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">Russia (Moscow)</td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">2</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td></tr>
+      <tr><td class="col-territory">Archangel</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Karelia</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Novgorod (Leningrad)</td><td class="unit-val">6</td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">2</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Vyborg</td><td class="unit-val">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Baltic States</td><td class="unit-val">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Eastern Poland</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Belarus</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Western Ukraine</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Bessarabia</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Ukraine</td><td class="unit-val">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Caucasus</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Vologda</td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Amur <span class="global-note">Global regel</span></td><td class="unit-val">6</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Sakha <span class="global-note">Global regel</span></td><td class="unit-val">6</td><td></td><td></td><td></td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Buryatia <span class="global-note">Global regel</span></td><td class="unit-val">6</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 115</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 127</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ JAPAN ════ -->
+<div class="nation-section nation-jp">
+  <div class="nation-header">
+    <span class="flag">🇯🇵</span> Japan
+    <span class="side-badge axis-badge">Akse</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">Japan (Tokyo)</td><td class="unit-val">6</td><td class="unit-val">2</td><td></td><td class="unit-val">1</td><td class="unit-val">3</td><td class="unit-val">2</td><td class="unit-val">2</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Iwo Jima</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Okinawa</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Korea</td><td class="unit-val">4</td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Manchuria</td><td class="unit-val">6</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td class="unit-val">2</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Jehol</td><td class="unit-val">2</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Shantung</td><td class="unit-val">3</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Kiangsu</td><td class="unit-val">3</td><td class="unit-val">1</td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Kiangsi</td><td class="unit-val">3</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Kwangsi</td><td class="unit-val">3</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Siam</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Formosa</td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Palau Island</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Caroline Islands</td><td class="unit-val">2</td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 6</td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">2</td><td class="unit-val">2</td><td></td><td></td><td class="unit-val">2</td><td class="unit-val">1</td><td class="unit-val">2</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 19</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 20</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 33</td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ USA ════ -->
+<div class="nation-section nation-us">
+  <div class="nation-header">
+    <span class="flag">🇺🇸</span> United States
+    <span class="side-badge allied-badge">Alliert</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">Western United States (San Francisco)</td><td class="unit-val">2</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td class="unit-val">2</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Hawaiian Islands</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Midway</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td></tr>
+      <tr><td class="col-territory">Philippines</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Guam</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td></tr>
+      <tr><td class="col-territory">Wake Island</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td></tr>
+      <tr><td class="col-territory">Eastern United States (Washington)</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">2</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Central United States</td><td class="unit-val">1</td><td></td><td class="unit-val">3</td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 10</td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 26</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 35</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 101</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ CHINA ════ -->
+<div class="nation-section nation-ch">
+  <div class="nation-header">
+    <span class="flag">🇨🇳</span> China
+    <span class="side-badge allied-badge">Alliert</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">Szechwan</td><td class="unit-val">6</td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Yunnan</td><td class="unit-val">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Hunan</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Kweichow</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Shensi</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Suiyuan</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ UK EUROPE ════ -->
+<div class="nation-section nation-uk">
+  <div class="nation-header">
+    <span class="flag">🇬🇧</span> United Kingdom — Europe
+    <span class="side-badge allied-badge">Alliert</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">United Kingdom (London)</td><td class="unit-val">2</td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">4</td><td class="unit-val">2</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Egypt <span class="special-note">⚠ fjern 1 UK Inf</span></td><td class="unit-val">2</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Anglo-Egyptian Sudan</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Union of South Africa</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">West India</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">France</td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Scotland</td><td class="unit-val">2</td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td></tr>
+      <tr><td class="col-territory">Iceland</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td></tr>
+      <tr><td class="col-territory">Quebec</td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Ontario (Ottawa)</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">New Brunswick Nova Scotia</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Gibraltar</td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Malta</td><td class="unit-val">1</td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Alexandria</td><td class="unit-val">2</td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 71</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 91</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 106</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 98</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 109</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 110</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 111</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ UK PACIFIC ════ -->
+<div class="nation-section nation-ukp">
+  <div class="nation-header">
+    <span class="flag">🏴</span> United Kingdom — Pacific
+    <span class="side-badge allied-badge">Alliert</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">India (Calcutta)</td><td class="unit-val">6</td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">3</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Burma</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Malaya</td><td class="unit-val">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Kwangtung</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 37</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 39</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ ITALY ════ -->
+<div class="nation-section nation-it">
+  <div class="nation-header">
+    <span class="flag">🇮🇹</span> Italy
+    <span class="side-badge axis-badge">Akse</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">Southern Italy</td><td class="unit-val">6</td><td></td><td></td><td></td><td class="unit-val">2</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Northern Italy</td><td class="unit-val">2</td><td class="unit-val">2</td><td></td><td class="unit-val">1</td><td class="unit-val">2</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td></tr>
+      <tr><td class="col-territory">Albania</td><td class="unit-val">2</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Libya</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Tobruk</td><td class="unit-val">3</td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Italian Somaliland</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Ethiopia</td><td class="unit-val">2</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 95</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 96</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 97</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ ANZAC ════ -->
+<div class="nation-section nation-an">
+  <div class="nation-header">
+    <span class="flag">🦘</span> ANZAC
+    <span class="side-badge allied-badge">Alliert</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">New South Wales (Sydney)</td><td class="unit-val">2</td><td></td><td></td><td></td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Queensland</td><td class="unit-val">2</td><td class="unit-val">1</td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">New Zealand</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">Malaya</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Egypt <span class="global-note">Global regel: +2 Inf</span></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 62</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 63</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════ FRANCE ════ -->
+<div class="nation-section nation-fr">
+  <div class="nation-header">
+    <span class="flag">🇫🇷</span> France
+    <span class="side-badge allied-badge">Alliert</span>
+  </div>
+  <table class="territory-table">
+    <thead>
+      <tr>
+        <th class="col-territory">Territorium / Sjøsone</th>
+        <th>Inf</th><th>Art</th><th>Mech</th><th>Tank</th><th>AAA</th>
+        <th>Fig</th><th>Tac</th><th>SB</th>
+        <th>BB</th><th>CV</th><th>CA</th><th>DD</th><th>SS</th><th>TP</th>
+        <th>MIC</th><th>MajIC</th><th>AB</th><th>NB</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-territory">France (Paris)</td><td class="unit-val">6</td><td class="unit-val">1</td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td></tr>
+      <tr><td class="col-territory">United Kingdom</td><td class="unit-val">2</td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Normandy Bordeaux</td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td class="unit-val">1</td></tr>
+      <tr><td class="col-territory">French West Africa</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Morocco</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Algeria</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Tunisia</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory">Syria</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr class="cat-row"><td colspan="19">Sjøsoner</td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 72</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 93</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="col-territory sea-zone">Sea Zone 110</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="unit-val">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── Legend ────────────────────────────────── -->
+<div style="margin-top:1.5rem;padding:.6rem .8rem;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);font-size:.72rem;color:var(--text-muted);">
+  <strong style="color:var(--text-dim)">Forkortelser:</strong>
+  Inf = Infantry &nbsp;|&nbsp; Art = Artillery &nbsp;|&nbsp; Mech = Mechanized Infantry &nbsp;|&nbsp;
+  Tank &nbsp;|&nbsp; AAA &nbsp;|&nbsp; Fig = Fighter &nbsp;|&nbsp; Tac = Tactical Bomber &nbsp;|&nbsp;
+  SB = Strategic Bomber &nbsp;|&nbsp; BB = Battleship &nbsp;|&nbsp; CV = Aircraft Carrier &nbsp;|&nbsp;
+  CA = Cruiser &nbsp;|&nbsp; DD = Destroyer &nbsp;|&nbsp; SS = Submarine &nbsp;|&nbsp;
+  TP = Transport &nbsp;|&nbsp; MIC = Minor Industrial Complex &nbsp;|&nbsp;
+  MajIC = Major Industrial Complex &nbsp;|&nbsp; AB = Air Base &nbsp;|&nbsp; NB = Naval Base
+</div>
+
+</body>
+</html>

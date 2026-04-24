@@ -1,0 +1,10 @@
+Gemany = Svart 
+Soviet union = Mørk rød 
+Japan = Orange
+USA = Mørk Grønn
+China = Lys Grønn
+GB UKE = mørk Gul
+UKP = Mørk Gul
+Italia = Brun
+ANZ = Grå
+France = mørk Blå 
