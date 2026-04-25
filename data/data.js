@@ -31,9 +31,9 @@ const NATIONS = {
 const PHASES = [
   { id:'rd',      label:'Fase 0: Forskning & Utvikling (valgfritt)', warOnly:false, indent:false, techRequired:null, chinaExcluded:true },
   { id:'p1',      label:'Fase 1: Kjøp & Reparer enheter',       warOnly:false, indent:false, techRequired:null     },
-  { id:'rockets', label:'↳ Rockets Launch',                     warOnly:false, indent:true,  techRequired:'rockets' },
   { id:'p2',      label:'Fase 2: Kampbevegelse',                warOnly:true,  indent:false, techRequired:null     },
   { id:'p3',      label:'Fase 3: Gjennomfør kamp',              warOnly:true,  indent:false, techRequired:null     },
+  { id:'rockets', label:'↳ Rockets Launch',                     warOnly:true,  indent:true,  techRequired:'rockets' },
   { id:'p4',      label:'Fase 4: Ikke-kampbevegelse',           warOnly:false, indent:false, techRequired:null     },
   { id:'p5',      label:'Fase 5: Mobiliser nye enheter',        warOnly:false, indent:false, techRequired:null     },
   { id:'p6',      label:'Fase 6: Samle inn inntekt',            warOnly:false, indent:false, techRequired:null     },

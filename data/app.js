@@ -588,7 +588,7 @@ function renderPhaseTracker() {
       const done   = completed.includes(p.id);
       const warTag = p.warOnly ? '<span class="phase-war-tag">Kun ved krig</span>' : '';
       return `<label class="phase-item${done ? ' done' : ''}${p.indent ? ' indent' : ''}${p.warOnly ? ' war-only' : ''}">
-        <input type="checkbox" ${done ? 'checked' : ''} onchange="togglePhase('${tid}','${p.id}',this.checked)">
+        <input type="checkbox" ${done ? 'checked' : ''} ${p.id === 'p6' ? 'disabled' : ''} title="${p.id === 'p6' ? 'Markeres automatisk av Samle inn inntekt' : ''}" onchange="togglePhase('${tid}','${p.id}',this.checked)">
         <span class="phase-label">${p.label}</span>
         ${warTag}
       </label>`;
@@ -603,6 +603,13 @@ function renderPhaseTracker() {
 }
 
 function togglePhase(tid, phaseId, checked) {
+  // Phase 6 can only be completed automatically by collectIncome().
+  if (phaseId === 'p6') {
+    renderPhaseTracker();
+    updateNationPhaseTracker(tid);
+    return;
+  }
+
   if (!state.turnPhases)       state.turnPhases = {};
   if (!state.turnPhases[tid])  state.turnPhases[tid] = [];
 
@@ -896,7 +903,7 @@ function buildNationPhaseTrackerHTML(tid) {
     const done   = completed.includes(p.id);
     const warTag = p.warOnly ? '<span class="phase-war-tag">Kun ved krig</span>' : '';
     return `<label class="phase-item${done ? ' done' : ''}${p.indent ? ' indent' : ''}${p.warOnly ? ' war-only' : ''}">
-      <input type="checkbox" ${done ? 'checked' : ''} onchange="togglePhase('${tid}','${p.id}',this.checked)">
+      <input type="checkbox" ${done ? 'checked' : ''} ${p.id === 'p6' ? 'disabled' : ''} title="${p.id === 'p6' ? 'Markeres automatisk av Samle inn inntekt' : ''}" onchange="togglePhase('${tid}','${p.id}',this.checked)">
       <span class="phase-label">${p.label}</span>
       ${warTag}
     </label>`;
@@ -1142,7 +1149,7 @@ function buildNationCard(tid) {
   <div class="phase-block${p6Done ? ' phase-done' : ''}" id="pb-p6-${tid}">
     <div class="phase-block-hdr" onclick="togglePhaseBlock('${tid}','p6')">
       <label class="phase-cb" onclick="event.stopPropagation()">
-        <input type="checkbox" ${p6Done ? 'checked' : ''} onchange="togglePhase('${tid}','p6',this.checked)" ${p6Done ? 'disabled' : ''}>
+        <input type="checkbox" ${p6Done ? 'checked' : ''} onchange="togglePhase('${tid}','p6',this.checked)" disabled title="Markeres automatisk av Samle inn inntekt">
       </label>
       <span class="phase-block-title">💰 Fase 6: Samle inn inntekt</span>
       <span class="phase-ipc-preview" id="nc-p6-preview-${tid}">${toUse}\xa0IPC</span>
@@ -1263,9 +1270,9 @@ function buildNationCard(tid) {
       <div class="ncb-col ncb-col1">
         ${fase0Block}
         ${fase1Block}
-        ${rocketsRow}
         ${simpleRows}
         ${fase3Block}
+        ${rocketsRow}
         ${simpleRows45}
         ${fase6Block}
         ${convoyRow}
