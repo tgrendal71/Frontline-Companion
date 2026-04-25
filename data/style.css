@@ -1069,8 +1069,22 @@ main {
   display: none;
 }
 .nation-card-body.open {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
+
+/* Column wrappers inside nation-card-body */
+.ncb-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* Last item in each column should not double-border with the column below */
+.ncb-col > .phase-block:last-child,
+.ncb-col > .phase-row:last-child { border-bottom: none; }
+/* Top border on col2/col3 when stacked vertically */
+.ncb-col2, .ncb-col3 { border-top: 1px solid var(--border); }
 
 /* ── Phase-block layout ──────────────────────────────────────────── */
 .phase-block {
@@ -2679,28 +2693,45 @@ main {
   .hdr-next-btn { padding: .38rem 1.1rem; }
   .hdr-turn-pill { font-size: .88rem; }
   main   { padding: 1.5rem 2rem; }
+
+  /* Nation card: 3 columns side by side on desktop                   */
+  /*  col1 (left):   R&D + Income/Objectives                          */
+  /*  col2 (middle): Purchase calculator — needs most horizontal space */
+  /*  col3 (right):  Combat phases + Notes                            */
+  .nation-card-body.open {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+  }
+  .ncb-col2, .ncb-col3 { border-top: none; }
+  .ncb-col1 { order: 1; flex: 1 1 0; min-width: 240px; border-right: 1px solid var(--border); }
+  .ncb-col2 { order: 2; flex: 1.6 1 0; min-width: 320px; border-right: 1px solid var(--border); }
+  .ncb-col3 { order: 3; flex: 1 1 0; min-width: 240px; }
 }
 
 /* ── Responsive: Tablet portrait & iPad (640px – 1023px) ───── */
-/*  Reflows nation card from 3 columns to:                      */
-/*  [Income col][ Phases/Tech col ]    ← row 1, side by side    */
-/*  [     Purchase calculator     ]    ← row 2, full width      */
+/*  col1 (Fase 0): left 35%                                     */
+/*  col3 (Fase 2–6): right 65%, row 1                           */
+/*  col2 (Kjøp): full width, row 2                              */
 @media (max-width: 1023px) {
   .nation-card-body.open {
+    display: flex;
+    flex-direction: row;
     flex-wrap: wrap;
+    align-items: flex-start;
   }
-  /* Col 1: Income + R&D + Objectives — left half, row 1 */
+  /* Col 1: Fase 0 R&D — left, row 1 (narrower, less content) */
   .ncb-col1 {
-    flex: 0 0 50%;
-    max-width: 50%;
+    flex: 0 0 35%;
+    max-width: 35%;
     order: 1;
     border-right: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
-  /* Col 3: Phases + Tech + Notes — right half, row 1 */
+  /* Col 3: Fase 2–6 + Notes — right, row 1 (wider, more content) */
   .ncb-col3 {
-    flex: 0 0 50%;
-    max-width: 50%;
+    flex: 0 0 65%;
+    max-width: 65%;
     order: 2;
     border-right: none;
     border-bottom: 1px solid var(--border);
@@ -2711,6 +2742,7 @@ main {
     max-width: 100%;
     order: 3;
     border-right: none;
+    border-top: none;
   }
 
   /* Nation card header: allow IPC block and territory fields to wrap */
@@ -2737,10 +2769,13 @@ main {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
-  /* Restore natural order */
+  /* Restore natural order: Fase 0 → Fase 1 (kjøp) → Fase 2–6 + notater */
   .ncb-col1 { order: 1; }
   .ncb-col2 { order: 2; }
   .ncb-col3 { order: 3; }
+
+  /* Territory table: horizontal scroll from 640px up to 767px too */
+  .territory-table { display: block; overflow-x: auto; }
 }
 
 /* ── Responsive: Mobile only (<640px) ─────────────────────── */
@@ -2758,6 +2793,15 @@ main {
 
   .round-badge  { font-size: .78rem; padding: .2rem .6rem; }
   .turn-pill    { font-size: .72rem; padding: .2rem .6rem; }
+
+  /* A: Hide redundant owner badge col + origin col — action button in col 4 is sufficient */
+  .territory-table td:nth-child(3),
+  .territory-table th:nth-child(3),
+  .territory-table td:nth-child(5),
+  .territory-table th:nth-child(5) { display: none; }
+
+  /* D: Hide erobret/mistet header fields — already visible in card body */
+  .nchf-terr-block { display: none; }
 }
 
 /* ── Print ─────────────────────────────────────────────────── */
@@ -3086,58 +3130,251 @@ main {
 
 /* ── Touch / Tablet improvements ──────────────────────────────
    Targets touchscreen devices (iPad, Android tablets, phones).
-   Bigger hit areas, clearer interactive elements.
+   Bigger hit areas (min 44px), clearer interactive elements,
+   larger text and checkboxes for finger use.
    ─────────────────────────────────────────────────────────── */
 @media (hover: none) and (pointer: coarse) {
 
-  /* Tab bar: taller, bigger font */
+  /* Slightly larger base font — improves readability across all rem sizes */
+  html { font-size: 16px; }
+
+  /* ── Tab bar ─────────────────────────────────────────────── */
   .tab-btn {
     padding: .85rem 1.1rem;
     font-size: .9rem;
     min-height: 50px;
   }
 
-  /* Header turn buttons: bigger tap target */
+  /* ── Header nav buttons (◀ Neste ▶ and action menu) ───────── */
+  .hdr-nav-btn {
+    min-height: 44px;
+    padding: .55rem .9rem;
+    font-size: .88rem;
+  }
   .btn-sm {
-    padding: .45rem .85rem;
-    font-size: .82rem;
-    min-height: 38px;
+    min-height: 44px;
+    padding: .5rem .85rem;
+    font-size: .85rem;
+  }
+  .action-menu-trigger {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+  .action-menu-item {
+    padding: .85rem 1.1rem;
+    font-size: .92rem;
+    min-height: 48px;
   }
 
-  /* Territory table rows: taller for easier tapping */
+  /* ── Nation card header (tap to expand) ───────────────────── */
+  .nation-card-header { min-height: 58px; }
+
+  /* ── Phase block collapsible headers ─────────────────────── */
+  .phase-block-hdr {
+    padding: .7rem .8rem;
+    min-height: 44px;
+  }
+
+  /* ── Checkboxes: 20px is much easier to hit with a finger ─── */
+  .phase-cb input[type="checkbox"],
+  .phase-item input[type="checkbox"],
+  .phase-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* ── Phase items in sidebar phase tracker ─────────────────── */
+  .phase-item {
+    padding: .7rem .6rem;
+    min-height: 44px;
+  }
+
+  /* ── Phase rows in nation card (Fase 2–5) ─────────────────── */
+  .phase-row {
+    padding: .65rem .8rem;
+    min-height: 44px;
+  }
+
+  /* ── Turn nodes in overview strip ────────────────────────── */
+  .turn-node {
+    padding: .55rem .6rem;
+    min-height: 56px;
+    min-width: 52px;
+  }
+
+  /* ── Continent group headers (collapsible) ────────────────── */
+  .continent-header {
+    padding: .65rem 0;
+    min-height: 44px;
+  }
+
+  /* ── Territory table rows: taller for easier tapping ──────── */
   .territory-table td {
-    padding: .6rem .6rem;
+    padding: .7rem .6rem;
   }
 
-  /* Owner change button: even more prominent */
+  /* ── Owner/transfer buttons ───────────────────────────────── */
   .owner-change-btn {
     min-height: 44px;
-    font-size: .82rem;
-    padding: .5rem .75rem;
+    font-size: .85rem;
+    padding: .55rem .75rem;
     border-width: 1.5px;
   }
-
-  /* Nation picker buttons: large finger-friendly tiles */
-  .owner-picker-btn {
-    min-height: 90px;
-    padding: .9rem .4rem .7rem;
+  .quick-transfer-btn {
+    min-height: 44px;
+    font-size: .85rem;
+    padding: .55rem .8rem;
   }
-  .opb-flag { font-size: 2.2rem; }
-  .opb-name { font-size: .72rem; }
+  .owner-change-btn-sm {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
 
-  /* Picker grid: fewer columns = bigger buttons on tablet */
+  /* ── Nation picker modal (owner picker) ───────────────────── */
+  .owner-picker-btn {
+    min-height: 96px;
+    padding: .9rem .5rem .75rem;
+  }
+  .opb-flag { font-size: 2.4rem; }
+  .opb-name { font-size: .8rem; }
   .owner-picker-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: .65rem;
+    gap: .7rem;
     padding: 1rem;
   }
 
-  /* Filters / search in territory tab */
+  /* ── Filters / search in territory tab ───────────────────── */
   .territory-controls input[type=search],
   .territory-controls select {
-    min-height: 40px;
+    min-height: 44px;
+    font-size: .95rem;
+  }
+
+  /* ── Base .btn (modal buttons, confirm buttons not using .btn-sm) */
+  .btn {
+    min-height: 44px;
+  }
+
+  /* ── Purchase calculator +/- buttons ─────────────────────── */
+  .pc-qty-ctrl .btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: .45rem .55rem;
     font-size: .9rem;
   }
+  /* Purchase unit rows: more vertical breathing room */
+  .pc-unit-row {
+    padding: .45rem .4rem;
+  }
+
+  /* ── Battle board ± buttons (hardcoded 22px normally) ──────── */
+  .bu-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
+    border-radius: var(--radius);
+  }
+  /* Adjust the ctrl container so buttons don't stack oddly */
+  .bu-ctrl { gap: .35rem; }
+  .bu-count { min-width: 2rem; font-size: 1rem; }
+
+  /* ── War/peace & show-all toggle labels in Objectives ──────── */
+  .obj-war-label,
+  .obj-showall-label {
+    min-height: 44px;
+    padding: .6rem .85rem;
+    font-size: .82rem;
+  }
+
+  /* ── Clickable nation/chronicle/history rows ───────────────── */
+  .ong-row,
+  .overview-nation-row,
+  .oc-nat-row {
+    min-height: 44px;
+    padding: .6rem 1rem;
+  }
+  .history-entry-header {
+    min-height: 52px;
+    padding: .75rem 1rem;
+  }
+
+  /* ── Technology chart checkboxes ──────────────────────────── */
+  .tech-item {
+    min-height: 44px;
+    padding: .4rem .4rem;
+    font-size: .88rem;
+  }
+  .tech-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* ── R&D stepper −/+ buttons ──────────────────────────────── */
+  .rd-step-btn {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 1.1rem;
+    padding: .4rem .7rem;
+  }
+
+  /* ── Territory link button (Vis territorier →) ─────────────── */
+  .nc-terr-link-btn {
+    min-height: 44px;
+    font-size: .88rem;
+    padding: .6rem .9rem;
+  }
+
+  /* ── Phase checkbox gap: more space between items ──────────── */
+  .phase-list { gap: .3rem; }
+
+  /* ── "Samle inn inntekt" / complete turn button ───────────── */
+  .btn-complete-turn {
+    min-height: 50px;
+    font-size: .95rem;
+    padding: .75rem 1.2rem;
+  }
+
+  /* ── R&D dice roll button ─────────────────────────────────── */
+  .rd-roll-btn {
+    min-height: 44px;
+    font-size: .88rem;
+  }
+
+  /* ── Collect income button in nation card ─────────────────── */
+  .nc-collect-btn {
+    padding: .65rem .8rem;
+    font-size: .9rem;
+    min-height: 44px;
+  }
+
+  /* ── Number inputs (treasury, war bonds) ─────────────────── */
+  input[type=number] {
+    min-height: 44px;
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  /* ── Tiny labels: bump from .60–.63rem to .74rem minimum ────── */
+  .nc-hfield-label    { font-size: .74rem; }
+  .nc-section-title   { font-size: .74rem; }
+  .phase-sub-hdr      { font-size: .74rem; }
+  .nc-formula         { font-size: .74rem; }
+  .obj-badge          { font-size: .74rem; }
+  .rd-phase-badge     { font-size: .72rem; }
+  .phase-opt-badge    { font-size: .74rem; }
+  .tn-phases          { font-size: .74rem; }
+  .phase-war-tag      { font-size: .74rem; }
+  /* R&D chart number circles: scale up to 18px */
+  .rd-chart-num       { width: 18px; height: 18px; font-size: .72rem; }
+  /* Owner change small button: bring up to 44px */
+  .owner-change-btn-sm { width: 44px; height: 44px; }
 }
 
 /* ── Tablet portrait (768px – 1024px) extra tweaks ──────────── */
@@ -3149,5 +3386,8 @@ main {
   .owner-picker-grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   }
+  /* Nation card columns: keep 2-column layout but with more breathing room */
+  .ncb-col1 { flex: 0 0 48%; max-width: 48%; }
+  .ncb-col3 { flex: 0 0 52%; max-width: 52%; }
 }
 

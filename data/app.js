@@ -197,8 +197,8 @@ function calcTotalToSpend(nationId) {
   const ns      = state.nations[nationId];
   const income  = calcIncome(nationId);
   const bonus   = calcBonusIncome(nationId);
-  // Round 1: starting treasury is for phase-1 spending this turn, not carry-over
-  const carryover = state.round === 1 ? 0 : ns.treasury;
+  // Always include current treasury — remaining IPC after purchases carries forward
+  const carryover = ns.treasury;
   // capturedTreasury: IPC taken from captured capitals — carries over to next purchase
   const captured = ns.capturedTreasury || 0;
   return carryover + captured + income + (ns.warBonds || 0) + bonus - (ns.convoyLoss || 0) + (ns.manualAdjust || 0);
@@ -1202,7 +1202,7 @@ function buildNationCard(tid) {
         <span class="nc-income-hero-val" id="nc-tospend-${tid}">${toUse}</span>
         <span class="nc-income-hero-unit">IPC</span>
       </div>
-      <div class="nc-formula" id="nc-formula-${tid}">= ${state.round === 1 ? '' : ns.treasury + ' (skattkammer) + '}${(ns.capturedTreasury || 0) > 0 ? ns.capturedTreasury + ' (kapturet) + ' : ''}${income} (terr.) + ${bonusSum} (bonus) + ${ns.warBonds || 0} (obligasjoner) − ${ns.convoyLoss || 0} (konvoi)</div>
+      <div class="nc-formula" id="nc-formula-${tid}">${ns.treasury > 0 ? ns.treasury + ' (skattkammer) + ' : ''}${(ns.capturedTreasury || 0) > 0 ? ns.capturedTreasury + ' (kapturet) + ' : ''}${income} (terr.) + ${bonusSum} (bonus) + ${ns.warBonds || 0} (obligasjoner) − ${ns.convoyLoss || 0} (konvoi)${(ns.manualAdjust || 0) !== 0 ? ' ' + (ns.manualAdjust > 0 ? '+' : '') + ns.manualAdjust + ' (justering)' : ''} = <strong>${toUse} IPC</strong></div>
       <button class="nc-collect-btn" id="nc-collect-${tid}"
         onclick="collectIncome('${tid}')"
         ${ownsMainCapital(tid) ? '' : 'disabled'}
@@ -1256,15 +1256,21 @@ function buildNationCard(tid) {
       </div>
     </div>
     <div class="nation-card-body" id="ncb-${tid}">
-      ${fase0Block}
-      ${fase1Block}
-      ${rocketsRow}
-      ${simpleRows}
-      ${fase3Block}
-      ${simpleRows45}
-      ${fase6Block}
-      ${convoyRow}
-      ${notesBlock}
+      <div class="ncb-col ncb-col1">
+        ${fase0Block}
+      </div>
+      <div class="ncb-col ncb-col2">
+        ${fase1Block}
+      </div>
+      <div class="ncb-col ncb-col3">
+        ${rocketsRow}
+        ${simpleRows}
+        ${fase3Block}
+        ${simpleRows45}
+        ${fase6Block}
+        ${convoyRow}
+        ${notesBlock}
+      </div>
     </div>
   </div>`;
 }
@@ -1454,10 +1460,10 @@ function updateIncomeDisplay(tid) {
 
   const fmtEl = document.getElementById(`nc-formula-${tid}`);
   if (fmtEl) {
-    const treasuryPart = state.round === 1 ? '' : `${ns.treasury} (skattkammer) + `;
+    const treasuryPart = ns.treasury > 0 ? `${ns.treasury} (skattkammer) + ` : '';
     const capturedPart = (ns.capturedTreasury || 0) > 0 ? `${ns.capturedTreasury} (kapturet) + ` : '';
     const adjPart = (ns.manualAdjust || 0) !== 0 ? ` ${ns.manualAdjust > 0 ? '+' : ''}${ns.manualAdjust} (justering)` : '';
-    fmtEl.textContent = `= ${treasuryPart}${capturedPart}${income} (terr.) + ${bonus} (bonus) + ${ns.warBonds || 0} (obligasjoner) − ${ns.convoyLoss || 0} (konvoi)${adjPart}`;
+    fmtEl.innerHTML = `= ${treasuryPart}${capturedPart}${income} (terr.) + ${bonus} (bonus) + ${ns.warBonds || 0} (obligasjoner) − ${ns.convoyLoss || 0} (konvoi)${adjPart} = <strong>${toUse} IPC</strong>`;
   }
 
   const collectBtn = document.getElementById(`nc-collect-${tid}`);
@@ -2439,7 +2445,7 @@ function openOwnerPicker(tid) {
     const active = nid === ctrl ? ' active' : '';
     return `<button class="owner-picker-btn${active}" onclick="selectOwnerFromPicker('${nid}')">
       <span class="opb-flag">${nationIconHTML(n, 'nation-icon--md')}</span>
-      <span class="opb-name">${n.name}</span>
+      <span class="opb-name">${n.shortName}</span>
     </button>`;
   }).join('');
 
