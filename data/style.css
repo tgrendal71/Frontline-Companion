@@ -353,7 +353,7 @@ main {
   background: color-mix(in srgb, var(--nat-color, var(--gold)) 8%, transparent);
   border-bottom: 1px solid var(--border);
 }
-.ofc-flag       { font-size: 2rem; flex-shrink: 0; }
+.ofc-flag       { flex-shrink: 0; display: flex; align-items: center; }
 .ofc-title-block { flex: 1; }
 .ofc-nation-name {
   font-size: 1.15rem;
@@ -436,7 +436,7 @@ main {
 }
 .ong-row:hover   { background: var(--bg3); }
 .ong-active      { background: color-mix(in srgb, var(--gold) 8%, transparent) !important; }
-.ong-flag        { font-size: 1.1rem; flex-shrink: 0; }
+.ong-flag        { flex-shrink: 0; display: flex; align-items: center; }
 .ong-name        { font-weight: 700; color: var(--text-dim); width: 3rem; flex-shrink: 0; }
 .ong-income      { color: var(--gold); font-weight: 700; flex: 1; text-align: right; }
 .ong-treasury    { color: var(--text-muted); font-size: .75rem; min-width: 3.5rem; text-align: right; }
@@ -489,7 +489,7 @@ main {
   gap: .5rem;
   font-size: .82rem;
 }
-.oc-nat-flag    { font-size: 1rem; }
+.oc-nat-flag    { display: flex; align-items: center; flex-shrink: 0; }
 .oc-nat-name    { font-weight: 700; color: var(--text-dim); flex: 1; }
 .oc-delta       { font-weight: 700; font-size: .78rem; }
 .oc-delta.pos   { color: var(--green); }
@@ -560,7 +560,7 @@ main {
 }
 .overview-nation-row:hover { background: var(--bg3); }
 
-.nation-flag { font-size: 1.2rem; flex-shrink: 0; }
+.nation-flag { flex-shrink: 0; display: flex; align-items: center; }
 .nation-name { font-size: .85rem; font-weight: 600; flex: 1; }
 .nation-ipc-badge {
   font-size: .75rem;
@@ -745,7 +745,7 @@ main {
   box-shadow: 0 0 0 2px rgba(245,158,11,.3);
 }
 .turn-node.done-turn { opacity: .45; }
-.turn-node .tn-flag  { font-size: 1rem; }
+.turn-node .tn-flag  { display: flex; align-items: center; justify-content: center; }
 .turn-node .tn-name  { color: var(--text-dim); font-weight: 600; }
 .tn-phases {
   font-size: .65rem;
@@ -1043,7 +1043,15 @@ main {
 
 .nc-flag  { font-size: 1.7rem; line-height: 1; }
 .nc-flag img.nc-icon { width: 2.2rem; height: 2.2rem; border-radius: 6px; object-fit: cover; display: block; }
-.nc-name  { font-size: 1.05rem; font-weight: 800; }
+
+/* ── Nation icon utility ────────────────────────────────────── */
+.nation-icon { display: inline-block; border-radius: 50%; object-fit: cover; vertical-align: middle; flex-shrink: 0; }
+.nation-icon-fallback { display: inline-block; vertical-align: middle; flex-shrink: 0; line-height: 1; }
+.nation-icon--xs  { width: 1.2rem; height: 1.2rem; }
+.nation-icon--sm  { width: 1.6rem; height: 1.6rem; }
+.nation-icon--md  { width: 2.0rem; height: 2.0rem; }
+.nation-icon--lg  { width: 2.6rem; height: 2.6rem; }
+.nc-name  { font-size: 1.1rem; font-weight: 800; color: var(--text); letter-spacing: .5px; }
 .nc-side  { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; margin-top: .15rem; }
 .nc-side.axis   { color: #fca5a5; }
 .nc-side.allies { color: #93c5fd; }
@@ -1697,7 +1705,7 @@ main {
   background: var(--bg2);
   flex-wrap: wrap;
 }
-.ng-flag { font-size: 1.5rem; flex-shrink: 0; line-height: 1; }
+.ng-flag { flex-shrink: 0; line-height: 1; display: flex; align-items: center; }
 .ng-name {
   font-size: 1rem;
   font-weight: 800;
@@ -1967,8 +1975,10 @@ main {
   box-shadow: 0 0 0 3px rgba(245,158,11,.22);
 }
 .opb-flag {
-  font-size: 2rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .opb-name {
   font-size: .7rem;

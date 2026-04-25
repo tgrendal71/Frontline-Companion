@@ -486,6 +486,14 @@ function renderActive() {
   if (activeTab === 'battle')      renderBattle();
 }
 
+// ── Nation icon helper ────────────────────────────────────────
+function nationIconHTML(nat, cls = '') {
+  if (nat && nat.icon) {
+    return `<img class="nation-icon${cls ? ' ' + cls : ''}" src="${nat.icon}" alt="${nat.shortName}">`;
+  }
+  return `<span class="nation-icon-fallback">${nat ? nat.flag : '⚪'}</span>`;
+}
+
 // ── Header ────────────────────────────────────────────────────
 function renderHeader() {
   document.getElementById('roundBadge').textContent = `Runde ${state.round}`;
@@ -493,7 +501,7 @@ function renderHeader() {
   const tid = TURN_ORDER[state.turnIndex];
   const nat = NATIONS[tid];
 
-  document.getElementById('turnFlag').textContent = nat.flag;
+  document.getElementById('turnFlag').innerHTML = nationIconHTML(nat, 'nation-icon--md');
   document.getElementById('turnName').textContent = nat.name;
 
   const pill = document.getElementById('turnPill');
@@ -534,7 +542,7 @@ function renderTurnStrip() {
 
     return `<div class="turn-node ${cls}" data-nation="${tid}" data-index="${i}" title="${nat.name}"
       onclick="switchTab('nations');scrollToNation('${tid}')">
-      <span class="tn-flag">${nat.flag}</span>
+      <span class="tn-flag">${nationIconHTML(nat, 'nation-icon--sm')}</span>
       <span class="tn-name">${nat.shortName}</span>
       ${badge}
     </div>`;
@@ -564,7 +572,7 @@ function renderPhaseTracker() {
 
   const nameEl = document.getElementById('phaseNationName');
   if (nameEl) {
-    nameEl.textContent = `${nat.flag} ${nat.name}`;
+    nameEl.innerHTML = `${nationIconHTML(nat, 'nation-icon--sm')} ${nat.name}`;
     nameEl.style.color = `var(--c-${tid})`;
   }
 
@@ -640,7 +648,7 @@ function renderSidePanels() {
 
       return `<div class="overview-nation-row" data-nation="${tid}" onclick="switchTab('nations');scrollToNation('${tid}')"
         style="border-left: 3px solid var(--c-${tid}); background: linear-gradient(90deg, color-mix(in srgb, var(--c-${tid}) 12%, transparent) 0%, transparent 60%);">
-        <span class="nation-flag">${nat.flag}</span>
+        <span class="nation-flag">${nationIconHTML(nat, 'nation-icon--sm')}</span>
         <span class="nation-name">${nat.name}</span>
         ${mainCap ? `<span class="nation-capital-dot ${dotCls}" title="${mainCap.name}"></span>` : ''}
         <span class="nation-ipc-badge">💰 ${ns.treasury} IPC</span>
@@ -708,7 +716,7 @@ function renderFocusCard() {
   el.innerHTML = `
     <div class="ofc-card" style="--nat-color: var(--c-${tid})">
       <div class="ofc-header">
-        <span class="ofc-flag">${nat.flag}</span>
+        <span class="ofc-flag">${nationIconHTML(nat, 'nation-icon--lg')}</span>
         <div class="ofc-title-block">
           <div class="ofc-nation-name">${escHtml(nat.name)}</div>
           <div class="ofc-subtitle">Aktiv tur · Runde ${state.round}</div>
@@ -756,7 +764,7 @@ function renderNationMiniGrid() {
       return `<div class="ong-row${isActive ? ' ong-active' : ''}"
         onclick="switchTab('nations');scrollToNation('${tid}')"
         style="border-left: 3px solid var(--c-${tid})">
-        <span class="ong-flag">${nat.flag}</span>
+        <span class="ong-flag">${nationIconHTML(nat, 'nation-icon--sm')}</span>
         <span class="ong-name">${nat.shortName}</span>
         <span class="nation-capital-dot ${dotCls}" title="${escHtml(nat.mainCapital ?? '')}"></span>
         <span class="ong-income">${income} IPC</span>
@@ -800,7 +808,7 @@ function renderChronicle() {
           const toNat   = NATIONS[tc.to];
           return `<div class="oc-terr-row">
             <span class="oc-terr-name">${escHtml(tc.name)}</span>
-            <span class="oc-terr-arrow">${fromNat ? fromNat.flag : '⚪'} → ${toNat ? toNat.flag : '⚪'}</span>
+            <span class="oc-terr-arrow">${fromNat ? nationIconHTML(fromNat, 'nation-icon--xs') : '⚪'} → ${toNat ? nationIconHTML(toNat, 'nation-icon--xs') : '⚪'}</span>
           </div>`;
         }).join('')}
       </div>
@@ -823,7 +831,7 @@ function renderChronicle() {
     const lostT       = terrChanges.filter(c => c.from === tid).map(c => c.name);
     return `<div class="oc-nat-row" onclick="switchTab('nations');scrollToNation('${tid}')">
       <div class="oc-nat-header">
-        <span class="oc-nat-flag">${nat.flag}</span>
+        <span class="oc-nat-flag">${nationIconHTML(nat, 'nation-icon--sm')}</span>
         <span class="oc-nat-name">${nat.shortName}</span>
         <span class="oc-delta ${deltaCls}">${delta >= 0 ? '+' : ''}${delta} IPC</span>
         <span class="oc-treasury">→ ${nd.endTreasury ?? '?'} IPC</span>
@@ -1228,9 +1236,9 @@ function buildNationCard(tid) {
   return `<div class="nation-card" data-nation="${tid}" id="nc-${tid}">
     <div class="nation-card-header" onclick="toggleNationCard('${tid}')">
       <div class="nc-header-left">
-          <span class="nc-flag">${nat.icon ? `<img class="nc-icon" src="${nat.icon}" alt="${nat.name}">` : nat.flag}</span>
+          <span class="nc-flag">${nationIconHTML(nat, 'nation-icon--md')}</span>
           <div class="nc-info">
-            <div class="nc-name"><span class="nc-abbr">${nat.abbr ? nat.abbr : (nat.shortName || tid).slice(0,2).toUpperCase()}</span> ${nat.name}</div>
+            <div class="nc-name">${nat.shortName}</div>
           <div class="nc-side ${nat.side}">${nat.side === 'axis' ? 'Akse' : 'Alliert'}</div>
         </div>
       </div>
@@ -2200,17 +2208,17 @@ function renderTerritories() {
 
       const transferAllBtn = otherN
         ? `<button class="btn btn-ghost btn-sm ng-transfer-all" onclick="confirmTransferAll('${nid}','${other}')" title="Overfør alle viste territorier til ${otherN.name}">
-            Overfør alle → ${otherN.flag} ${otherN.shortName}
+            Overfør alle → ${nationIconHTML(otherN, 'nation-icon--xs')} ${otherN.shortName}
           </button>`
         : '';
 
       const thAction = otherN
-        ? `→ ${otherN.flag} ${otherN.name}`
+        ? `→ ${nationIconHTML(otherN, 'nation-icon--xs')} ${otherN.name}`
         : 'Endre eier';
 
       html += `<div class="nation-group" style="--ng-accent:${nat.accent ?? '#9ca3af'}">
         <div class="nation-group-header">
-          <span class="ng-flag">${nat.flag}</span>
+          <span class="ng-flag">${nationIconHTML(nat, 'nation-icon--sm')}</span>
           <span class="ng-name">${nat.name}</span>
           <span class="ng-stats">${rows.length} territorier · ${ipcSum} IPC</span>
           ${transferAllBtn}
@@ -2310,9 +2318,9 @@ function buildTerritoryRow(t) {
   return `<tr>
     <td class="t-name ${capital}">${t.name}${t.isMainCapital ? ' 🏛️' : ''}${getNeutralTypeBadge(t, ctrl)}</td>
     <td class="t-ipc ${ipcCls}">${t.ipc || '—'}</td>
-    <td><span class="owner-badge" data-nation="${ctrl}">${nat.flag} ${nat.shortName}</span></td>
-    <td><button class="owner-change-btn" onclick="openOwnerPicker('${t.id}')">${nat.flag} ${nat.shortName} <span class="ocb-arrow">▼</span></button></td>
-    <td>${origNat ? `<span class="owner-badge conquered-from" data-nation="${t.startController}">${origNat.flag} ${origNat.shortName}</span>` : ''}</td>
+    <td><span class="owner-badge" data-nation="${ctrl}">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName}</span></td>
+    <td><button class="owner-change-btn" onclick="openOwnerPicker('${t.id}')">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName} <span class="ocb-arrow">▼</span></button></td>
+    <td>${origNat ? `<span class="owner-badge conquered-from" data-nation="${t.startController}">${nationIconHTML(origNat, 'nation-icon--xs')} ${origNat.shortName}</span>` : ''}</td>
   </tr>`;
 }
 
@@ -2328,18 +2336,18 @@ function buildTerritoryRowNation(t, quickTransferTo) {
   const actionCell = toNat
     ? `<div class="quick-transfer-cell">
         <button class="quick-transfer-btn" onclick="onOwnerChange('${t.id}','${quickTransferTo}')" title="Overfør til ${toNat.name}">
-          ${toNat.flag} ${toNat.shortName}
+          ${nationIconHTML(toNat, 'nation-icon--xs')} ${toNat.shortName}
         </button>
         <button class="owner-change-btn-sm" onclick="openOwnerPicker('${t.id}')" title="Velg annen eier">⋯</button>
       </div>`
-    : `<button class="owner-change-btn" onclick="openOwnerPicker('${t.id}')">${nat.flag} ${nat.shortName} <span class="ocb-arrow">▼</span></button>`;
+    : `<button class="owner-change-btn" onclick="openOwnerPicker('${t.id}')">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName} <span class="ocb-arrow">▼</span></button>`;
 
   return `<tr>
     <td class="t-name ${capital}">${t.name}${t.isMainCapital ? ' 🏛️' : ''}${getNeutralTypeBadge(t, ctrl)}</td>
     <td class="t-ipc ${ipcCls}">${t.ipc || '—'}</td>
-    <td><span class="owner-badge" data-nation="${ctrl}">${nat.flag} ${nat.shortName}</span></td>
+    <td><span class="owner-badge" data-nation="${ctrl}">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName}</span></td>
     <td>${actionCell}</td>
-    <td>${origNat ? `<span class="owner-badge conquered-from" data-nation="${t.startController}">${origNat.flag} ${origNat.shortName}</span>` : ''}</td>
+    <td>${origNat ? `<span class="owner-badge conquered-from" data-nation="${t.startController}">${nationIconHTML(origNat, 'nation-icon--xs')} ${origNat.shortName}</span>` : ''}</td>
   </tr>`;
 }
 
@@ -2351,13 +2359,13 @@ function confirmTransferAll(fromNation, toNation) {
     toast(`${fromN?.name ?? fromNation} har ingen territorier å overføre.`, 'error');
     return;
   }
-  if (!confirm(`Overfør ALLE ${territories.length} territorier fra ${fromN?.flag} ${fromN?.name} til ${toN?.flag} ${toN?.name}?\n\nDette inkluderer alle territorier, ikke bare de som vises nå.`)) return;
+  if (!confirm(`Overfør ALLE ${territories.length} territorier fra ${fromN?.shortName} ${fromN?.name} til ${toN?.shortName} ${toN?.name}?\n\nDette inkluderer alle territorier, ikke bare de som vises nå.`)) return;
   territories.forEach(t => setController(t.id, toNation));
   saveState();
   renderTerritories();
   updateNationCards();
   if (activeTab === 'overview') renderOverview();
-  toast(`${territories.length} territorier overført til ${toN?.flag} ${toN?.name}!`, 'success');
+  toast(`${territories.length} territorier overført til ${toN?.shortName} ${toN?.name}!`, 'success');
 }
 
 function updateTerritoryCountBar(filtered) {
@@ -2430,7 +2438,7 @@ function openOwnerPicker(tid) {
     const n      = NATIONS[nid];
     const active = nid === ctrl ? ' active' : '';
     return `<button class="owner-picker-btn${active}" onclick="selectOwnerFromPicker('${nid}')">
-      <span class="opb-flag">${n.flag}</span>
+      <span class="opb-flag">${nationIconHTML(n, 'nation-icon--md')}</span>
       <span class="opb-name">${n.name}</span>
     </button>`;
   }).join('');
@@ -2485,7 +2493,7 @@ function renderVictoryCities() {
       <span class="vc-icon">${isMain ? '🏛️' : '⭐'}</span>
       <div class="vc-card-info">
         <div class="vc-city-name">${t.name}</div>
-        <span class="owner-badge" data-nation="${ctrl}">${nat.flag} ${nat.name}</span>
+        <span class="owner-badge" data-nation="${ctrl}">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.name}</span>
       </div>
     </div>`;
   };
@@ -2537,7 +2545,7 @@ function renderHistory() {
           ).join('')}</div>`
         : '';
       return `<div class="history-nation-row">
-        <span>${nat.flag} ${nat.name}</span>
+        <span>${nationIconHTML(nat, 'nation-icon--xs')} ${nat.name}</span>
         <span style="color:var(--text-dim);flex:1;margin-left:.5rem">Samlet inn</span>
         <span class="history-delta ${cls}">${delta >= 0 ? '+' : ''}${delta} IPC</span>
         <span style="color:var(--text-muted);margin-left:.5rem;font-size:.75rem">→ ${nd.endTreasury} IPC</span>
@@ -2553,8 +2561,8 @@ function renderHistory() {
         ${terrChanges.map(tc => {
           const fromNat  = NATIONS[tc.from];
           const toNat    = NATIONS[tc.to];
-          const fromFlag = fromNat ? fromNat.flag : '⚪';
-          const toFlag   = toNat   ? toNat.flag   : '⚪';
+          const fromFlag = fromNat ? nationIconHTML(fromNat, 'nation-icon--xs') : '⚪';
+          const toFlag   = toNat   ? nationIconHTML(toNat,   'nation-icon--xs') : '⚪';
           const fromName = fromNat ? fromNat.shortName : tc.from;
           const toName   = toNat   ? toNat.shortName   : tc.to;
           const isCapture = toNat && fromNat && toNat.side !== fromNat.side;
@@ -2689,7 +2697,7 @@ function sanitize(s) {
 
 function ownerBadge(nationId) {
   const nat = NATIONS[nationId] ?? NATIONS.neutral;
-  return `<span class="owner-badge" data-nation="${nationId}">${nat.flag} ${nat.shortName}</span>`;
+  return `<span class="owner-badge" data-nation="${nationId}">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName}</span>`;
 }
 
 // ── Battle Board ────────────────────────────────────────────────────────────
@@ -2746,7 +2754,7 @@ function populateBattleNationSelects() {
       const n = NATIONS[tid];
       const opt = document.createElement('option');
       opt.value = tid;
-      opt.textContent = `${n.flag} ${n.name}`;
+      opt.textContent = `${n.shortName} ${n.name}`;
       sel.appendChild(opt);
     });
     sel.dataset.built = '1';
