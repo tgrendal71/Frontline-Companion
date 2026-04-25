@@ -10,6 +10,7 @@ og implementere endringer direkte uten unødige spørsmål.
 - Python 3 stdlib-server (`data/saves-api.py`) for sky-lagring
 - Alt spilldata bor i `data/data.js` som statiske JS-konstanter
 - Kilddata (CSV) ligger i `src/` og brukes manuelt til å oppdatere `data.js`
+- 
 
 ## Filstruktur
 | Mappe | Innhold |
@@ -45,3 +46,7 @@ og implementere endringer direkte uten unødige spørsmål.
 - Valider mot eksisterende `NATIONS`, `TERRITORIES` og `UNITS`-data i `data.js` før du legger til logikk
 - Kjør opp mot eksisterende kodekonvensjoner i `app.js` og `style.css`
 - Bruk navnestandarden for nasjons-ID-er (lowercase: `germany`, ikke `Germany`)
+- Logg alle endringer i `CHANGELOG.md` med dato og beskrivelse
+- Skriv alle prompts i markdown-format for klarhet i loggen PROMPTS.md
+- Det skal alltid være en norsk og en engelsk versjon av alle UI-tekster
+
