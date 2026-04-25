@@ -20,3 +20,6 @@ aa-saves/
 # Scratch / temp
 *.tmp
 *.bak
+
+# Merged from .github/.gitignore
+/Axies and Allies Frontline Companion.code-workspace
