@@ -84,7 +84,9 @@ const UNITS = [
 
 // ── Territories ───────────────────────────────────────────────
 // Fields: id, name, ipc, continent, startController, isCapital, isMainCapital, neutralArmy
-const TERRITORIES = [
+// NOTE: This static dataset is the fallback. At runtime, app.js replaces TERRITORIES
+// with data parsed from src/territories.csv (the canonical source).
+let TERRITORIES = [
   // ── North America ─────────────────────────────────────────
   { id:'greenland',           name:'Greenland',                           ipc:0,  continent:'North America',  startController:'usa',        isCapital:false, isMainCapital:false },
   { id:'alberta',             name:'Alberta / Saskatchewan / Manitoba',   ipc:0,  continent:'North America',  startController:'uk_europe',  isCapital:false, isMainCapital:false },
@@ -307,7 +309,8 @@ const TERRITORIES = [
 ];
 
 // ── Computed: Victory City list ───────────────────────────────
-const VICTORY_CITIES = TERRITORIES.filter(t => t.isCapital);
+// Recomputed in app.js after CSV load if CSV is available.
+let VICTORY_CITIES = TERRITORIES.filter(t => t.isCapital);
 
 // ── National Objectives ───────────────────────────────────────
 // Each objective: { id, ipc, desc, hint }

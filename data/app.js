@@ -690,10 +690,14 @@ function renderFocusCard() {
     ? purchases[purchases.length - 1].items.map(it => `${it.qty}×${it.name}`).join(', ')
     : null;
 
+  const capLabel = nat.mainCapital
+    ? ((nat.mainCapital.match(/\(([^)]+)\)/)?.[1]) || nat.mainCapital.replace(/ \(.*?\)/, ''))
+    : '';
+
   const capStatus = nat.mainCapital
     ? (capHeld
-        ? `<span class="ofc-cap-held">🏛️ ${nat.mainCapital.replace(/ \(.*?\)/, '')} ✓</span>`
-        : `<span class="ofc-cap-lost">🏛️ ${nat.mainCapital.replace(/ \(.*?\)/, '')} TAPT</span>`)
+        ? `<span class="ofc-cap-held">🏛️ ${capLabel} ✓</span>`
+        : `<span class="ofc-cap-lost">🏛️ ${capLabel} TAPT</span>`)
     : '';
 
   const bonusHtml      = bonus > 0 ? `<span class="ofc-bonus">+${bonus} bonus</span>` : '';
@@ -1259,8 +1263,6 @@ function buildNationCard(tid) {
       <div class="ncb-col ncb-col1">
         ${fase0Block}
         ${fase1Block}
-      </div>
-      <div class="ncb-col ncb-col2">
         ${rocketsRow}
         ${simpleRows}
         ${fase3Block}
@@ -2975,8 +2977,89 @@ function resetBattle() {
   renderBattle();
 }
 
+// ── CSV Territory Loader ───────────────────────────────────────
+// Controller display-name → internal nation ID
+const _CSV_CTRL = {
+  'Germany':      'germany',    'Italy':        'italy',
+  'Japan':        'japan',      'Soviet Union': 'soviet',
+  'USA':          'usa',        'UK (Europe)':  'uk_europe',
+  'UK (Pacific)': 'uk_pacific', 'ANZAC':        'anzac',
+  'China':        'china',      'France':       'france',
+  'Neutral':      'neutral',    'Dutch':        'dutch',
+  'Monglia':      'neutral',    'Pro Allies':   'neutral',
+  'Canada':       'uk_europe',  'Russia':       'soviet',
+};
+
+// Continent name normalisation (CSV uses abbreviations/typos)
+const _CSV_CONT = {
+  'America':       'North America',
+  'South Amerika': 'South America',
+  'Russia':        'Europe',
+};
+
+function _parseTerritoriesCSV(csvText) {
+  const lines = csvText.trim().split('\n');
+  if (lines.length < 2) return null;
+
+  // Build header-name → column-index map (case-insensitive)
+  const hdrs = lines[0].split(';').map(h => h.trim().toLowerCase());
+  const H = Object.fromEntries(hdrs.map((h, i) => [h, i]));
+
+  const result = [];
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split(';');
+    if (!c[0]?.trim()) continue;
+    if ((c[H['type']] ?? '').trim() === 'Sea Zone') continue;  // skip sea zones
+
+    const rawCtrl    = (c[H['controller']] ?? '').trim();
+    const rawCont    = (c[H['continent']]  ?? '').trim();
+    const neutralArmy = parseInt(c[H['army (nutrales)']] ?? '');
+    const ntRaw      = (c[H['neutraltype']] ?? '').trim();
+
+    result.push({
+      id:              c[H['territoryid']].trim(),
+      name:            (c[H['name']] ?? '').trim(),
+      ipc:             parseInt(c[H['ipc']]) || 0,
+      continent:       _CSV_CONT[rawCont] ?? rawCont,
+      startController: _CSV_CTRL[rawCtrl] ?? rawCtrl.toLowerCase().replace(/[\s()]+/g, '_'),
+      isCapital:       (c[H['iscapital']] ?? '').trim().toLowerCase() === 'yes',
+      isMainCapital:   (c[H['maincapital']] ?? '').trim().toLowerCase() === 'yes',
+      neutralArmy:     neutralArmy > 0 ? neutralArmy : undefined,
+      neutralType:     (ntRaw && ntRaw !== 'none') ? ntRaw : undefined,
+    });
+  }
+  return result.length > 0 ? result : null;
+}
+
+async function _loadTerritoriesCSV() {
+  const paths = ['./territories.csv', '../src/territories.csv'];
+  for (const p of paths) {
+    try {
+      const res = await fetch(p);
+      if (!res.ok) continue;
+      const text = await res.text();
+      const parsed = _parseTerritoriesCSV(text);
+      if (parsed?.length) return parsed;
+    } catch (_) {
+      // Try next location
+    }
+  }
+  console.warn('[FC] territories.csv not loaded from data/ or src/, using static data');
+  return null;
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load territories from CSV (canonical source); fall back to static data on error
+  const csvTerrs = await _loadTerritoriesCSV();
+  if (csvTerrs) {
+    TERRITORIES   = csvTerrs;
+    VICTORY_CITIES = TERRITORIES.filter(t => t.isCapital);
+    console.log(`[FC] territories.csv loaded: ${TERRITORIES.length} territories, ${VICTORY_CITIES.length} VCs`);
+  } else {
+    console.log('[FC] Using static territory data (CSV unavailable)');
+  }
+
   state = loadState() || defaultState();
   saveState();
 

@@ -1083,8 +1083,6 @@ main {
 /* Last item in each column should not double-border with the column below */
 .ncb-col > .phase-block:last-child,
 .ncb-col > .phase-row:last-child { border-bottom: none; }
-/* Top border on col2 when stacked vertically */
-.ncb-col2 { border-top: 1px solid var(--border); }
 
 /* ── Phase-block layout ──────────────────────────────────────────── */
 .phase-block {
@@ -1206,9 +1204,7 @@ main {
   flex-direction: column;
   min-width: 0;
 }
-.ncb-col1 { flex: 1.2; border-right: 1px solid var(--border); }
-.ncb-col2 { flex: 1.8; border-right: 1px solid var(--border); }
-.ncb-col3 { flex: 1.1; }
+.ncb-col1 { flex: 1 1 auto; }
 
 /* Dividers between sections within same column */
 .ncb-col > .nc-section + .nc-section {
@@ -2694,17 +2690,21 @@ main {
   .hdr-turn-pill { font-size: .88rem; }
   main   { padding: 1.5rem 2rem; }
 
-  /* Nation card: 2 columns side by side on desktop                   */
-  /*  col1 (left):  Fase 0 + Fase 1                                   */
-  /*  col2 (right): Fase 2-6 + notater                                */
+  /* Nation card: one clear vertical phase flow on desktop too */
   .nation-card-body.open {
-    flex-direction: row;
+    flex-direction: column;
     flex-wrap: nowrap;
-    align-items: flex-start;
+    align-items: stretch;
   }
-  .ncb-col2 { border-top: none; }
-  .ncb-col1 { order: 1; flex: 0.95 1 0; min-width: 360px; border-right: 1px solid var(--border); }
-  .ncb-col2 { order: 2; flex: 1.35 1 0; min-width: 420px; border-right: none; }
+  .ncb-col1 {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    border-right: none;
+    border-top: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .ncb-col2,
   .ncb-col3 { display: none; }
 }
 
@@ -2717,25 +2717,18 @@ main {
     flex-wrap: nowrap;
     align-items: stretch;
   }
-  .ncb-col1,
-  .ncb-col2,
-  .ncb-col3 {
+  .ncb-col1 {
     flex: 0 0 100%;
     max-width: 100%;
     border-right: none;
   }
 
-  /* Col 1: Fase 0 + Fase 1 */
+  /* One single flow: all phases in one column */
   .ncb-col1 {
     order: 1;
     border-bottom: 1px solid var(--border);
   }
-  /* Col 2: Fase 2-6 + notater */
-  .ncb-col2 {
-    order: 2;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
+  .ncb-col2,
   .ncb-col3 { display: none; }
 
   /* Nation card header: allow IPC block and territory fields to wrap */
@@ -2754,18 +2747,16 @@ main {
 /* ── Responsive: Small tablet / large phone (≤767px) ─────── */
 /*  All columns stack vertically, full width                    */
 @media (max-width: 767px) {
-  .ncb-col1,
-  .ncb-col2,
-  .ncb-col3 {
+  .ncb-col1 {
     flex: 0 0 100%;
     max-width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
-  /* Natural order: venstre kolonne (fase 0+1), deretter høyre kolonne */
+  /* Natural single-column order */
   .ncb-col1 { order: 1; }
-  .ncb-col2 { order: 2; }
-  .ncb-col3 { order: 3; }
+  .ncb-col2 { display: none; }
+  .ncb-col3 { display: none; }
 
   /* Territory table: horizontal scroll from 640px up to 767px too */
   .territory-table { display: block; overflow-x: auto; }
