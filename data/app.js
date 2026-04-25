@@ -1228,9 +1228,9 @@ function buildNationCard(tid) {
   return `<div class="nation-card" data-nation="${tid}" id="nc-${tid}">
     <div class="nation-card-header" onclick="toggleNationCard('${tid}')">
       <div class="nc-header-left">
-        <span class="nc-flag">${nat.flag}</span>
-        <div class="nc-info">
-          <div class="nc-name"><span class="nc-abbr">${tid.slice(0,2).toUpperCase()}</span> ${nat.name}</div>
+          <span class="nc-flag">${nat.icon ? `<img class="nc-icon" src="${nat.icon}" alt="${nat.name}">` : nat.flag}</span>
+          <div class="nc-info">
+            <div class="nc-name"><span class="nc-abbr">${nat.abbr ? nat.abbr : (nat.shortName || tid).slice(0,2).toUpperCase()}</span> ${nat.name}</div>
           <div class="nc-side ${nat.side}">${nat.side === 'axis' ? 'Akse' : 'Alliert'}</div>
         </div>
       </div>
