@@ -1258,11 +1258,9 @@ function buildNationCard(tid) {
     <div class="nation-card-body" id="ncb-${tid}">
       <div class="ncb-col ncb-col1">
         ${fase0Block}
-      </div>
-      <div class="ncb-col ncb-col2">
         ${fase1Block}
       </div>
-      <div class="ncb-col ncb-col3">
+      <div class="ncb-col ncb-col2">
         ${rocketsRow}
         ${simpleRows}
         ${fase3Block}

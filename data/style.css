@@ -1083,8 +1083,8 @@ main {
 /* Last item in each column should not double-border with the column below */
 .ncb-col > .phase-block:last-child,
 .ncb-col > .phase-row:last-child { border-bottom: none; }
-/* Top border on col2/col3 when stacked vertically */
-.ncb-col2, .ncb-col3 { border-top: 1px solid var(--border); }
+/* Top border on col2 when stacked vertically */
+.ncb-col2 { border-top: 1px solid var(--border); }
 
 /* ── Phase-block layout ──────────────────────────────────────────── */
 .phase-block {
@@ -2694,56 +2694,49 @@ main {
   .hdr-turn-pill { font-size: .88rem; }
   main   { padding: 1.5rem 2rem; }
 
-  /* Nation card: 3 columns side by side on desktop                   */
-  /*  col1 (left):   R&D + Income/Objectives                          */
-  /*  col2 (middle): Purchase calculator — needs most horizontal space */
-  /*  col3 (right):  Combat phases + Notes                            */
+  /* Nation card: 2 columns side by side on desktop                   */
+  /*  col1 (left):  Fase 0 + Fase 1                                   */
+  /*  col2 (right): Fase 2-6 + notater                                */
   .nation-card-body.open {
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: flex-start;
   }
-  .ncb-col2, .ncb-col3 { border-top: none; }
-  .ncb-col1 { order: 1; flex: 1 1 0; min-width: 240px; border-right: 1px solid var(--border); }
-  .ncb-col2 { order: 2; flex: 1.6 1 0; min-width: 320px; border-right: 1px solid var(--border); }
-  .ncb-col3 { order: 3; flex: 1 1 0; min-width: 240px; }
+  .ncb-col2 { border-top: none; }
+  .ncb-col1 { order: 1; flex: 0.95 1 0; min-width: 360px; border-right: 1px solid var(--border); }
+  .ncb-col2 { order: 2; flex: 1.35 1 0; min-width: 420px; border-right: none; }
+  .ncb-col3 { display: none; }
 }
 
 /* ── Responsive: Tablet portrait & iPad (640px – 1023px) ───── */
-/*  col1 (Fase 0): left 35%                                     */
-/*  col3 (Fase 2–6): right 65%, row 1                           */
-/*  col2 (Kjøp): full width, row 2                              */
+/*  Single column with natural flow for readability and rhythm    */
 @media (max-width: 1023px) {
   .nation-card-body.open {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
   }
-  /* Col 1: Fase 0 R&D — left, row 1 (narrower, less content) */
-  .ncb-col1 {
-    flex: 0 0 35%;
-    max-width: 35%;
-    order: 1;
-    border-right: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-  /* Col 3: Fase 2–6 + Notes — right, row 1 (wider, more content) */
+  .ncb-col1,
+  .ncb-col2,
   .ncb-col3 {
-    flex: 0 0 65%;
-    max-width: 65%;
-    order: 2;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-  /* Col 2: Purchase calculator — full width, row 2 */
-  .ncb-col2 {
     flex: 0 0 100%;
     max-width: 100%;
-    order: 3;
     border-right: none;
-    border-top: none;
   }
+
+  /* Col 1: Fase 0 + Fase 1 */
+  .ncb-col1 {
+    order: 1;
+    border-bottom: 1px solid var(--border);
+  }
+  /* Col 2: Fase 2-6 + notater */
+  .ncb-col2 {
+    order: 2;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .ncb-col3 { display: none; }
 
   /* Nation card header: allow IPC block and territory fields to wrap */
   .nc-header-fields {
@@ -2769,7 +2762,7 @@ main {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
-  /* Restore natural order: Fase 0 → Fase 1 (kjøp) → Fase 2–6 + notater */
+  /* Natural order: venstre kolonne (fase 0+1), deretter høyre kolonne */
   .ncb-col1 { order: 1; }
   .ncb-col2 { order: 2; }
   .ncb-col3 { order: 3; }
