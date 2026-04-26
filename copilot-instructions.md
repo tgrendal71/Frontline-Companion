@@ -23,7 +23,7 @@ og implementere endringer direkte uten unødige spørsmål.
 - `'use strict'` øverst i alle JS-filer
 - Funksjonell stil — unngå klasser der enkle funksjoner holder
 - Variabler og kommentarer: **engelsk**
-- All UI-tekst: **norsk**
+- All UI-tekst: **norsk** og **engelsk** versjon (f.eks. `const UI_TEXT = { en: {...}, no: {...} }`)
 - Konsistent innrykk: 2 mellomrom
 - Unngå å legge til biblioteker eller byggsteg uten eksplisitt avtale
 

@@ -353,7 +353,7 @@ main {
   background: color-mix(in srgb, var(--nat-color, var(--gold)) 8%, transparent);
   border-bottom: 1px solid var(--border);
 }
-.ofc-flag       { font-size: 2rem; flex-shrink: 0; }
+.ofc-flag       { flex-shrink: 0; display: flex; align-items: center; }
 .ofc-title-block { flex: 1; }
 .ofc-nation-name {
   font-size: 1.15rem;
@@ -436,7 +436,7 @@ main {
 }
 .ong-row:hover   { background: var(--bg3); }
 .ong-active      { background: color-mix(in srgb, var(--gold) 8%, transparent) !important; }
-.ong-flag        { font-size: 1.1rem; flex-shrink: 0; }
+.ong-flag        { flex-shrink: 0; display: flex; align-items: center; }
 .ong-name        { font-weight: 700; color: var(--text-dim); width: 3rem; flex-shrink: 0; }
 .ong-income      { color: var(--gold); font-weight: 700; flex: 1; text-align: right; }
 .ong-treasury    { color: var(--text-muted); font-size: .75rem; min-width: 3.5rem; text-align: right; }
@@ -489,7 +489,7 @@ main {
   gap: .5rem;
   font-size: .82rem;
 }
-.oc-nat-flag    { font-size: 1rem; }
+.oc-nat-flag    { display: flex; align-items: center; flex-shrink: 0; }
 .oc-nat-name    { font-weight: 700; color: var(--text-dim); flex: 1; }
 .oc-delta       { font-weight: 700; font-size: .78rem; }
 .oc-delta.pos   { color: var(--green); }
@@ -513,7 +513,8 @@ main {
   .oc-nations { max-height: 340px; }
 }
 
-/* ── Overview grid (keepin for side panels if still used) ───── */
+/* ── Overview grid (keeping for side panels if still used) ──── */
+.ov-dashboard {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
@@ -560,7 +561,7 @@ main {
 }
 .overview-nation-row:hover { background: var(--bg3); }
 
-.nation-flag { font-size: 1.2rem; flex-shrink: 0; }
+.nation-flag { flex-shrink: 0; display: flex; align-items: center; }
 .nation-name { font-size: .85rem; font-weight: 600; flex: 1; }
 .nation-ipc-badge {
   font-size: .75rem;
@@ -745,7 +746,7 @@ main {
   box-shadow: 0 0 0 2px rgba(245,158,11,.3);
 }
 .turn-node.done-turn { opacity: .45; }
-.turn-node .tn-flag  { font-size: 1rem; }
+.turn-node .tn-flag  { display: flex; align-items: center; justify-content: center; }
 .turn-node .tn-name  { color: var(--text-dim); font-weight: 600; }
 .tn-phases {
   font-size: .65rem;
@@ -1042,7 +1043,16 @@ main {
 }
 
 .nc-flag  { font-size: 1.7rem; line-height: 1; }
-.nc-name  { font-size: 1.05rem; font-weight: 800; }
+.nc-flag img.nc-icon { width: 2.2rem; height: 2.2rem; border-radius: 6px; object-fit: cover; display: block; }
+
+/* ── Nation icon utility ────────────────────────────────────── */
+.nation-icon { display: inline-block; border-radius: 50%; object-fit: cover; vertical-align: middle; flex-shrink: 0; }
+.nation-icon-fallback { display: inline-block; vertical-align: middle; flex-shrink: 0; line-height: 1; }
+.nation-icon--xs  { width: 1.2rem; height: 1.2rem; }
+.nation-icon--sm  { width: 1.6rem; height: 1.6rem; }
+.nation-icon--md  { width: 2.0rem; height: 2.0rem; }
+.nation-icon--lg  { width: 2.6rem; height: 2.6rem; }
+.nc-name  { font-size: 1.1rem; font-weight: 800; color: var(--text); letter-spacing: .5px; }
 .nc-side  { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; margin-top: .15rem; }
 .nc-side.axis   { color: #fca5a5; }
 .nc-side.allies { color: #93c5fd; }
@@ -1060,8 +1070,20 @@ main {
   display: none;
 }
 .nation-card-body.open {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
+
+/* Column wrappers inside nation-card-body */
+.ncb-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* Last item in each column should not double-border with the column below */
+.ncb-col > .phase-block:last-child,
+.ncb-col > .phase-row:last-child { border-bottom: none; }
 
 /* ── Phase-block layout ──────────────────────────────────────────── */
 .phase-block {
@@ -1183,9 +1205,7 @@ main {
   flex-direction: column;
   min-width: 0;
 }
-.ncb-col1 { flex: 1.2; border-right: 1px solid var(--border); }
-.ncb-col2 { flex: 1.8; border-right: 1px solid var(--border); }
-.ncb-col3 { flex: 1.1; }
+.ncb-col1 { flex: 1 1 auto; }
 
 /* Dividers between sections within same column */
 .ncb-col > .nc-section + .nc-section {
@@ -1696,7 +1716,7 @@ main {
   background: var(--bg2);
   flex-wrap: wrap;
 }
-.ng-flag { font-size: 1.5rem; flex-shrink: 0; line-height: 1; }
+.ng-flag { flex-shrink: 0; line-height: 1; display: flex; align-items: center; }
 .ng-name {
   font-size: 1rem;
   font-weight: 800;
@@ -1966,8 +1986,10 @@ main {
   box-shadow: 0 0 0 3px rgba(245,158,11,.22);
 }
 .opb-flag {
-  font-size: 2rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .opb-name {
   font-size: .7rem;
@@ -2668,39 +2690,47 @@ main {
   .hdr-next-btn { padding: .38rem 1.1rem; }
   .hdr-turn-pill { font-size: .88rem; }
   main   { padding: 1.5rem 2rem; }
+
+  /* Nation card: one clear vertical phase flow on desktop too */
+  .nation-card-body.open {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+  .ncb-col1 {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    border-right: none;
+    border-top: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .ncb-col2,
+  .ncb-col3 { display: none; }
 }
 
 /* ── Responsive: Tablet portrait & iPad (640px – 1023px) ───── */
-/*  Reflows nation card from 3 columns to:                      */
-/*  [Income col][ Phases/Tech col ]    ← row 1, side by side    */
-/*  [     Purchase calculator     ]    ← row 2, full width      */
+/*  Single column with natural flow for readability and rhythm    */
 @media (max-width: 1023px) {
   .nation-card-body.open {
-    flex-wrap: wrap;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
   }
-  /* Col 1: Income + R&D + Objectives — left half, row 1 */
   .ncb-col1 {
-    flex: 0 0 50%;
-    max-width: 50%;
-    order: 1;
-    border-right: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-  /* Col 3: Phases + Tech + Notes — right half, row 1 */
-  .ncb-col3 {
-    flex: 0 0 50%;
-    max-width: 50%;
-    order: 2;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-  /* Col 2: Purchase calculator — full width, row 2 */
-  .ncb-col2 {
     flex: 0 0 100%;
     max-width: 100%;
-    order: 3;
     border-right: none;
   }
+
+  /* One single flow: all phases in one column */
+  .ncb-col1 {
+    order: 1;
+    border-bottom: 1px solid var(--border);
+  }
+  .ncb-col2,
+  .ncb-col3 { display: none; }
 
   /* Nation card header: allow IPC block and territory fields to wrap */
   .nc-header-fields {
@@ -2718,18 +2748,19 @@ main {
 /* ── Responsive: Small tablet / large phone (≤767px) ─────── */
 /*  All columns stack vertically, full width                    */
 @media (max-width: 767px) {
-  .ncb-col1,
-  .ncb-col2,
-  .ncb-col3 {
+  .ncb-col1 {
     flex: 0 0 100%;
     max-width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
-  /* Restore natural order */
+  /* Natural single-column order */
   .ncb-col1 { order: 1; }
-  .ncb-col2 { order: 2; }
-  .ncb-col3 { order: 3; }
+  .ncb-col2 { display: none; }
+  .ncb-col3 { display: none; }
+
+  /* Territory table: horizontal scroll from 640px up to 767px too */
+  .territory-table { display: block; overflow-x: auto; }
 }
 
 /* ── Responsive: Mobile only (<640px) ─────────────────────── */
@@ -2747,6 +2778,15 @@ main {
 
   .round-badge  { font-size: .78rem; padding: .2rem .6rem; }
   .turn-pill    { font-size: .72rem; padding: .2rem .6rem; }
+
+  /* A: Hide redundant owner badge col + origin col — action button in col 4 is sufficient */
+  .territory-table td:nth-child(3),
+  .territory-table th:nth-child(3),
+  .territory-table td:nth-child(5),
+  .territory-table th:nth-child(5) { display: none; }
+
+  /* D: Hide erobret/mistet header fields — already visible in card body */
+  .nchf-terr-block { display: none; }
 }
 
 /* ── Print ─────────────────────────────────────────────────── */
@@ -3075,58 +3115,251 @@ main {
 
 /* ── Touch / Tablet improvements ──────────────────────────────
    Targets touchscreen devices (iPad, Android tablets, phones).
-   Bigger hit areas, clearer interactive elements.
+   Bigger hit areas (min 44px), clearer interactive elements,
+   larger text and checkboxes for finger use.
    ─────────────────────────────────────────────────────────── */
 @media (hover: none) and (pointer: coarse) {
 
-  /* Tab bar: taller, bigger font */
+  /* Slightly larger base font — improves readability across all rem sizes */
+  html { font-size: 16px; }
+
+  /* ── Tab bar ─────────────────────────────────────────────── */
   .tab-btn {
     padding: .85rem 1.1rem;
     font-size: .9rem;
     min-height: 50px;
   }
 
-  /* Header turn buttons: bigger tap target */
+  /* ── Header nav buttons (◀ Neste ▶ and action menu) ───────── */
+  .hdr-nav-btn {
+    min-height: 44px;
+    padding: .55rem .9rem;
+    font-size: .88rem;
+  }
   .btn-sm {
-    padding: .45rem .85rem;
-    font-size: .82rem;
-    min-height: 38px;
+    min-height: 44px;
+    padding: .5rem .85rem;
+    font-size: .85rem;
+  }
+  .action-menu-trigger {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+  .action-menu-item {
+    padding: .85rem 1.1rem;
+    font-size: .92rem;
+    min-height: 48px;
   }
 
-  /* Territory table rows: taller for easier tapping */
+  /* ── Nation card header (tap to expand) ───────────────────── */
+  .nation-card-header { min-height: 58px; }
+
+  /* ── Phase block collapsible headers ─────────────────────── */
+  .phase-block-hdr {
+    padding: .7rem .8rem;
+    min-height: 44px;
+  }
+
+  /* ── Checkboxes: 20px is much easier to hit with a finger ─── */
+  .phase-cb input[type="checkbox"],
+  .phase-item input[type="checkbox"],
+  .phase-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* ── Phase items in sidebar phase tracker ─────────────────── */
+  .phase-item {
+    padding: .7rem .6rem;
+    min-height: 44px;
+  }
+
+  /* ── Phase rows in nation card (Fase 2–5) ─────────────────── */
+  .phase-row {
+    padding: .65rem .8rem;
+    min-height: 44px;
+  }
+
+  /* ── Turn nodes in overview strip ────────────────────────── */
+  .turn-node {
+    padding: .55rem .6rem;
+    min-height: 56px;
+    min-width: 52px;
+  }
+
+  /* ── Continent group headers (collapsible) ────────────────── */
+  .continent-header {
+    padding: .65rem 0;
+    min-height: 44px;
+  }
+
+  /* ── Territory table rows: taller for easier tapping ──────── */
   .territory-table td {
-    padding: .6rem .6rem;
+    padding: .7rem .6rem;
   }
 
-  /* Owner change button: even more prominent */
+  /* ── Owner/transfer buttons ───────────────────────────────── */
   .owner-change-btn {
     min-height: 44px;
-    font-size: .82rem;
-    padding: .5rem .75rem;
+    font-size: .85rem;
+    padding: .55rem .75rem;
     border-width: 1.5px;
   }
-
-  /* Nation picker buttons: large finger-friendly tiles */
-  .owner-picker-btn {
-    min-height: 90px;
-    padding: .9rem .4rem .7rem;
+  .quick-transfer-btn {
+    min-height: 44px;
+    font-size: .85rem;
+    padding: .55rem .8rem;
   }
-  .opb-flag { font-size: 2.2rem; }
-  .opb-name { font-size: .72rem; }
+  .owner-change-btn-sm {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
 
-  /* Picker grid: fewer columns = bigger buttons on tablet */
+  /* ── Nation picker modal (owner picker) ───────────────────── */
+  .owner-picker-btn {
+    min-height: 96px;
+    padding: .9rem .5rem .75rem;
+  }
+  .opb-flag { font-size: 2.4rem; }
+  .opb-name { font-size: .8rem; }
   .owner-picker-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: .65rem;
+    gap: .7rem;
     padding: 1rem;
   }
 
-  /* Filters / search in territory tab */
+  /* ── Filters / search in territory tab ───────────────────── */
   .territory-controls input[type=search],
   .territory-controls select {
-    min-height: 40px;
+    min-height: 44px;
+    font-size: .95rem;
+  }
+
+  /* ── Base .btn (modal buttons, confirm buttons not using .btn-sm) */
+  .btn {
+    min-height: 44px;
+  }
+
+  /* ── Purchase calculator +/- buttons ─────────────────────── */
+  .pc-qty-ctrl .btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: .45rem .55rem;
     font-size: .9rem;
   }
+  /* Purchase unit rows: more vertical breathing room */
+  .pc-unit-row {
+    padding: .45rem .4rem;
+  }
+
+  /* ── Battle board ± buttons (hardcoded 22px normally) ──────── */
+  .bu-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
+    border-radius: var(--radius);
+  }
+  /* Adjust the ctrl container so buttons don't stack oddly */
+  .bu-ctrl { gap: .35rem; }
+  .bu-count { min-width: 2rem; font-size: 1rem; }
+
+  /* ── War/peace & show-all toggle labels in Objectives ──────── */
+  .obj-war-label,
+  .obj-showall-label {
+    min-height: 44px;
+    padding: .6rem .85rem;
+    font-size: .82rem;
+  }
+
+  /* ── Clickable nation/chronicle/history rows ───────────────── */
+  .ong-row,
+  .overview-nation-row,
+  .oc-nat-row {
+    min-height: 44px;
+    padding: .6rem 1rem;
+  }
+  .history-entry-header {
+    min-height: 52px;
+    padding: .75rem 1rem;
+  }
+
+  /* ── Technology chart checkboxes ──────────────────────────── */
+  .tech-item {
+    min-height: 44px;
+    padding: .4rem .4rem;
+    font-size: .88rem;
+  }
+  .tech-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* ── R&D stepper −/+ buttons ──────────────────────────────── */
+  .rd-step-btn {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 1.1rem;
+    padding: .4rem .7rem;
+  }
+
+  /* ── Territory link button (Vis territorier →) ─────────────── */
+  .nc-terr-link-btn {
+    min-height: 44px;
+    font-size: .88rem;
+    padding: .6rem .9rem;
+  }
+
+  /* ── Phase checkbox gap: more space between items ──────────── */
+  .phase-list { gap: .3rem; }
+
+  /* ── "Samle inn inntekt" / complete turn button ───────────── */
+  .btn-complete-turn {
+    min-height: 50px;
+    font-size: .95rem;
+    padding: .75rem 1.2rem;
+  }
+
+  /* ── R&D dice roll button ─────────────────────────────────── */
+  .rd-roll-btn {
+    min-height: 44px;
+    font-size: .88rem;
+  }
+
+  /* ── Collect income button in nation card ─────────────────── */
+  .nc-collect-btn {
+    padding: .65rem .8rem;
+    font-size: .9rem;
+    min-height: 44px;
+  }
+
+  /* ── Number inputs (treasury, war bonds) ─────────────────── */
+  input[type=number] {
+    min-height: 44px;
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  /* ── Tiny labels: bump from .60–.63rem to .74rem minimum ────── */
+  .nc-hfield-label    { font-size: .74rem; }
+  .nc-section-title   { font-size: .74rem; }
+  .phase-sub-hdr      { font-size: .74rem; }
+  .nc-formula         { font-size: .74rem; }
+  .obj-badge          { font-size: .74rem; }
+  .rd-phase-badge     { font-size: .72rem; }
+  .phase-opt-badge    { font-size: .74rem; }
+  .tn-phases          { font-size: .74rem; }
+  .phase-war-tag      { font-size: .74rem; }
+  /* R&D chart number circles: scale up to 18px */
+  .rd-chart-num       { width: 18px; height: 18px; font-size: .72rem; }
+  /* Owner change small button: bring up to 44px */
+  .owner-change-btn-sm { width: 44px; height: 44px; }
 }
 
 /* ── Tablet portrait (768px – 1024px) extra tweaks ──────────── */
@@ -3138,5 +3371,171 @@ main {
   .owner-picker-grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   }
+  /* Nation card columns: keep 2-column layout but with more breathing room */
+  .ncb-col1 { flex: 0 0 48%; max-width: 48%; }
+  .ncb-col3 { flex: 0 0 52%; max-width: 52%; }
+}
+
+/* ── Facility badges in territory rows ────────────────────────── */
+.fac-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: .72rem;
+  opacity: .85;
+  vertical-align: middle;
+}
+.fac-badge sup {
+  font-size: .6rem;
+  color: var(--gold);
+  font-weight: 700;
+  line-height: 1;
+}
+.fac-badge--dmg sup { color: var(--red); }
+.fac-badge--inop { opacity: .45; }
+
+/* ── Repair detail in Fase 1 ─────────────────────────────────── */
+.repair-empty { font-size: .78rem; color: var(--text-muted); padding: .25rem .5rem; }
+.repair-fac-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .2rem .5rem;
+  font-size: .78rem;
+  border-bottom: 1px solid var(--border);
+}
+.repair-fac-name { flex: 1; }
+.repair-fac-dmg  { color: var(--red); font-weight: 600; white-space: nowrap; }
+.repair-qty-ctrl { flex: 0 0 auto; }
+.repair-fac-cost { color: var(--text-muted); white-space: nowrap; }
+.inoperative-badge {
+  display: inline-block;
+  background: var(--red);
+  color: #fff;
+  font-size: .6rem;
+  padding: 0 .3rem;
+  border-radius: 3px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.pc-repair-total-row { border-top: 1px solid var(--border); margin-top: .25rem; }
+
+/* ── Building placement selector ─────────────────────────────── */
+.pc-unit-building { flex-wrap: wrap; }
+.pc-building-placement {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .2rem .5rem .3rem 1rem;
+  font-size: .78rem;
+  background: color-mix(in srgb, var(--bg2) 80%, var(--gold) 5%);
+  border-top: 1px dashed var(--border);
+}
+.pc-place-label { color: var(--text-muted); white-space: nowrap; }
+.pc-place-select {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: .35rem .4rem;
+  font-size: .78rem;
+  cursor: pointer;
+}
+.pc-place-select:hover { border-color: var(--border-light); }
+.pc-place-select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+
+/* ── Bombing section in Fase 3 ───────────────────────────────── */
+.bombing-section { padding: .5rem; border-top: 1px solid var(--border); margin-top: .5rem; }
+.bombing-form { display: flex; flex-direction: column; gap: .35rem; }
+.bombing-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .8rem;
+  flex-wrap: wrap;
+}
+.bombing-label { min-width: 5rem; color: var(--text-muted); }
+.bombing-select {
+  flex: 1;
+  min-width: 8rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: .35rem .4rem;
+  font-size: .78rem;
+  cursor: pointer;
+}
+.bombing-select:hover { border-color: var(--border-light); }
+.bombing-select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+.bombing-aa-result, .bombing-dmg-result {
+  font-size: .78rem;
+  flex: 1;
+}
+
+/* ── Rockets section ─────────────────────────────────────────── */
+.rockets-section { padding: .4rem .5rem; font-size: .8rem; }
+.rockets-no-bases { color: var(--text-muted); font-style: italic; }
+.rocket-base-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .25rem 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.rocket-base-name { font-weight: 600; min-width: 8rem; }
+.rocket-target-sel, .rocket-factype-sel {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: .35rem .4rem;
+  font-size: .78rem;
+  flex: 1;
+  min-width: 6rem;
+  cursor: pointer;
+}
+.rocket-target-sel:hover, .rocket-factype-sel:hover { border-color: var(--border-light); }
+.rocket-target-sel:focus, .rocket-factype-sel:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+.btn-warning {
+  background: var(--gold, #f59e0b);
+  color: #1a1a1a;
+  border: none;
+}
+.btn-warning:hover { filter: brightness(1.15); }
+
+/* ── Split bombing missions ──────────────────────────────────── */
+.bomb-total-bar {
+  font-size: .75rem;
+  color: var(--text-muted);
+  padding: .15rem .5rem .3rem;
+}
+.bomb-mission {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: .4rem 0;
+  padding: .4rem .6rem .5rem;
+  background: color-mix(in srgb, var(--bg2) 92%, var(--gold) 4%);
+}
+.bomb-mission-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .35rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid var(--border);
+}
+.bomb-mission-title {
+  font-weight: 600;
+  font-size: .8rem;
+  color: var(--gold);
+}
+.btn-xs {
+  font-size: .7rem;
+  padding: .1rem .35rem;
+  line-height: 1.4;
 }
 

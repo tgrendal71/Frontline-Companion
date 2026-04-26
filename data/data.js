@@ -10,18 +10,18 @@ const TURN_ORDER = [
 
 // ── Nations ──────────────────────────────────────────────────
 const NATIONS = {
-  germany:    { id:'germany',    name:'Germany',            shortName:'GER', side:'axis',   color:'#18181b', accent:'#71717a', flag:'🇩🇪', startTreasury:30, startIncome:30, mainCapital:'Germany (Berlin)' },
-  italy:      { id:'italy',      name:'Italy',              shortName:'ITA', side:'axis',   color:'#78350f', accent:'#d97706', flag:'🇮🇹', startTreasury:10, startIncome:10, mainCapital:'Southern Italy (Rome)' },
-  japan:      { id:'japan',      name:'Japan',              shortName:'JAP', side:'axis',   color:'#9a3412', accent:'#fb923c', flag:'🇯🇵', startTreasury:26, startIncome:26, mainCapital:'Japan (Tokyo)' },
-  soviet:     { id:'soviet',     name:'Soviet Union',       shortName:'SOV', side:'allies', color:'#7f1d1d', accent:'#f87171', flag:'🇷🇺', startTreasury:37, startIncome:37, mainCapital:'Russia (Moscow)' },
-  usa:        { id:'usa',        name:'United States',      shortName:'USA', side:'allies', color:'#14532d', accent:'#4ade80', flag:'🇺🇸', startTreasury:52, startIncome:52, mainCapital:'Eastern United States (Washington)' },
-  uk_europe:  { id:'uk_europe',  name:'United Kingdom',     shortName:'UKE', side:'allies', color:'#713f12', accent:'#fbbf24', flag:'🇬🇧', startTreasury:28, startIncome:28, mainCapital:'United Kingdom (London)' },
-  uk_pacific: { id:'uk_pacific', name:'UK Pacific',         shortName:'UKP', side:'allies', color:'#713f12', accent:'#fbbf24', flag:'🏴', startTreasury:17, startIncome:17, mainCapital:'India (Calcutta)' },
-  anzac:      { id:'anzac',      name:'ANZAC',              shortName:'ANZ', side:'allies', color:'#374151', accent:'#9ca3af', flag:'🇦🇺', startTreasury:10, startIncome:10, mainCapital:'New South Wales (Sydney)' },
-  china:      { id:'china',      name:'China',              shortName:'CHI', side:'allies', color:'#166534', accent:'#bbf7d0', flag:'🇨🇳', startTreasury:12, startIncome:12, mainCapital:null },
-  france:     { id:'france',     name:'France',             shortName:'FRA', side:'allies', color:'#1e3a8a', accent:'#60a5fa', flag:'🇫🇷', startTreasury:19, startIncome:19, mainCapital:'France (Paris)' },
-  neutral:    { id:'neutral',    name:'Neutral',            shortName:'NEU', side:'neutral',color:'#4b5563', accent:'#9ca3af', flag:'⚪', startTreasury:0,  startIncome:0,  mainCapital:null },
-  dutch:      { id:'dutch',      name:'Dutch',              shortName:'DUT', side:'neutral',color:'#b45309', accent:'#fde68a', flag:'🇳🇱', startTreasury:0,  startIncome:0,  mainCapital:null },
+  germany:    { id:'germany',    name:'Germany',            shortName:'GER', abbr:'DE',  icon:'Nations_Buttons/germany-symbol.jpg',    side:'axis',   color:'#18181b', accent:'#71717a', flag:'🇩🇪', startTreasury:30, startIncome:30, mainCapital:'Germany (Berlin)' },
+  italy:      { id:'italy',      name:'Italy',              shortName:'ITA', abbr:'IT',  icon:'Nations_Buttons/italy-symbol.jpg',      side:'axis',   color:'#78350f', accent:'#d97706', flag:'🇮🇹', startTreasury:10, startIncome:10, mainCapital:'Southern Italy (Rome)' },
+  japan:      { id:'japan',      name:'Japan',              shortName:'JAP', abbr:'JP',  icon:'Nations_Buttons/japan-symbol-axis-allies-sticker.jpg', side:'axis',   color:'#9a3412', accent:'#fb923c', flag:'🇯🇵', startTreasury:26, startIncome:26, mainCapital:'Japan (Tokyo)' },
+  soviet:     { id:'soviet',     name:'Soviet Union',       shortName:'SOV', abbr:'SU',  icon:'Nations_Buttons/soviet-union-symbol.jpg',    side:'allies', color:'#7f1d1d', accent:'#f87171', flag:'🇷🇺', startTreasury:37, startIncome:37, mainCapital:'Russia (Moscow)' },
+  usa:        { id:'usa',        name:'United States',      shortName:'USA', abbr:'US',  icon:'Nations_Buttons/usa-symbol.jpg',          side:'allies', color:'#14532d', accent:'#4ade80', flag:'🇺🇸', startTreasury:52, startIncome:52, mainCapital:'Eastern United States (Washington)' },
+  uk_europe:  { id:'uk_europe',  name:'United Kingdom',     shortName:'UKE', abbr:'UK',  icon:'Nations_Buttons/uk-union-jack-symbol.jpg',side:'allies', color:'#713f12', accent:'#fbbf24', flag:'🇬🇧', startTreasury:28, startIncome:28, mainCapital:'United Kingdom (London)' },
+  uk_pacific: { id:'uk_pacific', name:'UK Pacific',         shortName:'UKP', abbr:'UKP', icon:'Nations_Buttons/uk-symbol.jpg',         side:'allies', color:'#713f12', accent:'#fbbf24', flag:'🏴', startTreasury:17, startIncome:17, mainCapital:'India (Calcutta)' },
+  anzac:      { id:'anzac',      name:'ANZAC',              shortName:'ANZ', abbr:'ANZ', icon:'Nations_Buttons/anzac-symbol.jpg',      side:'allies', color:'#374151', accent:'#9ca3af', flag:'🇦🇺', startTreasury:10, startIncome:10, mainCapital:'New South Wales (Sydney)' },
+  china:      { id:'china',      name:'China',              shortName:'CHI', abbr:'CN',  icon:'Nations_Buttons/china-symbol.jpg',        side:'allies', color:'#166534', accent:'#bbf7d0', flag:'🇨🇳', startTreasury:12, startIncome:12, mainCapital:null },
+  france:     { id:'france',     name:'France',             shortName:'FRA', abbr:'FR',  icon:'Nations_Buttons/france-symbol.jpg',       side:'allies', color:'#1e3a8a', accent:'#60a5fa', flag:'🇫🇷', startTreasury:19, startIncome:19, mainCapital:'France (Paris)' },
+  neutral:    { id:'neutral',    name:'Neutral',            shortName:'NEU', abbr:'NE',  icon:null,                                                     side:'neutral',color:'#4b5563', accent:'#9ca3af', flag:'⚪', startTreasury:0,  startIncome:0,  mainCapital:null },
+  dutch:      { id:'dutch',      name:'Dutch',              shortName:'DUT', abbr:'NL',  icon:null,                                                     side:'neutral',color:'#b45309', accent:'#fde68a', flag:'🇳🇱', startTreasury:0,  startIncome:0,  mainCapital:null },
 };
 
 // ── Game Phases ──────────────────────────────────────────────
@@ -31,9 +31,9 @@ const NATIONS = {
 const PHASES = [
   { id:'rd',      label:'Fase 0: Forskning & Utvikling (valgfritt)', warOnly:false, indent:false, techRequired:null, chinaExcluded:true },
   { id:'p1',      label:'Fase 1: Kjøp & Reparer enheter',       warOnly:false, indent:false, techRequired:null     },
-  { id:'rockets', label:'↳ Rockets Launch',                     warOnly:false, indent:true,  techRequired:'rockets' },
   { id:'p2',      label:'Fase 2: Kampbevegelse',                warOnly:true,  indent:false, techRequired:null     },
   { id:'p3',      label:'Fase 3: Gjennomfør kamp',              warOnly:true,  indent:false, techRequired:null     },
+  { id:'rockets', label:'↳ Rockets Launch',                     warOnly:true,  indent:true,  techRequired:'rockets' },
   { id:'p4',      label:'Fase 4: Ikke-kampbevegelse',           warOnly:false, indent:false, techRequired:null     },
   { id:'p5',      label:'Fase 5: Mobiliser nye enheter',        warOnly:false, indent:false, techRequired:null     },
   { id:'p6',      label:'Fase 6: Samle inn inntekt',            warOnly:false, indent:false, techRequired:null     },
@@ -84,7 +84,9 @@ const UNITS = [
 
 // ── Territories ───────────────────────────────────────────────
 // Fields: id, name, ipc, continent, startController, isCapital, isMainCapital, neutralArmy
-const TERRITORIES = [
+// NOTE: This static dataset is the fallback. At runtime, app.js replaces TERRITORIES
+// with data parsed from src/territories.csv (the canonical source).
+let TERRITORIES = [
   // ── North America ─────────────────────────────────────────
   { id:'greenland',           name:'Greenland',                           ipc:0,  continent:'North America',  startController:'usa',        isCapital:false, isMainCapital:false },
   { id:'alberta',             name:'Alberta / Saskatchewan / Manitoba',   ipc:0,  continent:'North America',  startController:'uk_europe',  isCapital:false, isMainCapital:false },
@@ -307,7 +309,8 @@ const TERRITORIES = [
 ];
 
 // ── Computed: Victory City list ───────────────────────────────
-const VICTORY_CITIES = TERRITORIES.filter(t => t.isCapital);
+// Recomputed in app.js after CSV load if CSV is available.
+let VICTORY_CITIES = TERRITORIES.filter(t => t.isCapital);
 
 // ── National Objectives ───────────────────────────────────────
 // Each objective: { id, ipc, desc, hint }
@@ -606,4 +609,54 @@ const NATIONAL_OBJECTIVES = {
       freeUnits: true,
     },
   ],
+};
+
+// ── Starting Facilities ───────────────────────────────────────
+// Canonical list of facilities present at game start.
+// Keys are territory IDs (matching territories.csv territoryId column).
+// ic: 'minor' | 'major' | null
+const STARTING_FACILITIES = {
+  // ── Germany ───────────────────────────────────────────────
+  'europe-germany-berlin':                    { ic: 'major', airBase: false, navalBase: false },
+  'europe-western-germany':                   { ic: 'major', airBase: true,  navalBase: true  },
+  // ── Italy ─────────────────────────────────────────────────
+  'europe-northern-italy':                    { ic: 'major', airBase: false, navalBase: false },
+  'europe-southern-italy-rome':               { ic: 'minor', airBase: true,  navalBase: true  },
+  // ── Japan ─────────────────────────────────────────────────
+  'pacific-japan-tokyo':                      { ic: 'major', airBase: true,  navalBase: true  },
+  'pacific-carolines-islands':                { ic: null,    airBase: true,  navalBase: true  },
+  // ── Soviet Union ──────────────────────────────────────────
+  'europe-russia-moscow':                     { ic: 'major', airBase: true,  navalBase: false },
+  'europe-novgorod-leningrad':                { ic: 'minor', airBase: true,  navalBase: true  },
+  'europe-ukraine':                           { ic: 'minor', airBase: false, navalBase: false },
+  'europe-volgograd':                         { ic: 'minor', airBase: false, navalBase: false },
+  // ── United States ─────────────────────────────────────────
+  'europe-eastern-united-states-washington':  { ic: 'major', airBase: true,  navalBase: true  },
+  'europe-central-united-states':             { ic: 'major', airBase: false, navalBase: false },
+  'pacific-western-united-states-san-francisco': { ic: 'major', airBase: true, navalBase: true },
+  'pacific-hawaiian-islands-honolulu':        { ic: null,    airBase: true,  navalBase: true  },
+  'pacific-philippine-islands-manilla':       { ic: null,    airBase: true,  navalBase: true  },
+  'pacific-midway':                           { ic: null,    airBase: true,  navalBase: false },
+  'pacific-wake-island':                      { ic: null,    airBase: true,  navalBase: false },
+  'pacific-guam':                             { ic: null,    airBase: true,  navalBase: false },
+  // ── UK (Europe) ───────────────────────────────────────────
+  'europe-united-kingdom-london':             { ic: 'major', airBase: true,  navalBase: true  },
+  'europe-quebec':                            { ic: 'minor', airBase: false, navalBase: false },
+  'europe-union-of-south-africa':             { ic: 'minor', airBase: false, navalBase: true  },
+  'europe-scotland':                          { ic: null,    airBase: true,  navalBase: false },
+  'europe-iceland':                           { ic: null,    airBase: true,  navalBase: false },
+  'europe-new-brunswick-nova-scotia':         { ic: null,    airBase: false, navalBase: true  },
+  'europe-gibraltar':                         { ic: null,    airBase: false, navalBase: true  },
+  'europe-egypt':                             { ic: null,    airBase: false, navalBase: true  },
+  // ── UK (Pacific) ──────────────────────────────────────────
+  'pacific-india-calcutta':                   { ic: 'major', airBase: true,  navalBase: true  },
+  'pacific-kwangtung-hong-kong':              { ic: null,    airBase: false, navalBase: true  },
+  'pacific-malaya':                           { ic: null,    airBase: false, navalBase: true  },
+  // ── France ────────────────────────────────────────────────
+  'europe-france-paris':                      { ic: 'major', airBase: true,  navalBase: false },
+  'europe-normandy-bordeaux':                 { ic: 'minor', airBase: false, navalBase: true  },
+  // ── ANZAC ─────────────────────────────────────────────────
+  'pacific-new-south-wales-sydney':           { ic: 'minor', airBase: false, navalBase: true  },
+  'pacific-queensland':                       { ic: null,    airBase: true,  navalBase: true  },
+  'pacific-new-zealand':                      { ic: null,    airBase: true,  navalBase: true  },
 };
