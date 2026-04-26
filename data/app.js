@@ -12,8 +12,9 @@ const ALLIES_WIN_VC = 8;  // Allies win by holding fewer Axis VCs (keep Axis bel
 
 // ── State ─────────────────────────────────────────────────────
 let state = null;
-let purchaseCart = {};  // { [nationId]: { [unitId]: qty } } — per-session cart, not persisted
-let repairTokens = {};  // { [nationId]: number } — damage points to repair (1 IPC each)
+let purchaseCart = {};   // { [nationId]: { [unitId]: qty } } — per-session cart, not persisted
+let buildPlacements = {}; // { [nationId]: { [unitId]: territoryId } } — building territory selections
+let repairTokens = {};  // { [nationId]: { [terrId|type]: marksToRepair } } — per-facility repair selection
 const objShowAll = {};  // { [nationId]: bool } — per-session, not persisted
 
 function defaultState() {
@@ -43,6 +44,8 @@ function defaultState() {
     turnIndex:  0,
     nations,
     territories: {},
+    facilities:     {},  // { [territoryId]: { ic: 'minor'|'major'|null, airBase: bool, navalBase: bool } }
+    facilityDamage: {},  // { [territoryId]: { ic: number, airBase: number, navalBase: number } }
     history:    [],
     turnPhases:    {},   // { [nationId]: [phaseId, ...] }  — phases completed this round
     purchaseLogs: [],   // [ { round, nationId, items, totalCost, date } ]
@@ -52,6 +55,91 @@ function defaultState() {
 
 function getController(territoryId) {
   return state.territories[territoryId] ?? TERRITORIES.find(t => t.id === territoryId)?.startController ?? 'neutral';
+}
+
+// ── Facility helpers ──────────────────────────────────────────
+
+/** Max damage caps per facility type */
+const FACILITY_MAX = { ic_minor: 6, ic_major: 20, airBase: 6, navalBase: 6 };
+
+/** Get the facility record for a territory (with safe defaults). */
+function getFacility(terrId) {
+  return state.facilities[terrId] ?? { ic: null, airBase: false, navalBase: false };
+}
+
+/** Get the damage record for a territory (with safe defaults). */
+function getFacilityDamage(terrId) {
+  return state.facilityDamage[terrId] ?? { ic: 0, airBase: 0, navalBase: 0 };
+}
+
+/** Apply damage to a facility, capped at the appropriate maximum. */
+function applyFacilityDamage(terrId, type, dmg) {
+  const fac = getFacility(terrId);
+  if (type === 'ic' && !fac.ic) return;
+  if (type === 'airBase'  && !fac.airBase)   return;
+  if (type === 'navalBase' && !fac.navalBase) return;
+  const maxKey = type === 'ic' ? (fac.ic === 'major' ? 'ic_major' : 'ic_minor') : type;
+  if (!state.facilityDamage[terrId]) state.facilityDamage[terrId] = { ic: 0, airBase: 0, navalBase: 0 };
+  const d = state.facilityDamage[terrId];
+  d[type] = Math.min((d[type] || 0) + dmg, FACILITY_MAX[maxKey]);
+}
+
+/** Repair damage marks for a facility, clamped to 0. Returns actual marks repaired. */
+function repairFacilityDamage(terrId, type, marksAmount) {
+  if (!state.facilityDamage[terrId]) return 0;
+  const d = state.facilityDamage[terrId];
+  const before = d[type] || 0;
+  const repaired = Math.min(before, marksAmount);
+  d[type] = before - repaired;
+  return repaired;
+}
+
+/** True when an air base exists and has < 6 damage (operative). */
+function isOperativeAirBase(terrId) {
+  return getFacility(terrId).airBase && (getFacilityDamage(terrId).airBase || 0) < 6;
+}
+
+/** True when a naval base exists and has < 6 damage (operative). */
+function isOperativeNavalBase(terrId) {
+  return getFacility(terrId).navalBase && (getFacilityDamage(terrId).navalBase || 0) < 6;
+}
+
+/**
+ * Returns all territories controlled by nationId that have at least one
+ * damaged facility (ic | airBase | navalBase).
+ */
+function getDamagedFacilitiesForNation(nationId) {
+  const result = [];
+  const controlledTerrIds = TERRITORIES
+    .filter(t => getController(t.id) === nationId)
+    .map(t => t.id);
+  for (const terrId of controlledTerrIds) {
+    const fac = getFacility(terrId);
+    const dmg = getFacilityDamage(terrId);
+    const terr = TERRITORIES.find(t => t.id === terrId);
+    const terrName = terr?.name ?? terrId;
+    if (fac.ic && dmg.ic > 0) {
+      const maxKey = fac.ic === 'major' ? 'ic_major' : 'ic_minor';
+      result.push({ terrId, terrName, type: 'ic', label: fac.ic === 'major' ? 'Stor fabrikk (IC)' : 'Liten fabrikk (IC)', damage: dmg.ic, maxDamage: FACILITY_MAX[maxKey] });
+    }
+    if (fac.airBase && dmg.airBase > 0) {
+      result.push({ terrId, terrName, type: 'airBase', label: 'Luftbase', damage: dmg.airBase, maxDamage: FACILITY_MAX.airBase });
+    }
+    if (fac.navalBase && dmg.navalBase > 0) {
+      result.push({ terrId, terrName, type: 'navalBase', label: 'Marinebase', damage: dmg.navalBase, maxDamage: FACILITY_MAX.navalBase });
+    }
+  }
+  return result;
+}
+
+/**
+ * Returns all territories controlled by nationId that have operative air bases
+ * (airBase present, damage < 6).
+ */
+function getOperativeAirBasesForNation(nationId) {
+  return TERRITORIES
+    .filter(t => getController(t.id) === nationId && isOperativeAirBase(t.id))
+    .map(t => ({ terrId: t.id, terrName: t.name }));
 }
 
 // ── Side helpers ──────────────────────────────────────────────
@@ -247,8 +335,10 @@ function loadState() {
       const loaded = JSON.parse(raw);
       if (loaded.version === 1) {
         // migrate: ensure all fields exist
-        if (!loaded.turnPhases)   loaded.turnPhases   = {};
-        if (!loaded.purchaseLogs) loaded.purchaseLogs = [];
+        if (!loaded.turnPhases)     loaded.turnPhases     = {};
+        if (!loaded.purchaseLogs)   loaded.purchaseLogs   = [];
+        if (!loaded.facilities)     loaded.facilities     = {};
+        if (!loaded.facilityDamage) loaded.facilityDamage = {};
         for (const id of TURN_ORDER) {
           const ns = loaded.nations[id];
           if (!ns) continue;
@@ -292,6 +382,10 @@ function importState(file) {
       const loaded = JSON.parse(e.target.result);
       if (loaded.version === 1) {
         // Run the same migration as loadState so all fields are present
+        if (!loaded.facilities)     loaded.facilities     = {};
+        if (!loaded.facilityDamage) loaded.facilityDamage = {};
+        if (!loaded.turnPhases)     loaded.turnPhases     = {};
+        if (!loaded.purchaseLogs)   loaded.purchaseLogs   = [];
         for (const id of TURN_ORDER) {
           const ns = loaded.nations[id];
           if (!ns) continue;
@@ -303,8 +397,6 @@ function importState(file) {
           if (ns.losses          === undefined) ns.losses          = '';
           if (ns.unitLosses      === undefined) ns.unitLosses      = '';
           if (ns.manualAdjust    === undefined) ns.manualAdjust    = 0;
-          if (!loaded.turnPhases)  loaded.turnPhases  = {};
-          if (!loaded.purchaseLogs) loaded.purchaseLogs = [];
           ns.atWar = false;
           (NATIONAL_OBJECTIVES[id] ?? []).filter(o => o.peaceOnly).forEach(o => {
             if (ns.objectives[o.id] === undefined) ns.objectives[o.id] = true;
@@ -1065,15 +1157,14 @@ function buildNationCard(tid) {
       <div id="pc-groups-${tid}">${buildPurchaseUnitRows(tid)}</div>
       <div class="pc-group">
         <div class="pc-group-label">🔧 Reparasjoner</div>
-        <div class="pc-unit-row">
-          <span class="pc-unit-name">Skademarkører (fasiliteter)</span>
-          <span class="pc-unit-cost"><span class="pc-cost-now">1</span>&thinsp;IPC</span>
+        <div id="pc-repair-detail-${tid}">${buildRepairDetailHTML(tid)}</div>
+        <div class="pc-unit-row pc-repair-total-row">
+          <span class="pc-unit-name">Totalt reparasjonskost</span>
+          <span class="pc-unit-cost"><span class="pc-cost-now">${ns.technologies.includes('comb_bombardment') ? '2 markører/IPC' : '1 IPC/markør'}</span></span>
           <div class="pc-qty-ctrl">
-            <button class="btn btn-ghost btn-sm" onclick="stepRepair('${tid}',-1)">−</button>
-            <span class="pc-qty" id="pc-repair-${tid}">${repairTokens[tid] || 0}</span>
-            <button class="btn btn-ghost btn-sm" onclick="stepRepair('${tid}',1)">+</button>
+            <span class="pc-qty" id="pc-repair-marks-${tid}">0</span>
           </div>
-          <span class="pc-subtotal" id="pc-repair-sub-${tid}">${(repairTokens[tid] || 0) > 0 ? (repairTokens[tid] || 0) + ' IPC' : '—'}</span>
+          <span class="pc-subtotal" id="pc-repair-sub-${tid}">—</span>
         </div>
       </div>
       <div class="pc-actions">
@@ -1087,12 +1178,56 @@ function buildNationCard(tid) {
   // ── Rockets sub-fase (kun hvis teknologi er forsket) ──────
   const hasRockets  = ns.technologies.includes('rockets');
   const rocketsDone = isDone('rockets');
+  const operativeAirBases = hasRockets ? getOperativeAirBasesForNation(tid) : [];
+  const enemyTerrWithFacs = hasRockets ? TERRITORIES.filter(t => {
+    const c = getController(t.id);
+    return c !== tid && c !== 'neutral' && c !== 'dutch' && hasFacility(t.id);
+  }) : [];
+  const rocketTargetOptions = enemyTerrWithFacs.map(t => {
+    const fac = getFacility(t.id);
+    const facs = [fac.ic ? (fac.ic === 'major' ? 'Stor IC' : 'Liten IC') : null, fac.airBase ? 'Luftbase' : null, fac.navalBase ? 'Marinebase' : null].filter(Boolean).join(', ');
+    return `<option value="${t.id}">${t.name} [${facs}]</option>`;
+  }).join('');
+  let rocketsBodyHTML = '';
+  if (hasRockets) {
+    if (operativeAirBases.length === 0) {
+      rocketsBodyHTML = '<div class="rockets-section" id="rockets-body-' + tid + '">' +
+        '<div class="rockets-no-bases">Ingen operative luftbaser tilgjengelig.</div>' +
+        '</div>';
+    } else {
+      const baseRows = operativeAirBases.map(ab => {
+        const abDmg = getFacilityDamage(ab.terrId).airBase || 0;
+        const dmgSpan = abDmg > 0 ? '<span class="facility-dmg-badge">' + abDmg + '/6 skade</span>' : '';
+        return '<div class="rocket-base-row">' +
+          '<span class="rocket-base-name">✈️ ' + ab.terrName + '</span>' +
+          dmgSpan +
+          '<select class="rocket-target-sel" id="rocket-target-' + tid + '-' + ab.terrId + '">' +
+          '<option value="">— velg mål —</option>' +
+          rocketTargetOptions +
+          '</select>' +
+          '<select class="rocket-factype-sel" id="rocket-factype-' + tid + '-' + ab.terrId + '">' +
+          '<option value="ic">Fabrikk (IC)</option>' +
+          '<option value="airBase">Luftbase</option>' +
+          '<option value="navalBase">Marinebase</option>' +
+          '</select>' +
+          '<button class="btn btn-sm btn-danger" onclick="launchRocket(\'' + tid + '\',\'' + ab.terrId + '\')">🚀 Rull rakettangrep</button>' +
+          '</div>';
+      }).join('');
+      rocketsBodyHTML = '<div class="rockets-section" id="rockets-body-' + tid + '">' + baseRows + '</div>';
+    }
+  }
   const rocketsRow  = !hasRockets ? '' : `
-  <div class="phase-row${rocketsDone ? ' phase-done' : ''} phase-indent" id="pb-rockets-${tid}">
-    <label class="phase-row-lbl">
-      <input type="checkbox" ${rocketsDone ? 'checked' : ''} onchange="togglePhase('${tid}','rockets',this.checked)">
-      <span>↳ Rockets Launch</span>
-    </label>
+  <div class="phase-block${rocketsDone ? ' phase-done' : ''} phase-indent" id="pb-rockets-${tid}">
+    <div class="phase-block-hdr" onclick="togglePhaseBlock('${tid}','rockets')">
+      <label class="phase-cb" onclick="event.stopPropagation()">
+        <input type="checkbox" ${rocketsDone ? 'checked' : ''} onchange="togglePhase('${tid}','rockets',this.checked)">
+      </label>
+      <span class="phase-block-title">↳ 🚀 Rockets Launch</span>
+      <span class="phase-chevron" id="pbchev-rockets-${tid}">${rocketsDone ? '▸' : '▾'}</span>
+    </div>
+    <div class="phase-block-body${openIf(!rocketsDone)}" id="pbb-rockets-${tid}">
+      ${rocketsBodyHTML}
+    </div>
   </div>`;
 
   // ── Fase 2–5: enkle avhakingsrader ───────────────────────
@@ -1127,6 +1262,22 @@ function buildNationCard(tid) {
 
   // ── Fase 3: Gjennomfør kamp (kollapser med territorier) ───
   const p3Done = isDone('p3');
+  // Build enemy territory + facility options for bombing
+  const bombTargetTerrs = TERRITORIES.filter(t => {
+    const c = getController(t.id);
+    return c !== tid && c !== 'neutral' && c !== 'dutch' && hasFacility(t.id);
+  });
+  const bombTerrOptions = bombTargetTerrs.map(t => {
+    const fac = getFacility(t.id);
+    const owner = NATIONS[getController(t.id)]?.shortName ?? '?';
+    const facs = [fac.ic ? (fac.ic === 'major' ? 'Stor IC' : 'Liten IC') : null, fac.airBase ? 'Luftbase' : null, fac.navalBase ? 'Marinebase' : null].filter(Boolean).join(', ');
+    return `<option value="${t.id}">${t.name} [${owner}] — ${facs}</option>`;
+  }).join('');
+  ensureBombingMissions(tid);
+  const bombTerrOptsWithBlank = '<option value="">— velg territorium —</option>' + bombTerrOptions;
+  const initialMissionsHTML = bombingMissions[tid].map((m, idx) => buildMissionRowHTML(tid, m, idx, bombTerrOptsWithBlank)).join('');
+  const bombingHasAnyDamage = bombingMissions[tid].some(m => m.damageRolled && m.damage > 0);
+  const bombingTotalAllokert = bombingMissions[tid].reduce((s, m) => s + (m.assigned || 1), 0);
   const fase3Block = `
   <div class="phase-block${p3Done ? ' phase-done' : ''}" id="pb-p3-${tid}">
     <div class="phase-block-hdr" onclick="togglePhaseBlock('${tid}','p3')">
@@ -1140,6 +1291,17 @@ function buildNationCard(tid) {
       <button class="nc-terr-link-btn" onclick="goToTerritories('${tid}')">
         🗺️ Vis territorier for ${nat.name} →
       </button>
+      <div class="bombing-section">
+        <div class="phase-sub-hdr">💣 Strategisk bombing</div>
+        <div class="bomb-total-bar">Totalt allokert: <span id="bomb-total-${tid}">${bombingTotalAllokert}</span> fly</div>
+        <div id="bomb-missions-${tid}">${initialMissionsHTML}</div>
+        <div class="bombing-row">
+          <button class="btn btn-sm btn-ghost" onclick="addBombingMission('${tid}')">➕ Legg til oppdrag</button>
+        </div>
+        <div class="bombing-row" id="bomb-apply-all-${tid}" style="${bombingHasAnyDamage ? '' : 'display:none'}">
+          <button class="btn btn-sm btn-success" onclick="applyAllBombingDamage('${tid}')">✅ Anvend all skade</button>
+        </div>
+      </div>
     </div>
   </div>`;
 
@@ -1316,7 +1478,16 @@ const PC_GROUPS = [
 
 function buildPurchaseUnitRows(tid) {
   const cart            = purchaseCart[tid] || {};
+  const placements      = buildPlacements[tid] || {};
   const hasShipbuilding = state.nations[tid].technologies.includes('shipbuilding');
+  // Territories controlled by this nation with IPC ≥ 1 (eligible for building placement)
+  const ownedTerrs = TERRITORIES
+    .filter(t => getController(t.id) === tid && t.ipc > 0)
+    .sort((a, b) => b.ipc - a.ipc || a.name.localeCompare(b.name));
+  const terrOptions = ownedTerrs.map(t =>
+    `<option value="${t.id}">${t.name} (${t.ipc})</option>`
+  ).join('');
+
   return PC_GROUPS.map(g => {
     const rows = UNITS.filter(g.filter).map(u => {
       const cost       = getUnitCost(u, tid);
@@ -1326,7 +1497,25 @@ function buildPurchaseUnitRows(tid) {
         : `<span class="pc-cost-now">${cost}</span>`;
       const qty = cart[u.id] || 0;
       const sub = qty * cost;
-      return `<div class="pc-unit-row">
+      const isBuilding = u.type === 'building';
+      const selectedTerr = placements[u.id] || '';
+      const placementRow = isBuilding && qty > 0 ? `
+        <div class="pc-building-placement" id="pc-place-row-${tid}-${u.id}">
+          <label class="pc-place-label">📍 Plassering:</label>
+          <select class="pc-place-select" id="pc-place-${tid}-${u.id}"
+            onchange="setBuildingPlacement('${tid}','${u.id}',this.value)">
+            <option value="">— velg territorium —</option>
+            ${terrOptions}
+          </select>
+        </div>` : (isBuilding ? `<div class="pc-building-placement" id="pc-place-row-${tid}-${u.id}" style="display:none">
+          <label class="pc-place-label">📍 Plassering:</label>
+          <select class="pc-place-select" id="pc-place-${tid}-${u.id}"
+            onchange="setBuildingPlacement('${tid}','${u.id}',this.value)">
+            <option value="">— velg territorium —</option>
+            ${terrOptions}
+          </select>
+        </div>` : '');
+      return `<div class="pc-unit-row${isBuilding ? ' pc-unit-building' : ''}">
         <span class="pc-unit-name">${u.name}</span>
         <span class="pc-unit-cost">${costHtml}&thinsp;IPC</span>
         <div class="pc-qty-ctrl">
@@ -1335,7 +1524,7 @@ function buildPurchaseUnitRows(tid) {
           <button class="btn btn-ghost btn-sm" onclick="addToCart('${tid}','${u.id}',+1)">+</button>
         </div>
         <span class="pc-subtotal" id="pc-sub-${tid}-${u.id}">${sub > 0 ? sub + ' IPC' : '—'}</span>
-      </div>`;
+      </div>${placementRow}`;
     }).join('');
     return `<div class="pc-group"><div class="pc-group-label">${g.label}</div>${rows}</div>`;
   }).join('');
@@ -1353,29 +1542,412 @@ function buildPastPurchasesHTML(tid) {
   return `<div class="pc-hist-header">📦 Kjøpt denne runden:</div>${entries}`;
 }
 
-function stepRepair(tid, delta) {
-  repairTokens[tid] = Math.max(0, (repairTokens[tid] || 0) + delta);
+// ── Facility helper ───────────────────────────────────────────
+/** True if territory has at least one facility (any type). */
+function hasFacility(terrId) {
+  const f = getFacility(terrId);
+  return !!(f.ic || f.airBase || f.navalBase);
+}
+
+/** Build the detailed repair rows HTML for fase1Block. */
+function buildRepairDetailHTML(tid) {
+  const damaged = getDamagedFacilitiesForNation(tid);
+  if (!damaged.length) {
+    if (tid === 'uk_pacific') {
+      const ukeDamaged = getDamagedFacilitiesForNation('uk_europe');
+      if (ukeDamaged.length) {
+        return '<div class="repair-empty">Ingen skadede fasiliteter for UK Pacific.</div>' +
+          '<div class="repair-empty">Skade i London/UK Europe vises under UKE-kortet. ' +
+          '<button class="btn btn-ghost btn-sm" onclick="switchTab(\'nations\');scrollToNation(\'uk_europe\')">G\u00E5 til UKE</button></div>';
+      }
+    }
+    if (tid === 'uk_europe') {
+      const ukpDamaged = getDamagedFacilitiesForNation('uk_pacific');
+      if (ukpDamaged.length) {
+        return '<div class="repair-empty">Ingen skadede fasiliteter for UK Europe.</div>' +
+          '<div class="repair-empty">Skade i India/UK Pacific vises under UKP-kortet. ' +
+          '<button class="btn btn-ghost btn-sm" onclick="switchTab(\'nations\');scrollToNation(\'uk_pacific\')">G\u00E5 til UKP</button></div>';
+      }
+    }
+    return '<div class="repair-empty">Ingen skadede fasiliteter.</div>';
+  }
+  const hasIFP = state.nations[tid].technologies.includes('comb_bombardment');
+  const plan = getRepairPlan(tid);
+  return damaged.map(d => {
+    const key = repairKey(d.terrId, d.type);
+    const selected = Math.min(plan[key] || 0, d.damage);
+    const repairCost = hasIFP ? Math.ceil(selected / 2) : selected;
+    const operative = (d.type !== 'ic' && d.damage >= 6) ? ' <span class="inoperative-badge">Inoperativ</span>' : '';
+    return `<div class="repair-fac-row">
+      <span class="repair-fac-name">${d.label} \u2014 ${d.terrName}${operative}</span>
+      <span class="repair-fac-dmg">${d.damage}/${d.maxDamage} skade</span>
+      <div class="pc-qty-ctrl repair-qty-ctrl">
+        <button class="btn btn-ghost btn-sm" onclick="stepRepairTarget('${tid}','${d.terrId}','${d.type}',-1)">−</button>
+        <span class="pc-qty">${selected}</span>
+        <button class="btn btn-ghost btn-sm" onclick="stepRepairTarget('${tid}','${d.terrId}','${d.type}',1)">+</button>
+      </div>
+      <span class="repair-fac-cost">${repairCost > 0 ? repairCost + ' IPC' : '—'}</span>
+    </div>`;
+  }).join('');
+}
+
+function repairKey(terrId, type) {
+  return terrId + '|' + type;
+}
+
+function getRepairPlan(tid) {
+  if (!repairTokens[tid] || typeof repairTokens[tid] !== 'object') repairTokens[tid] = {};
+  return repairTokens[tid];
+}
+
+function calcRepairIpcForMarks(tid, marks) {
+  const hasIFP = state.nations[tid].technologies.includes('comb_bombardment');
+  return hasIFP ? Math.ceil(marks / 2) : marks;
+}
+
+function getRepairTotals(tid) {
+  const damaged = getDamagedFacilitiesForNation(tid);
+  const plan = getRepairPlan(tid);
+  let marks = 0;
+  let ipc = 0;
+  damaged.forEach(d => {
+    const key = repairKey(d.terrId, d.type);
+    const selected = Math.min(plan[key] || 0, d.damage);
+    if (selected > 0) {
+      marks += selected;
+      ipc += calcRepairIpcForMarks(tid, selected);
+    }
+  });
+  return { marks, ipc };
+}
+
+function stepRepairTarget(tid, terrId, type, delta) {
+  const damaged = getDamagedFacilitiesForNation(tid);
+  const row = damaged.find(d => d.terrId === terrId && d.type === type);
+  if (!row) return;
+  const key = repairKey(terrId, type);
+  const plan = getRepairPlan(tid);
+  const next = Math.max(0, Math.min(row.damage, (plan[key] || 0) + delta));
+  if (next > 0) plan[key] = next;
+  else delete plan[key];
+  const repairEl = document.getElementById('pc-repair-detail-' + tid);
+  if (repairEl) repairEl.innerHTML = buildRepairDetailHTML(tid);
   updatePurchaseDisplay(tid);
+}
+
+// ── Bombing / Rockets session state ──────────────────────────
+// Mission shape: { id, terrId, facType, flyType, assigned, aaRolled, survivors, damageRolled, damage }
+let bombingMissions = {}; // { [nationId]: Mission[] }
+let _missionIdCounter = 0;
+
+function _newMission() {
+  return { id: ++_missionIdCounter, terrId: '', facType: 'ic', flyType: 'strategic', assigned: 1,
+           aaRolled: false, survivors: null, damageRolled: false, damage: null };
+}
+
+function ensureBombingMissions(tid) {
+  if (!bombingMissions[tid] || bombingMissions[tid].length === 0) {
+    bombingMissions[tid] = [_newMission()];
+  }
+}
+
+function addBombingMission(tid) {
+  ensureBombingMissions(tid);
+  bombingMissions[tid].push(_newMission());
+  renderBombingMissions(tid);
+}
+
+function removeBombingMission(tid, mid) {
+  if (!bombingMissions[tid]) return;
+  bombingMissions[tid] = bombingMissions[tid].filter(m => m.id !== mid);
+  if (bombingMissions[tid].length === 0) bombingMissions[tid] = [_newMission()];
+  renderBombingMissions(tid);
+}
+
+function stepMission(tid, mid, delta) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  m.assigned = Math.max(1, m.assigned + delta);
+  const el = document.getElementById('bomb-count-' + tid + '-' + mid);
+  if (el) el.textContent = m.aaRolled ? m.survivors : m.assigned;
+  updateBombingTotal(tid);
+}
+
+function updateBombingTotal(tid) {
+  const total = (bombingMissions[tid] || []).reduce((s, m) => s + (m.assigned || 1), 0);
+  const el = document.getElementById('bomb-total-' + tid);
+  if (el) el.textContent = total;
+}
+
+function updateMissionTerr(tid, mid, terrId) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  m.terrId = terrId;
+  m.aaRolled = false; m.survivors = null; m.damageRolled = false; m.damage = null;
+  const facSel = document.getElementById('bomb-factype-' + tid + '-' + mid);
+  if (facSel && terrId) {
+    const fac = getFacility(terrId);
+    const opts = [];
+    if (fac.ic)        opts.push('<option value="ic">Fabrikk (IC)</option>');
+    if (fac.airBase)   opts.push('<option value="airBase">Luftbase</option>');
+    if (fac.navalBase) opts.push('<option value="navalBase">Marinebase</option>');
+    if (opts.length) { facSel.innerHTML = opts.join(''); m.facType = facSel.value; }
+  }
+  const aaEl  = document.getElementById('bomb-aa-'  + tid + '-' + mid);
+  const dmgEl = document.getElementById('bomb-dmg-' + tid + '-' + mid);
+  if (aaEl)  aaEl.innerHTML  = '';
+  if (dmgEl) dmgEl.innerHTML = '';
+  updateApplyAllBtn(tid);
+}
+
+function updateMissionFacType(tid, mid, facType) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  m.facType = facType; m.damageRolled = false; m.damage = null;
+  const dmgEl = document.getElementById('bomb-dmg-' + tid + '-' + mid);
+  if (dmgEl) dmgEl.innerHTML = '';
+  updateApplyAllBtn(tid);
+}
+
+function updateMissionFlyType(tid, mid, flyType) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  m.flyType = flyType; m.damageRolled = false; m.damage = null;
+  const dmgEl = document.getElementById('bomb-dmg-' + tid + '-' + mid);
+  if (dmgEl) dmgEl.innerHTML = '';
+  updateApplyAllBtn(tid);
+}
+
+function updateApplyAllBtn(tid) {
+  const hasAny = (bombingMissions[tid] || []).some(m => m.damageRolled && m.damage > 0);
+  const btn = document.getElementById('bomb-apply-all-' + tid);
+  if (btn) btn.style.display = hasAny ? '' : 'none';
+}
+
+function rollMissionAA(tid, mid) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  if (!m.terrId) { toast('Velg m\u00e5lterritorium for oppdraget.', 'error'); return; }
+  const count = m.assigned || 1;
+  const rolls = Array.from({ length: count }, () => Math.ceil(Math.random() * 6));
+  const hits = rolls.filter(r => r === 1).length;
+  m.survivors = Math.max(0, count - hits);
+  m.aaRolled = true; m.damageRolled = false; m.damage = null;
+  const rollStr = rolls.map(r => r === 1 ? '<b style="color:var(--red)">' + r + '</b>' : r).join(', ');
+  const el = document.getElementById('bomb-aa-' + tid + '-' + mid);
+  if (el) el.innerHTML = '[' + rollStr + '] \u2014 ' + hits + ' treff, <b>' + m.survivors + '</b> overlevde';
+  const countEl = document.getElementById('bomb-count-' + tid + '-' + mid);
+  if (countEl) countEl.textContent = m.survivors;
+  const dmgBtn = document.getElementById('bomb-dmg-btn-' + tid + '-' + mid);
+  if (dmgBtn) { dmgBtn.disabled = false; dmgBtn.removeAttribute('title'); }
+  updateApplyAllBtn(tid);
+}
+
+function rollMissionDamage(tid, mid) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  if (!m.aaRolled)      { toast('Rull AA-ild f\u00f8rst.', 'error'); return; }
+  if (m.survivors === 0){ toast('Ingen fly overlevde AA-ilden for dette oppdraget.', 'error'); return; }
+  if (!m.terrId)        { toast('Velg m\u00e5lterritorium.', 'error'); return; }
+  if (m.facType === 'ic' && m.flyType === 'tactical') {
+    toast('Taktiske bombere kan ikke angripe fabrikker.', 'error'); return;
+  }
+  const count = m.survivors || 1;
+  const bonus = m.flyType === 'strategic' ? 2 : 0;
+  const rolls = Array.from({ length: count }, () => Math.ceil(Math.random() * 6));
+  m.damage = rolls.reduce((s, r) => s + r + bonus, 0);
+  m.damageRolled = true;
+  const rollStr = rolls.map(r => r + (bonus ? '+' + bonus : '')).join(', ');
+  const el = document.getElementById('bomb-dmg-' + tid + '-' + mid);
+  if (el) el.innerHTML = '[' + rollStr + '] = <b>' + m.damage + ' skade</b>';
+  updateApplyAllBtn(tid);
+}
+
+function applyAllBombingDamage(tid) {
+  const missions = (bombingMissions[tid] || []).filter(m => m.damageRolled && m.damage > 0);
+  if (!missions.length) { toast('Ingen skade \u00e5 anvende.', 'error'); return; }
+  const affectedControllers = new Set();
+  const summary = [];
+  for (const m of missions) {
+    const fac = getFacility(m.terrId);
+    const facLabel = m.facType === 'ic' ? (fac.ic === 'major' ? 'Stor IC' : 'Liten IC')
+      : (m.facType === 'airBase' ? 'Luftbase' : 'Marinebase');
+    const terr = TERRITORIES.find(t => t.id === m.terrId);
+    applyFacilityDamage(m.terrId, m.facType, m.damage);
+    affectedControllers.add(getController(m.terrId));
+    summary.push((terr ? terr.name : m.terrId) + ' ' + facLabel + ': ' + m.damage);
+    m.aaRolled = false; m.survivors = null; m.damageRolled = false; m.damage = null;
+  }
+  saveState();
+  for (const ctrl of affectedControllers) {
+    const repairEl = document.getElementById('pc-repair-detail-' + ctrl);
+    if (repairEl) repairEl.innerHTML = buildRepairDetailHTML(ctrl);
+  }
+  renderBombingMissions(tid);
+  toast('\uD83D\uDCA3 Skade anvendt: ' + summary.join(' | '), 'warning');
+}
+
+function buildMissionRowHTML(tid, m, idx, bombTerrOpts) {
+  const mid = m.id;
+  let facOpts = '<option value="ic">Fabrikk (IC)</option><option value="airBase">Luftbase</option><option value="navalBase">Marinebase</option>';
+  if (m.terrId) {
+    const fac = getFacility(m.terrId);
+    const opts = [];
+    if (fac.ic)        opts.push('<option value="ic"'        + (m.facType === 'ic'        ? ' selected' : '') + '>Fabrikk (IC)</option>');
+    if (fac.airBase)   opts.push('<option value="airBase"'   + (m.facType === 'airBase'   ? ' selected' : '') + '>Luftbase</option>');
+    if (fac.navalBase) opts.push('<option value="navalBase"' + (m.facType === 'navalBase' ? ' selected' : '') + '>Marinebase</option>');
+    if (opts.length) facOpts = opts.join('');
+  }
+  const terrOptsSel  = m.terrId ? bombTerrOpts.replace('value="' + m.terrId + '"', 'value="' + m.terrId + '" selected') : bombTerrOpts;
+  const dmgDisabled  = !m.aaRolled ? ' disabled title="Rull AA-ild f\u00f8rst"' : '';
+  const aaResult     = m.aaRolled    ? '[rullet] \u2014 <b>' + m.survivors + '</b> overlevde' : '';
+  const dmgResult    = m.damageRolled ? '[rullet] = <b>' + m.damage + ' skade</b>' : '';
+  const displayCount = (m.aaRolled && m.survivors !== null) ? m.survivors : m.assigned;
+  return '<div class="bomb-mission" id="bomb-mission-' + tid + '-' + mid + '">' +
+    '<div class="bomb-mission-hdr">' +
+    '<span class="bomb-mission-title">Oppdrag ' + (idx + 1) + '</span>' +
+    '<button class="btn btn-ghost btn-xs" onclick="removeBombingMission(\'' + tid + '\',' + mid + ')" title="Fjern oppdrag">\uD83D\uDDD1</button>' +
+    '</div>' +
+    '<div class="bombing-row"><label class="bombing-label">M\u00e5l:</label>' +
+    '<select class="bombing-select" id="bomb-terr-' + tid + '-' + mid + '" onchange="updateMissionTerr(\'' + tid + '\',' + mid + ',this.value)">' +
+    terrOptsSel + '</select></div>' +
+    '<div class="bombing-row"><label class="bombing-label">Fasilitet:</label>' +
+    '<select class="bombing-select" id="bomb-factype-' + tid + '-' + mid + '" onchange="updateMissionFacType(\'' + tid + '\',' + mid + ',this.value)">' +
+    facOpts + '</select></div>' +
+    '<div class="bombing-row"><label class="bombing-label">Flytype:</label>' +
+    '<select class="bombing-select" id="bomb-flytype-' + tid + '-' + mid + '" onchange="updateMissionFlyType(\'' + tid + '\',' + mid + ',this.value)">' +
+    '<option value="strategic"' + (m.flyType === 'strategic' ? ' selected' : '') + '>Strategisk (+2)</option>' +
+    '<option value="tactical"'  + (m.flyType === 'tactical'  ? ' selected' : '') + '>Taktisk (kun baser)</option>' +
+    '</select></div>' +
+    '<div class="bombing-row"><label class="bombing-label">Antall fly:</label>' +
+    '<div class="pc-qty-ctrl">' +
+    '<button class="btn btn-ghost btn-sm" onclick="stepMission(\'' + tid + '\',' + mid + ',-1)">\u2212</button>' +
+    '<span class="pc-qty" id="bomb-count-' + tid + '-' + mid + '">' + displayCount + '</span>' +
+    '<button class="btn btn-ghost btn-sm" onclick="stepMission(\'' + tid + '\',' + mid + ',+1)">+</button>' +
+    '</div></div>' +
+    '<div class="bombing-row">' +
+    '<button class="btn btn-sm btn-warning" onclick="rollMissionAA(\'' + tid + '\',' + mid + ')">\uD83C\uDFB2 Rull AA-ild</button>' +
+    '<span class="bombing-aa-result" id="bomb-aa-' + tid + '-' + mid + '">' + aaResult + '</span></div>' +
+    '<div class="bombing-row">' +
+    '<button class="btn btn-sm btn-danger" id="bomb-dmg-btn-' + tid + '-' + mid + '"' + dmgDisabled + ' onclick="rollMissionDamage(\'' + tid + '\',' + mid + ')">\uD83D\uDCA5 Rull skade</button>' +
+    '<span class="bombing-dmg-result" id="bomb-dmg-' + tid + '-' + mid + '">' + dmgResult + '</span></div>' +
+    '</div>';
+}
+
+function renderBombingMissions(tid) {
+  const container = document.getElementById('bomb-missions-' + tid);
+  if (!container) return;
+  ensureBombingMissions(tid);
+  const targets = TERRITORIES.filter(t => {
+    const c = getController(t.id);
+    return c !== tid && c !== 'neutral' && c !== 'dutch' && hasFacility(t.id);
+  });
+  const opts = '<option value="">— velg territorium —</option>' + targets.map(t => {
+    const fac = getFacility(t.id);
+    const owner = NATIONS[getController(t.id)]?.shortName ?? '?';
+    const facs = [fac.ic ? (fac.ic === 'major' ? 'Stor IC' : 'Liten IC') : null, fac.airBase ? 'Luftbase' : null, fac.navalBase ? 'Marinebase' : null].filter(Boolean).join(', ');
+    return '<option value="' + t.id + '">' + t.name + ' [' + owner + '] \u2014 ' + facs + '</option>';
+  }).join('');
+  container.innerHTML = bombingMissions[tid].map((m, idx) => buildMissionRowHTML(tid, m, idx, opts)).join('');
+  updateBombingTotal(tid);
+  updateApplyAllBtn(tid);
+}
+
+function launchRocket(tid, sourceTerrId) {
+  const targetSel  = document.getElementById('rocket-target-'  + tid + '-' + sourceTerrId);
+  const factypeSel = document.getElementById('rocket-factype-' + tid + '-' + sourceTerrId);
+  if (!targetSel || !targetSel.value) { toast('Velg et mal.', 'error'); return; }
+  if (!isOperativeAirBase(sourceTerrId)) {
+    toast('Luftbasen er ikke operativ (for mye skade).', 'error'); return;
+  }
+  const targetTerrId = targetSel.value;
+  const facType = factypeSel ? factypeSel.value : 'ic';
+  const fac = getFacility(targetTerrId);
+  if (facType === 'ic'        && !fac.ic)       { toast('Ingen fabrikk pa malet.',   'error'); return; }
+  if (facType === 'airBase'   && !fac.airBase)   { toast('Ingen luftbase pa malet.',  'error'); return; }
+  if (facType === 'navalBase' && !fac.navalBase) { toast('Ingen marinebase pa malet.','error'); return; }
+  const roll = Math.ceil(Math.random() * 6);
+  const terr = TERRITORIES.find(t => t.id === targetTerrId);
+  const facLabel = facType === 'ic' ? 'Fabrikk' : facType === 'airBase' ? 'Luftbase' : 'Marinebase';
+  applyFacilityDamage(targetTerrId, facType, roll);
+  saveState();
+  const controller = getController(targetTerrId);
+  const repairEl = document.getElementById('pc-repair-detail-' + controller);
+  if (repairEl) repairEl.innerHTML = buildRepairDetailHTML(controller);
+  const curDmg = getFacilityDamage(targetTerrId)[facType] || 0;
+  const maxKey = facType === 'ic' ? (fac.ic === 'major' ? 'ic_major' : 'ic_minor') : facType;
+  toast('\uD83D\uDE80 Rakettangrep pa ' + (terr ? terr.name : targetTerrId)
+    + ' ' + facLabel + ' \u2014 terning: ' + roll
+    + '. Total skade: ' + curDmg + '/' + FACILITY_MAX[maxKey], 'warning');
 }
 
 function addToCart(tid, unitId, delta) {
   if (!purchaseCart[tid]) purchaseCart[tid] = {};
   purchaseCart[tid][unitId] = Math.max(0, (purchaseCart[tid][unitId] || 0) + delta);
+  // Show/hide building placement row
+  const unit = UNITS.find(u => u.id === unitId);
+  if (unit?.type === 'building') {
+    const placeRow = document.getElementById(`pc-place-row-${tid}-${unitId}`);
+    if (placeRow) placeRow.style.display = purchaseCart[tid][unitId] > 0 ? '' : 'none';
+    if (purchaseCart[tid][unitId] === 0 && buildPlacements[tid]) {
+      delete buildPlacements[tid][unitId];
+    }
+  }
   updatePurchaseDisplay(tid);
+}
+
+function setBuildingPlacement(tid, unitId, terrId) {
+  if (!buildPlacements[tid]) buildPlacements[tid] = {};
+  if (terrId) buildPlacements[tid][unitId] = terrId;
+  else delete buildPlacements[tid][unitId];
 }
 
 function clearCart(tid) {
   purchaseCart[tid] = {};
-  repairTokens[tid] = 0;
+  buildPlacements[tid] = {};
+  repairTokens[tid] = {};
   updatePurchaseDisplay(tid);
 }
 
 function confirmPurchase(tid) {
   const cart = purchaseCart[tid] || {};
   const ns   = state.nations[tid];
+  const placements = buildPlacements[tid] || {};
   const items = [];
   let totalCost = 0;
-  const repairCount = repairTokens[tid] || 0;
+  const repairTotals = getRepairTotals(tid);
+  const repairCost = repairTotals.ipc;
+
+  // Validate building placements before anything else
+  const buildingUnits = UNITS.filter(u => u.type === 'building');
+  for (const unit of buildingUnits) {
+    const qty = cart[unit.id] || 0;
+    if (qty === 0) continue;
+    const terrId = placements[unit.id];
+    if (!terrId) {
+      toast('Velg et territorium for ' + unit.name + ' for du bekrefter.', 'error');
+      return;
+    }
+    const terr = TERRITORIES.find(t => t.id === terrId);
+    if (unit.id === 'minor_ic' || unit.id === 'major_ic') {
+      const minIpc = unit.id === 'major_ic' ? 3 : 2;
+      if (!terr || terr.ipc < minIpc) {
+        toast(unit.name + ' krever territorium med minst ' + minIpc + ' IPC.', 'error');
+        return;
+      }
+      if (getFacility(terrId).ic) {
+        toast((terr ? terr.name : terrId) + ' har allerede en fabrikk.', 'error');
+        return;
+      }
+    } else {
+      const key = unit.id === 'air_base' ? 'airBase' : 'navalBase';
+      if (getFacility(terrId)[key]) {
+        toast((terr ? terr.name : terrId) + ' har allerede en ' + unit.name.toLowerCase() + '.', 'error');
+        return;
+      }
+    }
+  }
+
   for (const [unitId, qty] of Object.entries(cart)) {
     if (qty <= 0) continue;
     const unit     = UNITS.find(u => u.id === unitId);
@@ -1384,19 +1956,44 @@ function confirmPurchase(tid) {
     items.push({ unitId, name: unit.name, qty, costEach });
     totalCost += qty * costEach;
   }
-  totalCost += repairCount;
-  if (!items.length && repairCount === 0) { toast('Handlekurven er tom!', 'error'); return; }
+  totalCost += repairCost;
+  if (!items.length && repairCost === 0) { toast('Handlekurven er tom!', 'error'); return; }
   if (totalCost > ns.treasury) {
     toast(`Ikke nok IPC! Trenger ${totalCost} IPC, har ${ns.treasury} IPC.`, 'error');
     return;
   }
   ns.treasury -= totalCost;
+
+  // Apply building placements to state.facilities
+  for (const unit of buildingUnits) {
+    const qty = cart[unit.id] || 0;
+    if (qty === 0) continue;
+    const terrId = placements[unit.id];
+    if (!terrId) continue;
+    if (!state.facilities[terrId]) state.facilities[terrId] = { ic: null, airBase: false, navalBase: false };
+    if (!state.facilityDamage[terrId]) state.facilityDamage[terrId] = { ic: 0, airBase: 0, navalBase: 0 };
+    const fac = state.facilities[terrId];
+    if (unit.id === 'minor_ic') fac.ic = 'minor';
+    else if (unit.id === 'major_ic') fac.ic = 'major';
+    else if (unit.id === 'air_base') fac.airBase = true;
+    else if (unit.id === 'naval_base') fac.navalBase = true;
+  }
+
+  // Apply selected repairs per facility row
+  const repairPlan = getRepairPlan(tid);
+  getDamagedFacilitiesForNation(tid).forEach(d => {
+    const key = repairKey(d.terrId, d.type);
+    const marks = Math.min(repairPlan[key] || 0, d.damage);
+    if (marks > 0) repairFacilityDamage(d.terrId, d.type, marks);
+  });
+
   state.purchaseLogs.push({
     round: state.round, nationId: tid, items, totalCost,
     date:  new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }),
   });
   purchaseCart[tid] = {};
-  repairTokens[tid] = 0;
+  buildPlacements[tid] = {};
+  repairTokens[tid] = {};
   // Mark Fase 1 as completed
   if (!state.turnPhases)       state.turnPhases = {};
   if (!state.turnPhases[tid])  state.turnPhases[tid] = [];
@@ -1414,7 +2011,7 @@ function confirmPurchase(tid) {
   const pastEl = document.getElementById(`pc-past-${tid}`);
   if (pastEl) pastEl.innerHTML = buildPastPurchasesHTML(tid);
   const purchaseNames = items.map(it => `${it.qty}× ${it.name}`).join(', ');
-  const repairNote = repairCount > 0 ? `${purchaseNames ? ', ' : ''}reparert ${repairCount} skade` : '';
+  const repairNote = repairTotals.marks > 0 ? `${purchaseNames ? ', ' : ''}reparert ${repairTotals.marks} skade` : '';
   toast(`${NATIONS[tid].flag} Fase 1 fullført — ${purchaseNames}${repairNote} for ${totalCost} IPC. Skattkammer: ${ns.treasury} IPC.`, 'success');
 }
 
@@ -1432,12 +2029,12 @@ function updatePurchaseDisplay(tid) {
     const subEl = document.getElementById(`pc-sub-${tid}-${u.id}`);
     if (subEl) subEl.textContent = sub > 0 ? sub + ' IPC' : '—';
   });
-  const repairCount = repairTokens[tid] || 0;
-  cartTotal += repairCount;
-  const repairQtyEl = document.getElementById(`pc-repair-${tid}`);
-  if (repairQtyEl) repairQtyEl.textContent = repairCount;
+  const repairTotals = getRepairTotals(tid);
+  cartTotal += repairTotals.ipc;
+  const repairQtyEl = document.getElementById(`pc-repair-marks-${tid}`);
+  if (repairQtyEl) repairQtyEl.textContent = repairTotals.marks;
   const repairSubEl = document.getElementById(`pc-repair-sub-${tid}`);
-  if (repairSubEl) repairSubEl.textContent = repairCount > 0 ? repairCount + ' IPC' : '—';
+  if (repairSubEl) repairSubEl.textContent = repairTotals.ipc > 0 ? repairTotals.ipc + ' IPC' : '—';
   const availEl = document.getElementById(`pc-avail-${tid}`);
   if (availEl) availEl.textContent = avail;
   const cartEl = document.getElementById(`pc-cart-cost-${tid}`);
@@ -2320,6 +2917,29 @@ function getNeutralTypeBadge(t, ctrl) {
   return `<span style="font-size:.65rem;color:var(--text-muted);margin-left:.25rem;font-style:italic">(${label})</span>`;
 }
 
+function buildFacilityBadges(terrId) {
+  const fac = getFacility(terrId);
+  const dmg = getFacilityDamage(terrId);
+  if (!fac.ic && !fac.airBase && !fac.navalBase) return '';
+  const parts = [];
+  if (fac.ic) {
+    const icon = fac.ic === 'major' ? '\uD83C\uDFED' : '\uD83D\uDD27';
+    const d = dmg.ic || 0;
+    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}" title="${fac.ic === 'major' ? 'Stor IC' : 'Liten IC'}${d > 0 ? ' \u2014 ' + d + ' skade' : ''}">${icon}${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
+  }
+  if (fac.airBase) {
+    const d = dmg.airBase || 0;
+    const inop = d >= 6;
+    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}${inop ? ' fac-badge--inop' : ''}" title="Luftbase${d > 0 ? ' \u2014 ' + d + '/6 skade' : ''}${inop ? ' (INOPERATIV)' : ''}">\u2708\uFE0F${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
+  }
+  if (fac.navalBase) {
+    const d = dmg.navalBase || 0;
+    const inop = d >= 6;
+    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}${inop ? ' fac-badge--inop' : ''}" title="Marinebase${d > 0 ? ' \u2014 ' + d + '/6 skade' : ''}${inop ? ' (INOPERATIV)' : ''}">\u2693${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
+  }
+  return ' ' + parts.join('');
+}
+
 function buildTerritoryRow(t) {
   const ctrl    = getController(t.id);
   const nat     = NATIONS[ctrl] ?? NATIONS.neutral;
@@ -2329,7 +2949,7 @@ function buildTerritoryRow(t) {
     ? (NATIONS[t.startController] ?? null) : null;
 
   return `<tr>
-    <td class="t-name ${capital}">${t.name}${t.isMainCapital ? ' 🏛️' : ''}${getNeutralTypeBadge(t, ctrl)}</td>
+    <td class="t-name ${capital}">${t.name}${t.isMainCapital ? ' \uD83C\uDFDB\uFE0F' : ''}${getNeutralTypeBadge(t, ctrl)}${buildFacilityBadges(t.id)}</td>
     <td class="t-ipc ${ipcCls}">${t.ipc || '—'}</td>
     <td><span class="owner-badge" data-nation="${ctrl}">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName}</span></td>
     <td><button class="owner-change-btn" onclick="openOwnerPicker('${t.id}')">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName} <span class="ocb-arrow">▼</span></button></td>
@@ -3068,6 +3688,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   state = loadState() || defaultState();
+
+  // Seed starting facilities from STARTING_FACILITIES if state.facilities is empty
+  if (Object.keys(state.facilities).length === 0) {
+    for (const [terrId, fac] of Object.entries(STARTING_FACILITIES)) {
+      state.facilities[terrId] = { ic: fac.ic, airBase: fac.airBase, navalBase: fac.navalBase };
+    }
+  }
+  // Ensure facilityDamage exists for each territory that has facilities
+  for (const terrId of Object.keys(state.facilities)) {
+    if (!state.facilityDamage[terrId]) {
+      state.facilityDamage[terrId] = { ic: 0, airBase: 0, navalBase: 0 };
+    }
+  }
   saveState();
 
   // Keep header and tab-bar fixed; push main content down accordingly

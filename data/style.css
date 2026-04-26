@@ -3375,3 +3375,166 @@ main {
   .ncb-col3 { flex: 0 0 52%; max-width: 52%; }
 }
 
+/* ── Facility badges in territory rows ────────────────────────── */
+.fac-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: .72rem;
+  opacity: .85;
+  vertical-align: middle;
+}
+.fac-badge sup {
+  font-size: .6rem;
+  color: var(--gold);
+  font-weight: 700;
+  line-height: 1;
+}
+.fac-badge--dmg sup { color: var(--red); }
+.fac-badge--inop { opacity: .45; }
+
+/* ── Repair detail in Fase 1 ─────────────────────────────────── */
+.repair-empty { font-size: .78rem; color: var(--text-muted); padding: .25rem .5rem; }
+.repair-fac-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .2rem .5rem;
+  font-size: .78rem;
+  border-bottom: 1px solid var(--border);
+}
+.repair-fac-name { flex: 1; }
+.repair-fac-dmg  { color: var(--red); font-weight: 600; white-space: nowrap; }
+.repair-qty-ctrl { flex: 0 0 auto; }
+.repair-fac-cost { color: var(--text-muted); white-space: nowrap; }
+.inoperative-badge {
+  display: inline-block;
+  background: var(--red);
+  color: #fff;
+  font-size: .6rem;
+  padding: 0 .3rem;
+  border-radius: 3px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.pc-repair-total-row { border-top: 1px solid var(--border); margin-top: .25rem; }
+
+/* ── Building placement selector ─────────────────────────────── */
+.pc-unit-building { flex-wrap: wrap; }
+.pc-building-placement {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .2rem .5rem .3rem 1rem;
+  font-size: .78rem;
+  background: color-mix(in srgb, var(--bg2) 80%, var(--gold) 5%);
+  border-top: 1px dashed var(--border);
+}
+.pc-place-label { color: var(--text-muted); white-space: nowrap; }
+.pc-place-select {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: .35rem .4rem;
+  font-size: .78rem;
+  cursor: pointer;
+}
+.pc-place-select:hover { border-color: var(--border-light); }
+.pc-place-select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+
+/* ── Bombing section in Fase 3 ───────────────────────────────── */
+.bombing-section { padding: .5rem; border-top: 1px solid var(--border); margin-top: .5rem; }
+.bombing-form { display: flex; flex-direction: column; gap: .35rem; }
+.bombing-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .8rem;
+  flex-wrap: wrap;
+}
+.bombing-label { min-width: 5rem; color: var(--text-muted); }
+.bombing-select {
+  flex: 1;
+  min-width: 8rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: .35rem .4rem;
+  font-size: .78rem;
+  cursor: pointer;
+}
+.bombing-select:hover { border-color: var(--border-light); }
+.bombing-select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+.bombing-aa-result, .bombing-dmg-result {
+  font-size: .78rem;
+  flex: 1;
+}
+
+/* ── Rockets section ─────────────────────────────────────────── */
+.rockets-section { padding: .4rem .5rem; font-size: .8rem; }
+.rockets-no-bases { color: var(--text-muted); font-style: italic; }
+.rocket-base-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .25rem 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.rocket-base-name { font-weight: 600; min-width: 8rem; }
+.rocket-target-sel, .rocket-factype-sel {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: .35rem .4rem;
+  font-size: .78rem;
+  flex: 1;
+  min-width: 6rem;
+  cursor: pointer;
+}
+.rocket-target-sel:hover, .rocket-factype-sel:hover { border-color: var(--border-light); }
+.rocket-target-sel:focus, .rocket-factype-sel:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+.btn-warning {
+  background: var(--gold, #f59e0b);
+  color: #1a1a1a;
+  border: none;
+}
+.btn-warning:hover { filter: brightness(1.15); }
+
+/* ── Split bombing missions ──────────────────────────────────── */
+.bomb-total-bar {
+  font-size: .75rem;
+  color: var(--text-muted);
+  padding: .15rem .5rem .3rem;
+}
+.bomb-mission {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: .4rem 0;
+  padding: .4rem .6rem .5rem;
+  background: color-mix(in srgb, var(--bg2) 92%, var(--gold) 4%);
+}
+.bomb-mission-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .35rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid var(--border);
+}
+.bomb-mission-title {
+  font-weight: 600;
+  font-size: .8rem;
+  color: var(--gold);
+}
+.btn-xs {
+  font-size: .7rem;
+  padding: .1rem .35rem;
+  line-height: 1.4;
+}
+

@@ -610,3 +610,53 @@ const NATIONAL_OBJECTIVES = {
     },
   ],
 };
+
+// ── Starting Facilities ───────────────────────────────────────
+// Canonical list of facilities present at game start.
+// Keys are territory IDs (matching territories.csv territoryId column).
+// ic: 'minor' | 'major' | null
+const STARTING_FACILITIES = {
+  // ── Germany ───────────────────────────────────────────────
+  'europe-germany-berlin':                    { ic: 'major', airBase: false, navalBase: false },
+  'europe-western-germany':                   { ic: 'major', airBase: true,  navalBase: true  },
+  // ── Italy ─────────────────────────────────────────────────
+  'europe-northern-italy':                    { ic: 'major', airBase: false, navalBase: false },
+  'europe-southern-italy-rome':               { ic: 'minor', airBase: true,  navalBase: true  },
+  // ── Japan ─────────────────────────────────────────────────
+  'pacific-japan-tokyo':                      { ic: 'major', airBase: true,  navalBase: true  },
+  'pacific-carolines-islands':                { ic: null,    airBase: true,  navalBase: true  },
+  // ── Soviet Union ──────────────────────────────────────────
+  'europe-russia-moscow':                     { ic: 'major', airBase: true,  navalBase: false },
+  'europe-novgorod-leningrad':                { ic: 'minor', airBase: true,  navalBase: true  },
+  'europe-ukraine':                           { ic: 'minor', airBase: false, navalBase: false },
+  'europe-volgograd':                         { ic: 'minor', airBase: false, navalBase: false },
+  // ── United States ─────────────────────────────────────────
+  'europe-eastern-united-states-washington':  { ic: 'major', airBase: true,  navalBase: true  },
+  'europe-central-united-states':             { ic: 'major', airBase: false, navalBase: false },
+  'pacific-western-united-states-san-francisco': { ic: 'major', airBase: true, navalBase: true },
+  'pacific-hawaiian-islands-honolulu':        { ic: null,    airBase: true,  navalBase: true  },
+  'pacific-philippine-islands-manilla':       { ic: null,    airBase: true,  navalBase: true  },
+  'pacific-midway':                           { ic: null,    airBase: true,  navalBase: false },
+  'pacific-wake-island':                      { ic: null,    airBase: true,  navalBase: false },
+  'pacific-guam':                             { ic: null,    airBase: true,  navalBase: false },
+  // ── UK (Europe) ───────────────────────────────────────────
+  'europe-united-kingdom-london':             { ic: 'major', airBase: true,  navalBase: true  },
+  'europe-quebec':                            { ic: 'minor', airBase: false, navalBase: false },
+  'europe-union-of-south-africa':             { ic: 'minor', airBase: false, navalBase: true  },
+  'europe-scotland':                          { ic: null,    airBase: true,  navalBase: false },
+  'europe-iceland':                           { ic: null,    airBase: true,  navalBase: false },
+  'europe-new-brunswick-nova-scotia':         { ic: null,    airBase: false, navalBase: true  },
+  'europe-gibraltar':                         { ic: null,    airBase: false, navalBase: true  },
+  'europe-egypt':                             { ic: null,    airBase: false, navalBase: true  },
+  // ── UK (Pacific) ──────────────────────────────────────────
+  'pacific-india-calcutta':                   { ic: 'major', airBase: true,  navalBase: true  },
+  'pacific-kwangtung-hong-kong':              { ic: null,    airBase: false, navalBase: true  },
+  'pacific-malaya':                           { ic: null,    airBase: false, navalBase: true  },
+  // ── France ────────────────────────────────────────────────
+  'europe-france-paris':                      { ic: 'major', airBase: true,  navalBase: false },
+  'europe-normandy-bordeaux':                 { ic: 'minor', airBase: false, navalBase: true  },
+  // ── ANZAC ─────────────────────────────────────────────────
+  'pacific-new-south-wales-sydney':           { ic: 'minor', airBase: false, navalBase: true  },
+  'pacific-queensland':                       { ic: null,    airBase: true,  navalBase: true  },
+  'pacific-new-zealand':                      { ic: null,    airBase: true,  navalBase: true  },
+};
