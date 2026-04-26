@@ -513,7 +513,8 @@ main {
   .oc-nations { max-height: 340px; }
 }
 
-/* ── Overview grid (keepin for side panels if still used) ───── */
+/* ── Overview grid (keeping for side panels if still used) ──── */
+.ov-dashboard {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
