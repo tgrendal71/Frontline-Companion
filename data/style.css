@@ -504,6 +504,15 @@ main {
 .oc-terr-name   { color: var(--text-dim); }
 .oc-terr-arrow  { color: var(--text-muted); font-size: .75rem; }
 
+.oc-bombing-section { padding: .5rem 1rem; border-top: 1px solid var(--border-light); margin-top: .3rem; }
+.oc-bombing-title   { font-size: .72rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .3rem; }
+.oc-bombing-row     { display: flex; align-items: center; gap: .4rem; font-size: .78rem; padding: .15rem 0; border-bottom: 1px solid var(--border); }
+.oc-bombing-atk     { color: var(--text-main); font-weight: 600; white-space: nowrap; }
+.oc-bombing-sep     { color: var(--text-muted); }
+.oc-bombing-target  { color: var(--gold); flex: 1; }
+.oc-bombing-fac     { color: var(--text-dim); font-size: .73rem; }
+.oc-bombing-dmg     { color: var(--red); font-weight: 600; white-space: nowrap; }
+
 /* Responsive */
 @media (max-width: 820px) {
   .ov-dashboard {
@@ -1459,12 +1468,14 @@ main {
 }
 
 /* history territory changes */
-.hist-terr-section {
+.hist-terr-section,
+.hist-bombing-section {
   margin-top: .6rem;
   padding-top: .5rem;
   border-top: 1px solid var(--border-light);
   width: 100%;
 }
+.hist-section-title,
 .hist-terr-title {
   font-size: .75rem;
   font-weight: 600;
@@ -1473,6 +1484,21 @@ main {
   letter-spacing: .03em;
   text-transform: uppercase;
 }
+.hist-bombing-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .78rem;
+  padding: .2rem .3rem;
+  border-radius: 4px;
+  margin-bottom: .15rem;
+  background: rgba(255,255,255,.03);
+}
+.hist-bombing-atk  { color: var(--text-main); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.hist-bombing-sep  { color: var(--text-muted); flex-shrink: 0; }
+.hist-bombing-detail { color: var(--gold); flex: 1; }
+.hist-bombing-fac  { color: var(--text-dim); font-size: .73rem; flex-shrink: 0; }
+.hist-bombing-dmg  { color: var(--red); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
 .hist-terr-row {
   display: flex;
   justify-content: space-between;
@@ -3537,5 +3563,176 @@ main {
   font-size: .7rem;
   padding: .1rem .35rem;
   line-height: 1.4;
+}
+
+/* ── Language toggle ──────────────────────────────────────── */
+.lang-toggle {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  min-width: 2.4rem;
+  min-height: 2rem;
+  padding: .2rem .5rem;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.lang-toggle:hover { color: var(--gold); border-color: var(--gold); }
+
+/* ── Strategic Bombing — manual input card ─────────────────── */
+.bomb-manual-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  margin-top: .4rem;
+}
+.bomb-input-group {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+.bomb-input-label {
+  font-size: .78rem;
+  color: var(--text-dim);
+  min-width: 9rem;
+}
+.bomb-hint {
+  font-size: .68rem;
+  color: var(--text-muted);
+  margin-left: .1rem;
+}
+.bomb-number-input {
+  width: 4rem;
+  min-height: 44px;
+  padding: .2rem .4rem;
+  text-align: center;
+  font-size: .9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+}
+.bomb-number-input:focus { outline: none; border-color: var(--gold); }
+.bomb-survivors-badge {
+  font-size: .78rem;
+  color: var(--text-dim);
+  background: var(--bg-hover);
+  padding: .15rem .45rem;
+  border-radius: 4px;
+}
+.bomb-survivors-zero { color: var(--red); font-weight: 600; }
+.bomb-input-disabled {
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* HP bar */
+.bomb-facility-status {
+  margin-top: .4rem;
+  padding: .3rem .4rem;
+  background: var(--bg-hover);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.bomb-hp-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-bottom: .2rem;
+}
+.bomb-hp-track {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bomb-hp-fill {
+  height: 100%;
+  background: var(--red);
+  border-radius: 4px;
+  transition: width .2s ease;
+}
+.bomb-hp-text {
+  font-size: .72rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.bomb-prod-cap {
+  font-size: .72rem;
+  color: var(--gold);
+}
+
+/* ── Battle board — manual hit inputs ───────────────────────── */
+.battle-hit-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  padding: .5rem;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-top: .3rem;
+}
+.bhi-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.bhi-label {
+  font-size: .8rem;
+  color: var(--text-dim);
+  min-width: 8.5rem;
+}
+.bhi-input {
+  width: 4.5rem;
+  min-height: 44px;
+  padding: .2rem .4rem;
+  text-align: center;
+  font-size: .95rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+}
+.bhi-input:focus { outline: none; border-color: var(--gold); }
+.battle-apply-btn { margin-top: .2rem; }
+
+/* ── Rocket damage input ────────────────────────────────────── */
+.rocket-dmg-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-top: .3rem;
+  flex-wrap: wrap;
+}
+.rocket-dmg-label {
+  font-size: .78rem;
+  color: var(--text-dim);
+  min-width: 9rem;
+}
+.rocket-dmg-input {
+  width: 4rem;
+  min-height: 44px;
+  padding: .2rem .4rem;
+  text-align: center;
+  font-size: .9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+}
+.rocket-dmg-input:focus { outline: none; border-color: var(--gold); }
+
+/* ── Mobile/tablet improvements ─────────────────────────────── */
+@media (max-width: 600px) {
+  .bomb-mission-row {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .bomb-input-label { min-width: 7rem; }
+  .bhi-label { min-width: 7.5rem; }
+  .nation-card { font-size: .85rem; }
+  .lang-toggle { min-height: 44px; min-width: 44px; }
 }
 

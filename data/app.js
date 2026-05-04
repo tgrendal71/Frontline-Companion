@@ -42,6 +42,7 @@ function defaultState() {
     version:    1,
     round:      1,
     turnIndex:  0,
+    lang:       'no',
     nations,
     territories: {},
     facilities:     {},  // { [territoryId]: { ic: 'minor'|'major'|null, airBase: bool, navalBase: bool } }
@@ -50,6 +51,7 @@ function defaultState() {
     turnPhases:    {},   // { [nationId]: [phaseId, ...] }  — phases completed this round
     purchaseLogs: [],   // [ { round, nationId, items, totalCost, date } ]
     territoryChanges: [], // [ { territoryId, name, from, to } ] — logged during round
+    bombingEvents:    [], // [ { attackerId, terrId, terrName, facLabel, damage } ] — logged during round
   };
 }
 
@@ -120,13 +122,13 @@ function getDamagedFacilitiesForNation(nationId) {
     const terrName = terr?.name ?? terrId;
     if (fac.ic && dmg.ic > 0) {
       const maxKey = fac.ic === 'major' ? 'ic_major' : 'ic_minor';
-      result.push({ terrId, terrName, type: 'ic', label: fac.ic === 'major' ? 'Stor fabrikk (IC)' : 'Liten fabrikk (IC)', damage: dmg.ic, maxDamage: FACILITY_MAX[maxKey] });
+      result.push({ terrId, terrName, type: 'ic', label: fac.ic === 'major' ? t('fac.major_ic') + ' (IC)' : t('fac.minor_ic') + ' (IC)', damage: dmg.ic, maxDamage: FACILITY_MAX[maxKey] });
     }
     if (fac.airBase && dmg.airBase > 0) {
-      result.push({ terrId, terrName, type: 'airBase', label: 'Luftbase', damage: dmg.airBase, maxDamage: FACILITY_MAX.airBase });
+      result.push({ terrId, terrName, type: 'airBase', label: t('fac.airbase'), damage: dmg.airBase, maxDamage: FACILITY_MAX.airBase });
     }
     if (fac.navalBase && dmg.navalBase > 0) {
-      result.push({ terrId, terrName, type: 'navalBase', label: 'Marinebase', damage: dmg.navalBase, maxDamage: FACILITY_MAX.navalBase });
+      result.push({ terrId, terrName, type: 'navalBase', label: t('fac.navalbase'), damage: dmg.navalBase, maxDamage: FACILITY_MAX.navalBase });
     }
   }
   return result;
@@ -335,6 +337,7 @@ function loadState() {
       const loaded = JSON.parse(raw);
       if (loaded.version === 1) {
         // migrate: ensure all fields exist
+        if (!loaded.lang)           loaded.lang           = 'no';
         if (!loaded.turnPhases)     loaded.turnPhases     = {};
         if (!loaded.purchaseLogs)   loaded.purchaseLogs   = [];
         if (!loaded.facilities)     loaded.facilities     = {};
@@ -372,7 +375,7 @@ function exportState() {
   a.download = `aa1940-round${state.round}-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('Spillstatus eksportert! 💾', 'success');
+  toast(t('toast.exported'), 'success');
 }
 
 function importState(file) {
@@ -408,11 +411,11 @@ function importState(file) {
         if (grid) grid.dataset.built = '';
         saveState();
         renderAll();
-        toast('Spillstatus importert! ✅', 'success');
+        toast(t('toast.imported'), 'success');
       } else {
-        toast('Ugyldig filformat.', 'error');
+        toast(t('toast.invalid_format'), 'error');
       }
-    } catch { toast('Feil ved lesing av fil.', 'error'); }
+    } catch { toast(t('toast.file_read_error'), 'error'); }
   };
   reader.readAsText(file);
 }
@@ -440,7 +443,7 @@ async function loadSavesList() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const saves = await res.json();
     if (!saves.length) {
-      list.innerHTML = '<div class="ssave-empty">Ingen lagrede spill ennå.</div>';
+      list.innerHTML = '<div class="ssave-empty">' + t('modal.save.empty') + '</div>';
       return;
     }
     list.innerHTML = saves.map(s => {
@@ -454,21 +457,21 @@ async function loadSavesList() {
             <div class="ssave-item-meta">${when}</div>
           </div>
           <div class="ssave-item-actions">
-            <button class="btn btn-success btn-sm" onclick="loadFromServer('${safeName}')">📂 Last inn</button>
+            <button class="btn btn-success btn-sm" onclick="loadFromServer('${safeName}')">${t('saves.load_btn')}</button>
             <button class="btn btn-danger btn-sm"  onclick="deleteFromServer('${safeName}', this)">🗑️</button>
           </div>
         </div>`;
     }).join('');
   } catch (e) {
-    list.innerHTML = `<div class="ssave-empty" style="color:var(--red)">Feil: ${e.message}. Er serveren oppe?</div>`;
+    list.innerHTML = `<div class="ssave-empty" style="color:var(--red)">${t('toast.save_error', { msg: e.message })}</div>`;
   }
 }
 
 async function saveToServer() {
   const name = document.getElementById('ssaveName').value.trim();
-  if (!name) { toast('Skriv inn et lagrenavn.', 'error'); return; }
+  if (!name) { toast(t('toast.save_name_empty'), 'error'); return; }
   if (!/^[\w\- ]{1,64}$/.test(name)) {
-    toast('Navn kan bare inneholde bokstaver, tall, mellomrom og bindestrek.', 'error');
+    toast(t('toast.save_name_invalid'), 'error');
     return;
   }
   try {
@@ -478,21 +481,21 @@ async function saveToServer() {
       body: JSON.stringify(state),
     });
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? `HTTP ${res.status}`); }
-    toast(`Lagret som "${name}" ✅`, 'success');
+    toast(t('toast.saved', { name }), 'success');
     loadSavesList();
   } catch (e) {
-    toast(`Feil ved lagring: ${e.message}`, 'error');
+    toast(t('toast.save_error', { msg: e.message }), 'error');
   }
 }
 
 async function loadFromServer(encodedName) {
   const name = decodeURIComponent(encodedName);
-  if (!confirm(`Laste inn "${name}"? Ulagrede endringer vil gå tapt.`)) return;
+  if (!confirm(t('saves.load_confirm', { name }))) return;
   try {
     const res = await fetch(`${API_BASE}/${encodedName}`);
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? `HTTP ${res.status}`); }
     const loaded = await res.json();
-    if (loaded.version !== 1) { toast('Ugyldig filformat.', 'error'); return; }
+    if (loaded.version !== 1) { toast(t('toast.invalid_format'), 'error'); return; }
     // Run full migration
     for (const id of TURN_ORDER) {
       const ns = loaded.nations[id];
@@ -518,23 +521,23 @@ async function loadFromServer(encodedName) {
     saveState();
     renderAll();
     closeServerSaveModal();
-    toast(`"${name}" lastet inn ✅`, 'success');
+    toast(t('toast.loaded', { name }), 'success');
   } catch (e) {
-    toast(`Feil ved innlasting: ${e.message}`, 'error');
+    toast(t('toast.load_error', { msg: e.message }), 'error');
   }
 }
 
 async function deleteFromServer(encodedName, btn) {
   const name = decodeURIComponent(encodedName);
-  if (!confirm(`Slette "${name}"?`)) return;
+  if (!confirm(t('saves.load_confirm', { name }))) return;
   btn.disabled = true;
   try {
     const res = await fetch(`${API_BASE}/${encodedName}`, { method: 'DELETE' });
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? `HTTP ${res.status}`); }
-    toast(`"${name}" slettet.`);
+    toast(t('toast.deleted', { name }));
     loadSavesList();
   } catch (e) {
-    toast(`Feil ved sletting: ${e.message}`, 'error');
+    toast(t('toast.delete_error', { msg: e.message }), 'error');
     btn.disabled = false;
   }
 }
@@ -670,7 +673,7 @@ function renderPhaseTracker() {
 
   const progEl = document.getElementById('phaseProgress');
   if (progEl) {
-    progEl.textContent = `${doneCount}/${visible.length} faser`;
+    progEl.textContent = t('phase.done_count', { n: `${doneCount}/${visible.length}` });
     progEl.className   = `phase-progress${allDone ? ' all-done' : ''}`;
   }
 
@@ -678,10 +681,10 @@ function renderPhaseTracker() {
   if (listEl) {
     listEl.innerHTML = visible.map(p => {
       const done   = completed.includes(p.id);
-      const warTag = p.warOnly ? '<span class="phase-war-tag">Kun ved krig</span>' : '';
+      const warTag = p.warOnly ? `<span class="phase-war-tag">${t('phase.war_only')}</span>` : '';
       return `<label class="phase-item${done ? ' done' : ''}${p.indent ? ' indent' : ''}${p.warOnly ? ' war-only' : ''}">
         <input type="checkbox" ${done ? 'checked' : ''} ${p.id === 'p6' ? 'disabled' : ''} title="${p.id === 'p6' ? 'Markeres automatisk av Samle inn inntekt' : ''}" onchange="togglePhase('${tid}','${p.id}',this.checked)">
-        <span class="phase-label">${p.label}</span>
+        <span class="phase-label">${t('phase.' + p.id)}</span>
         ${warTag}
       </label>`;
     }).join('');
@@ -690,7 +693,7 @@ function renderPhaseTracker() {
   const btn = document.getElementById('btnCompletePhases');
   if (btn) {
     btn.className = `btn btn-sm btn-complete-turn${allDone ? ' btn-primary' : ' btn-ghost'}`;
-    btn.textContent = allDone ? '✅ Fullfør tur ▶' : 'Fullfør tur ▶';
+    btn.textContent = allDone ? t('header.finish_turn_done') : t('header.finish_turn');
   }
 }
 
@@ -804,16 +807,16 @@ function renderFocusCard() {
     ? `<div class="ofc-row"><div class="ofc-tag-list">${techs.map(t => `<span class="ofc-tag ofc-tag-tech">${t}</span>`).join('')}</div></div>`
     : '';
   const conqueredHtml  = conquered.length
-    ? `<div class="ofc-row"><span class="ofc-row-label">⚔️ Erobret</span><div class="ofc-tag-list">${conquered.map(n => `<span class="ofc-tag ofc-tag-gain">${escHtml(n)}</span>`).join('')}</div></div>`
+    ? `<div class="ofc-row"><span class="ofc-row-label">${t('ov.conquered_label')}</span><div class="ofc-tag-list">${conquered.map(n => `<span class="ofc-tag ofc-tag-gain">${escHtml(n)}</span>`).join('')}</div></div>`
     : '';
   const lostHtml       = lost.length
-    ? `<div class="ofc-row"><span class="ofc-row-label">💀 Mistet</span><div class="ofc-tag-list">${lost.map(n => `<span class="ofc-tag ofc-tag-loss">${escHtml(n)}</span>`).join('')}</div></div>`
+    ? `<div class="ofc-row"><span class="ofc-row-label">${t('ov.lost_label')}</span><div class="ofc-tag-list">${lost.map(n => `<span class="ofc-tag ofc-tag-loss">${escHtml(n)}</span>`).join('')}</div></div>`
     : '';
   const purchaseHtml   = lastPurchase
-    ? `<div class="ofc-row"><span class="ofc-row-label">🛒 Kjøpt</span><span class="ofc-val">${escHtml(lastPurchase)}</span></div>`
+    ? `<div class="ofc-row"><span class="ofc-row-label">${t('ov.purchased_label')}</span><span class="ofc-val">${escHtml(lastPurchase)}</span></div>`
     : '';
   const objHtml        = totalObjs > 0
-    ? `<div class="ofc-row"><span class="ofc-row-label">🎯 Mål</span><span class="ofc-val">${metObjs.length}/${totalObjs} oppfylt</span></div>`
+    ? `<div class="ofc-row"><span class="ofc-row-label">${t('ov.objectives_label')}</span><span class="ofc-val">${t('ov.fulfilled', { met: metObjs.length, total: totalObjs })}</span></div>`
     : '';
 
   el.innerHTML = `
@@ -822,22 +825,22 @@ function renderFocusCard() {
         <span class="ofc-flag">${nationIconHTML(nat, 'nation-icon--lg')}</span>
         <div class="ofc-title-block">
           <div class="ofc-nation-name">${escHtml(nat.name)}</div>
-          <div class="ofc-subtitle">Aktiv tur · Runde ${state.round}</div>
+          <div class="ofc-subtitle">${t('ov.active_turn', { n: state.round })}</div>
         </div>
         ${capStatus}
       </div>
       <div class="ofc-stats">
         <div class="ofc-stat">
           <div class="ofc-stat-val">📈 ${income} IPC ${bonusHtml}</div>
-          <div class="ofc-stat-label">Inntekt / runde</div>
+          <div class="ofc-stat-label">${t('ov.income_label')}</div>
         </div>
         <div class="ofc-stat">
           <div class="ofc-stat-val">💰 ${ns.treasury} IPC</div>
-          <div class="ofc-stat-label">I kassen</div>
+          <div class="ofc-stat-label">${t('ov.in_treasury')}</div>
         </div>
         <div class="ofc-stat">
           <div class="ofc-stat-val">🗺️ ${terrCount}</div>
-          <div class="ofc-stat-label">Territorier</div>
+          <div class="ofc-stat-label">${t('ov.territories_label')}</div>
         </div>
       </div>
       ${conqueredHtml}${lostHtml}${purchaseHtml}${objHtml}${techHtml}
@@ -896,15 +899,15 @@ function renderChronicle() {
 
   if (!lastRound) {
     const changes = state.territoryChanges ?? [];
-    if (!changes.length) {
+    const bombing = state.bombingEvents ?? [];
+    if (!changes.length && !bombing.length) {
       el.innerHTML = `<div class="oc-panel">
-        <div class="oc-header">📜 Logg — Runde ${state.round}</div>
-        <div class="oc-empty">Ingen hendelser logget enda.</div>
+        <div class="oc-header">${t('ov.chronicle_curr', { n: state.round })}</div>
+        <div class="oc-empty">${t('ov.no_events')}</div>
       </div>`;
       return;
     }
-    el.innerHTML = `<div class="oc-panel">
-      <div class="oc-header">📜 Denne runden — territorieendringer</div>
+    const terrHtmlCurr = changes.length ? `
       <div class="oc-terr-section">
         ${changes.map(tc => {
           const fromNat = NATIONS[tc.from];
@@ -914,7 +917,11 @@ function renderChronicle() {
             <span class="oc-terr-arrow">${fromNat ? nationIconHTML(fromNat, 'nation-icon--xs') : '⚪'} → ${toNat ? nationIconHTML(toNat, 'nation-icon--xs') : '⚪'}</span>
           </div>`;
         }).join('')}
-      </div>
+      </div>` : '';
+    const bombHtmlCurr = bombing.length ? buildOCBombingHTML(bombing) : '';
+    el.innerHTML = `<div class="oc-panel">
+      <div class="oc-header">${t('ov.chronicle_curr', { n: state.round })}</div>
+      ${terrHtmlCurr}${bombHtmlCurr}
     </div>`;
     return;
   }
@@ -945,12 +952,33 @@ function renderChronicle() {
     </div>`;
   }).join('');
 
+  const lastBombing = lastRound.bombingEvents ?? [];
+  const lastBombHtml = lastBombing.length ? buildOCBombingHTML(lastBombing) : '';
+
   el.innerHTML = `<div class="oc-panel">
     <div class="oc-header">
-      📜 Runde ${lastRound.round} — logg
-      <span class="oc-vc-summary">Akse ${lastRound.axisVC ?? '?'} / Allierte ${lastRound.alliesVC ?? '?'} VC</span>
+      ${t('ov.chronicle_round', { n: lastRound.round })}
+      <span class="oc-vc-summary">${t('ov.vc_summary', { axis: lastRound.axisVC ?? '?', allies: lastRound.alliesVC ?? '?' })}</span>
     </div>
     <div class="oc-nations">${nationRows}</div>
+    ${lastBombHtml}
+  </div>`;
+}
+
+function buildOCBombingHTML(events) {
+  return `<div class="oc-bombing-section">
+    <div class="oc-bombing-title">💣 ${t('hist.bombing_section')}</div>
+    ${events.map(b => {
+      const atkNat = NATIONS[b.attackerId];
+      const atkIcon = atkNat ? nationIconHTML(atkNat, 'nation-icon--xs') : '✈️';
+      return `<div class="oc-bombing-row">
+        <span class="oc-bombing-atk">${atkIcon} ${atkNat?.shortName ?? b.attackerId}</span>
+        <span class="oc-bombing-sep">→</span>
+        <span class="oc-bombing-target">${escHtml(b.terrName)}</span>
+        <span class="oc-bombing-fac">${escHtml(b.facLabel)}</span>
+        <span class="oc-bombing-dmg">${b.damage} ${t('hist.bombing_dmg')}</span>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
@@ -993,16 +1021,16 @@ function buildNationPhaseTrackerHTML(tid) {
 
   const phasesHTML = visible.map(p => {
     const done   = completed.includes(p.id);
-    const warTag = p.warOnly ? '<span class="phase-war-tag">Kun ved krig</span>' : '';
+    const warTag = p.warOnly ? `<span class="phase-war-tag">${t('phase.war_only')}</span>` : '';
     return `<label class="phase-item${done ? ' done' : ''}${p.indent ? ' indent' : ''}${p.warOnly ? ' war-only' : ''}">
       <input type="checkbox" ${done ? 'checked' : ''} ${p.id === 'p6' ? 'disabled' : ''} title="${p.id === 'p6' ? 'Markeres automatisk av Samle inn inntekt' : ''}" onchange="togglePhase('${tid}','${p.id}',this.checked)">
-      <span class="phase-label">${p.label}</span>
+      <span class="phase-label">${t('phase.' + p.id)}</span>
       ${warTag}
     </label>`;
   }).join('');
 
   const progressCls = `phase-progress${allDone ? ' all-done' : ''}`;
-  return `<div class="nc-phase-progress"><span class="${progressCls}">${doneCount}/${visible.length} faser fullført</span></div>
+  return `<div class="nc-phase-progress"><span class="${progressCls}">${t('phase.done_count', { n: `${doneCount}/${visible.length}` })}</span></div>
 <div class="phase-list nc-phase-list">${phasesHTML}</div>`;
 }
 
@@ -1076,7 +1104,7 @@ function buildNationHeaderFieldsInner(tid) {
       <div class="nc-hfield-label">Start IPC</div>
       <div class="nchf-start-val">${startIncome} <span class="nchf-ipc-unit">IPC</span></div>
       <div class="nchf-curr-row">
-        <span class="nchf-curr-label">Nå:</span>
+        <span class="nchf-curr-label">${t('nc.now')}</span>
         <span class="nchf-curr-val" id="nchf-curr-${tid}">${income}</span>
         <span class="nchf-ipc-unit">IPC</span>
         <span class="nchf-delta ${deltaCls}" id="nchf-delta-${tid}">${deltaSign}${delta}</span>
@@ -1126,8 +1154,8 @@ function buildNationCard(tid) {
       <label class="phase-cb" onclick="event.stopPropagation()">
         <input type="checkbox" ${rdDone ? 'checked' : ''} onchange="togglePhase('${tid}','rd',this.checked)">
       </label>
-      <span class="phase-block-title">🔬 Fase 0: Forskning &amp; Utvikling</span>
-      <span class="phase-opt-badge">valgfritt</span>
+      <span class="phase-block-title">🔬 ${t('phase.rd_title')}</span>
+      <span class="phase-opt-badge">${t('phase.optional')}</span>
       <span class="phase-chevron" id="pbchev-rd-${tid}">${rdDone ? '▸' : '▾'}</span>
     </div>
     <div class="phase-block-body${openIf(!rdDone)}" id="pbb-rd-${tid}">
@@ -1145,22 +1173,22 @@ function buildNationCard(tid) {
       <label class="phase-cb" onclick="event.stopPropagation()">
         <input type="checkbox" ${p1Done ? 'checked' : ''} onchange="togglePhase('${tid}','p1',this.checked)">
       </label>
-      <span class="phase-block-title">🛒 Fase 1: Kjøp &amp; Reparer enheter</span>
+      <span class="phase-block-title">${t('phase.p1')}</span>
       <span class="phase-chevron" id="pbchev-p1-${tid}">${p1Done ? '▸' : '▾'}</span>
     </div>
     <div class="phase-block-body${openIf(!p1Done)}" id="pbb-p1-${tid}">
       <div class="pc-budget-bar">
-        <div class="pc-bitem"><span class="pc-blabel">I kassen</span><span class="pc-bval" id="pc-avail-${tid}">${ns.treasury}</span><span class="pc-bunit">IPC</span></div>
-        <div class="pc-bitem"><span class="pc-blabel">Handlekurv</span><span class="pc-bval" id="pc-cart-cost-${tid}">0</span><span class="pc-bunit">IPC</span></div>
-        <div class="pc-bitem"><span class="pc-blabel">Gjenstår</span><span class="pc-bval" id="pc-remaining-${tid}">${ns.treasury}</span><span class="pc-bunit">IPC</span></div>
+        <div class="pc-bitem"><span class="pc-blabel">${t('pc.available')}</span><span class="pc-bval" id="pc-avail-${tid}">${ns.treasury}</span><span class="pc-bunit">IPC</span></div>
+        <div class="pc-bitem"><span class="pc-blabel">${t('pc.cart')}</span><span class="pc-bval" id="pc-cart-cost-${tid}">0</span><span class="pc-bunit">IPC</span></div>
+        <div class="pc-bitem"><span class="pc-blabel">${t('pc.remaining')}</span><span class="pc-bval" id="pc-remaining-${tid}">${ns.treasury}</span><span class="pc-bunit">IPC</span></div>
       </div>
       <div id="pc-groups-${tid}">${buildPurchaseUnitRows(tid)}</div>
       <div class="pc-group">
-        <div class="pc-group-label">🔧 Reparasjoner</div>
+        <div class="pc-group-label">${t('nc.repairs_label')}</div>
         <div id="pc-repair-detail-${tid}">${buildRepairDetailHTML(tid)}</div>
         <div class="pc-unit-row pc-repair-total-row">
-          <span class="pc-unit-name">Totalt reparasjonskost</span>
-          <span class="pc-unit-cost"><span class="pc-cost-now">${ns.technologies.includes('comb_bombardment') ? '2 markører/IPC' : '1 IPC/markør'}</span></span>
+          <span class="pc-unit-name">${t('nc.repair_total')}</span>
+          <span class="pc-unit-cost"><span class="pc-cost-now">${ns.technologies.includes('comb_bombardment') ? t('pc.comb_cost') : t('pc.normal_cost')}</span></span>
           <div class="pc-qty-ctrl">
             <span class="pc-qty" id="pc-repair-marks-${tid}">0</span>
           </div>
@@ -1168,8 +1196,8 @@ function buildNationCard(tid) {
         </div>
       </div>
       <div class="pc-actions">
-        <button class="btn btn-ghost btn-sm" onclick="clearCart('${tid}')">🗑 Tøm</button>
-        <button class="btn btn-success btn-sm" id="pc-confirm-${tid}" onclick="confirmPurchase('${tid}')">✅ Bekreft kjøp</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearCart('${tid}')">${t('nc.empty_cart')}</button>
+        <button class="btn btn-success btn-sm" id="pc-confirm-${tid}" onclick="confirmPurchase('${tid}')">${t('nc.confirm_purchase')}</button>
       </div>
       <div id="pc-past-${tid}">${buildPastPurchasesHTML(tid)}</div>
     </div>
@@ -1183,34 +1211,36 @@ function buildNationCard(tid) {
     const c = getController(t.id);
     return c !== tid && c !== 'neutral' && c !== 'dutch' && hasFacility(t.id);
   }) : [];
-  const rocketTargetOptions = enemyTerrWithFacs.map(t => {
-    const fac = getFacility(t.id);
-    const facs = [fac.ic ? (fac.ic === 'major' ? 'Stor IC' : 'Liten IC') : null, fac.airBase ? 'Luftbase' : null, fac.navalBase ? 'Marinebase' : null].filter(Boolean).join(', ');
-    return `<option value="${t.id}">${t.name} [${facs}]</option>`;
+  const rocketTargetOptions = enemyTerrWithFacs.map(terr => {
+    const fac = getFacility(terr.id);
+    const facs = [fac.ic ? (fac.ic === 'major' ? t('repair.major_ic') : t('repair.minor_ic')) : null, fac.airBase ? t('repair.airbase') : null, fac.navalBase ? t('repair.navalbase') : null].filter(Boolean).join(', ');
+    return `<option value="${terr.id}">${terr.name} [${facs}]</option>`;
   }).join('');
   let rocketsBodyHTML = '';
   if (hasRockets) {
     if (operativeAirBases.length === 0) {
       rocketsBodyHTML = '<div class="rockets-section" id="rockets-body-' + tid + '">' +
-        '<div class="rockets-no-bases">Ingen operative luftbaser tilgjengelig.</div>' +
+        '<div class="rockets-no-bases">' + t('rocket.no_bases') + '</div>' +
         '</div>';
     } else {
       const baseRows = operativeAirBases.map(ab => {
         const abDmg = getFacilityDamage(ab.terrId).airBase || 0;
-        const dmgSpan = abDmg > 0 ? '<span class="facility-dmg-badge">' + abDmg + '/6 skade</span>' : '';
+        const dmgSpan = abDmg > 0 ? '<span class="facility-dmg-badge">' + t('fac.badge.damage', { n: abDmg + '/6' }) + '</span>' : '';
         return '<div class="rocket-base-row">' +
           '<span class="rocket-base-name">✈️ ' + ab.terrName + '</span>' +
           dmgSpan +
           '<select class="rocket-target-sel" id="rocket-target-' + tid + '-' + ab.terrId + '">' +
-          '<option value="">— velg mål —</option>' +
+          '<option value="">' + t('bomb.target_ph') + '</option>' +
           rocketTargetOptions +
           '</select>' +
           '<select class="rocket-factype-sel" id="rocket-factype-' + tid + '-' + ab.terrId + '">' +
-          '<option value="ic">Fabrikk (IC)</option>' +
-          '<option value="airBase">Luftbase</option>' +
-          '<option value="navalBase">Marinebase</option>' +
+          '<option value="ic">' + t('bomb.fac_ic') + '</option>' +
+          '<option value="airBase">' + t('bomb.fac_airbase') + '</option>' +
+          '<option value="navalBase">' + t('bomb.fac_navalbase') + '</option>' +
           '</select>' +
-          '<button class="btn btn-sm btn-danger" onclick="launchRocket(\'' + tid + '\',\'' + ab.terrId + '\')">🚀 Rull rakettangrep</button>' +
+          '<label class="rocket-dmg-label">' + t('rocket.damage_label') + '</label>' +
+          '<input type="number" class="rocket-dmg-input" id="rocket-dmg-' + tid + '-' + ab.terrId + '" min="1" max="6" placeholder="' + t('rocket.damage_ph') + '" title="' + t('rocket.damage_label') + '">' +
+          '<button type="button" class="btn btn-sm btn-danger" onclick="launchRocket(\'' + tid + '\',\'' + ab.terrId + '\')">' + t('rocket.launch_btn') + '</button>' +
           '</div>';
       }).join('');
       rocketsBodyHTML = '<div class="rockets-section" id="rockets-body-' + tid + '">' + baseRows + '</div>';
@@ -1232,30 +1262,30 @@ function buildNationCard(tid) {
 
   // ── Fase 2–5: enkle avhakingsrader ───────────────────────
   const simpleRows = [
-    { id:'p2', label:'Fase 2: Kampbevegelse',         warOnly:true  },
+    { id:'p2', warOnly:true  },
   ].map(p => {
     const done = isDone(p.id);
     return `
   <div class="phase-row${done ? ' phase-done' : ''}" id="pb-${p.id}-${tid}">
     <label class="phase-row-lbl">
       <input type="checkbox" ${done ? 'checked' : ''} onchange="togglePhase('${tid}','${p.id}',this.checked)">
-      <span class="phase-row-name">${p.label}</span>
-      ${p.warOnly ? '<span class="phase-war-tag">Kun ved krig</span>' : ''}
+      <span class="phase-row-name">${t('phase.' + p.id)}</span>
+      ${p.warOnly ? `<span class="phase-war-tag">${t('phase.war_only')}</span>` : ''}
     </label>
   </div>`;
   }).join('');
 
   const simpleRows45 = [
-    { id:'p4', label:'Fase 4: Ikke-kampbevegelse',    warOnly:false },
-    { id:'p5', label:'Fase 5: Mobiliser nye enheter', warOnly:false },
+    { id:'p4', warOnly:false },
+    { id:'p5', warOnly:false },
   ].map(p => {
     const done = isDone(p.id);
     return `
   <div class="phase-row${done ? ' phase-done' : ''}" id="pb-${p.id}-${tid}">
     <label class="phase-row-lbl">
       <input type="checkbox" ${done ? 'checked' : ''} onchange="togglePhase('${tid}','${p.id}',this.checked)">
-      <span class="phase-row-name">${p.label}</span>
-      ${p.warOnly ? '<span class="phase-war-tag">Kun ved krig</span>' : ''}
+      <span class="phase-row-name">${t('phase.' + p.id)}</span>
+      ${p.warOnly ? `<span class="phase-war-tag">${t('phase.war_only')}</span>` : ''}
     </label>
   </div>`;
   }).join('');
@@ -1267,16 +1297,16 @@ function buildNationCard(tid) {
     const c = getController(t.id);
     return c !== tid && c !== 'neutral' && c !== 'dutch' && hasFacility(t.id);
   });
-  const bombTerrOptions = bombTargetTerrs.map(t => {
-    const fac = getFacility(t.id);
-    const owner = NATIONS[getController(t.id)]?.shortName ?? '?';
-    const facs = [fac.ic ? (fac.ic === 'major' ? 'Stor IC' : 'Liten IC') : null, fac.airBase ? 'Luftbase' : null, fac.navalBase ? 'Marinebase' : null].filter(Boolean).join(', ');
-    return `<option value="${t.id}">${t.name} [${owner}] — ${facs}</option>`;
+  const bombTerrOptions = bombTargetTerrs.map(terr => {
+    const fac = getFacility(terr.id);
+    const owner = NATIONS[getController(terr.id)]?.shortName ?? '?';
+    const facs = [fac.ic ? (fac.ic === 'major' ? t('repair.major_ic') : t('repair.minor_ic')) : null, fac.airBase ? t('repair.airbase') : null, fac.navalBase ? t('repair.navalbase') : null].filter(Boolean).join(', ');
+    return `<option value="${terr.id}">${terr.name} [${owner}] — ${facs}</option>`;
   }).join('');
   ensureBombingMissions(tid);
-  const bombTerrOptsWithBlank = '<option value="">— velg territorium —</option>' + bombTerrOptions;
+  const bombTerrOptsWithBlank = `<option value="">${t('bomb.target_ph')}</option>` + bombTerrOptions;
   const initialMissionsHTML = bombingMissions[tid].map((m, idx) => buildMissionRowHTML(tid, m, idx, bombTerrOptsWithBlank)).join('');
-  const bombingHasAnyDamage = bombingMissions[tid].some(m => m.damageRolled && m.damage > 0);
+  const bombingHasAnyDamage = bombingMissions[tid].some(m => m.damage > 0 && m.survivors > 0);
   const bombingTotalAllokert = bombingMissions[tid].reduce((s, m) => s + (m.assigned || 1), 0);
   const fase3Block = `
   <div class="phase-block${p3Done ? ' phase-done' : ''}" id="pb-p3-${tid}">
@@ -1284,22 +1314,22 @@ function buildNationCard(tid) {
       <label class="phase-cb" onclick="event.stopPropagation()">
         <input type="checkbox" ${p3Done ? 'checked' : ''} onchange="togglePhase('${tid}','p3',this.checked)">
       </label>
-      <span class="phase-block-title">💥 Fase 3: Gjennomfør kamp <span class="phase-war-tag">Kun ved krig</span></span>
+      <span class="phase-block-title">💥 ${t('phase.p3')} <span class="phase-war-tag">${t('phase.war_only')}</span></span>
       <span class="phase-chevron" id="pbchev-p3-${tid}">${p3Done ? '▸' : '▾'}</span>
     </div>
     <div class="phase-block-body${openIf(!p3Done)}" id="pbb-p3-${tid}">
       <button class="nc-terr-link-btn" onclick="goToTerritories('${tid}')">
-        🗺️ Vis territorier for ${nat.name} →
+        🗺️ ${nat.name} →
       </button>
       <div class="bombing-section">
-        <div class="phase-sub-hdr">💣 Strategisk bombing</div>
-        <div class="bomb-total-bar">Totalt allokert: <span id="bomb-total-${tid}">${bombingTotalAllokert}</span> fly</div>
+        <div class="phase-sub-hdr">${t('bomb.section_title')}</div>
+        <div class="bomb-total-bar">${t('bomb.total_bar')} <span id="bomb-total-${tid}">${bombingTotalAllokert}</span> ${t('bomb.planes')}</div>
         <div id="bomb-missions-${tid}">${initialMissionsHTML}</div>
         <div class="bombing-row">
-          <button class="btn btn-sm btn-ghost" onclick="addBombingMission('${tid}')">➕ Legg til oppdrag</button>
+          <button type="button" class="btn btn-sm btn-ghost" onclick="addBombingMission('${tid}')">${t('bomb.add_mission')}</button>
         </div>
         <div class="bombing-row" id="bomb-apply-all-${tid}" style="${bombingHasAnyDamage ? '' : 'display:none'}">
-          <button class="btn btn-sm btn-success" onclick="applyAllBombingDamage('${tid}')">✅ Anvend all skade</button>
+          <button type="button" class="btn btn-sm btn-success" onclick="applyAllBombingDamage('${tid}')">${t('bomb.apply_all')}</button>
         </div>
       </div>
     </div>
@@ -1313,37 +1343,37 @@ function buildNationCard(tid) {
       <label class="phase-cb" onclick="event.stopPropagation()">
         <input type="checkbox" ${p6Done ? 'checked' : ''} onchange="togglePhase('${tid}','p6',this.checked)" disabled title="Markeres automatisk av Samle inn inntekt">
       </label>
-      <span class="phase-block-title">💰 Fase 6: Samle inn inntekt</span>
+      <span class="phase-block-title">💰 ${t('phase.p6')}</span>
       <span class="phase-ipc-preview" id="nc-p6-preview-${tid}">${toUse}\xa0IPC</span>
       <span class="phase-chevron" id="pbchev-p6-${tid}">▾</span>
     </div>
     <div class="phase-block-body" id="pbb-p6-${tid}">
       <div class="income-row">
-        <span class="income-label">Territorieinntekt</span>
+        <span class="income-label">${t('nc.income_label')}</span>
         <span class="income-val" id="nc-income-${tid}">${income}\xa0IPC</span>
       </div>
       <div class="income-row">
-        <span class="income-label">Nasjonale mål (bonus)</span>
+        <span class="income-label">${t('nc.bonus_label')}</span>
         <span class="income-val text-green" id="nc-bonus-${tid}">${bonusSum > 0 ? '+' + bonusSum : bonusSum}\xa0IPC</span>
       </div>
-      <div class="phase-sub-hdr">🎯 Nasjonale mål</div>
+      <div class="phase-sub-hdr">${t('nc.objectives')}</div>
       <div class="obj-section-header">
         <div class="obj-war-controls">
-          <label class="obj-war-label${getEffectiveAtWar(tid) ? ' active' : ''}${state.round > 3 ? ' obj-war-locked' : ''}" title="${state.round > 3 ? 'Alle nasjoner er automatisk i krig etter runde 3' : (getEffectiveAtWar(tid) ? 'Klikk for å sette fredstid' : 'Klikk for å sette krig')}">
+          <label class="obj-war-label${getEffectiveAtWar(tid) ? ' active' : ''}${state.round > 3 ? ' obj-war-locked' : ''}" title="${state.round > 3 ? t('nc.war_auto_locked') : (getEffectiveAtWar(tid) ? t('nc.set_peacetime') : t('nc.set_war'))}">
             <input type="checkbox" id="obj-atwar-${tid}" ${getEffectiveAtWar(tid) ? 'checked' : ''} ${state.round > 3 ? 'disabled' : ''} onchange="toggleAtWar('${tid}', this.checked)">
-            ⚔️ Krig${state.round > 3 ? ' 🔒' : ''}
+            ${t('nc.at_war')}${state.round > 3 ? ' 🔒' : ''}
           </label>
-          <label class="obj-showall-label" title="Vis alle bonuser (både krig og fred)">
+          <label class="obj-showall-label" title="${t('nc.show_all_bonuses')}">
             <input type="checkbox" id="obj-showall-${tid}" onchange="toggleObjShowAll('${tid}', this.checked)">
-            👁 Vis alle
+            ${t('nc.show_all')}
           </label>
         </div>
       </div>
       <div id="obj-list-${tid}">${buildObjectivesHTML(tid)}</div>
-      <div class="phase-sub-hdr" style="margin-top:.5rem">📥 Justeringer</div>
+      <div class="phase-sub-hdr" style="margin-top:.5rem">${t('nc.adjustments')}</div>
       <div class="pc-unit-row income-stepper-row">
-        <span class="pc-unit-name">Konvoi-tap</span>
-        <span class="pc-unit-cost text-red">− IPC</span>
+        <span class="pc-unit-name">${t('nc.convoy_loss')}</span>
+        <span class="pc-unit-cost text-red">− ${t('ui.ipc')}</span>
         <div class="pc-qty-ctrl">
           <button class="btn btn-ghost btn-sm" onclick="stepConvoy('${tid}', -1)">−</button>
           <span class="pc-qty" id="convoy-${tid}">${ns.convoyLoss || 0}</span>
@@ -1351,8 +1381,8 @@ function buildNationCard(tid) {
         </div>
       </div>
       <div class="pc-unit-row income-stepper-row">
-        <span class="pc-unit-name">Krigsobligasjoner</span>
-        <span class="pc-unit-cost text-green">+ IPC</span>
+        <span class="pc-unit-name">${t('nc.war_bonds')}</span>
+        <span class="pc-unit-cost text-green">+ ${t('ui.ipc')}</span>
         <div class="pc-qty-ctrl">
           <button class="btn btn-ghost btn-sm" onclick="stepWarBonds('${tid}', -1)">−</button>
           <span class="pc-qty" id="warbonds-${tid}">${ns.warBonds || 0}</span>
@@ -1360,7 +1390,7 @@ function buildNationCard(tid) {
         </div>
       </div>
       <div class="pc-unit-row income-stepper-row adj-treasury-row">
-        <span class="pc-unit-name">🔧 Manuell justering</span>
+        <span class="pc-unit-name">${t('nc.manual_adj')}</span>
         <span class="pc-unit-cost" style="color:var(--text-dim)">± IPC</span>
         <div class="pc-qty-ctrl" style="gap:.15rem">
           <button class="btn btn-ghost btn-sm" onclick="stepManualAdjust('${tid}', -5)" title="Trekk fra 5 IPC">−5</button>
@@ -1371,15 +1401,15 @@ function buildNationCard(tid) {
         </div>
       </div>
       <div class="nc-income-hero">
-        <span class="nc-income-hero-label">🏦 Neste kjøp</span>
+        <span class="nc-income-hero-label">${t('nc.next_purchase')}</span>
         <span class="nc-income-hero-val" id="nc-tospend-${tid}">${toUse}</span>
         <span class="nc-income-hero-unit">IPC</span>
       </div>
-      <div class="nc-formula" id="nc-formula-${tid}">${ns.treasury > 0 ? ns.treasury + ' (skattkammer) + ' : ''}${(ns.capturedTreasury || 0) > 0 ? ns.capturedTreasury + ' (kapturet) + ' : ''}${income} (terr.) + ${bonusSum} (bonus) + ${ns.warBonds || 0} (obligasjoner) − ${ns.convoyLoss || 0} (konvoi)${(ns.manualAdjust || 0) !== 0 ? ' ' + (ns.manualAdjust > 0 ? '+' : '') + ns.manualAdjust + ' (justering)' : ''} = <strong>${toUse} IPC</strong></div>
+      <div class="nc-formula" id="nc-formula-${tid}">${ns.treasury > 0 ? ns.treasury + ' (' + t('nc.formula.treasury') + ') + ' : ''}${(ns.capturedTreasury || 0) > 0 ? ns.capturedTreasury + ' (' + t('nc.formula.captured') + ') + ' : ''}${income} (${t('nc.formula.terr')}) + ${bonusSum} (${t('nc.formula.bonus')}) + ${ns.warBonds || 0} (${t('nc.formula.bonds')}) − ${ns.convoyLoss || 0} (${t('nc.formula.convoy')})${(ns.manualAdjust || 0) !== 0 ? ' ' + (ns.manualAdjust > 0 ? '+' : '') + ns.manualAdjust + ' (' + t('nc.formula.adjust') + ')' : ''} = <strong>${toUse} IPC</strong></div>
       <button class="nc-collect-btn" id="nc-collect-${tid}"
         onclick="collectIncome('${tid}')"
         ${ownsMainCapital(tid) ? '' : 'disabled'}
-      >${ownsMainCapital(tid) ? '✅ Samle inn inntekt' : '🔒 Kapital okkupert'}</button>
+      >${ownsMainCapital(tid) ? t('nc.collect') : t('nc.capital_locked')}</button>
     </div>
   </div>`;
 
@@ -1389,7 +1419,7 @@ function buildNationCard(tid) {
   <div class="phase-row${convDone ? ' phase-done' : ''} phase-indent" id="pb-convoy-${tid}">
     <label class="phase-row-lbl">
       <input type="checkbox" ${convDone ? 'checked' : ''} onchange="togglePhase('${tid}','convoy',this.checked)">
-      <span class="phase-row-name">↳ Gjennomfør konvoidisrupsjon</span>
+      <span class="phase-row-name">${t('phase.convoy')}</span>
     </label>
   </div>`;
 
@@ -1397,11 +1427,11 @@ function buildNationCard(tid) {
   const notesBlock = `
   <div class="phase-block phase-block-misc" id="pb-misc-${tid}">
     <div class="phase-block-hdr" onclick="togglePhaseBlock('${tid}','misc')">
-      <span class="phase-block-title" style="color:var(--text-dim);font-size:.78rem">📝 Notater</span>
+      <span class="phase-block-title" style="color:var(--text-dim);font-size:.78rem">${t('nc.notes_title')}</span>
       <span class="phase-chevron" id="pbchev-misc-${tid}">▸</span>
     </div>
     <div class="phase-block-body" id="pbb-misc-${tid}">
-      <textarea class="notes-area" placeholder="Notater for ${nat.name}..." id="notes-${tid}"
+      <textarea class="notes-area" placeholder="${t('nc.notes_ph', { name: nat.name })}" id="notes-${tid}"
         onchange="onNotesChange('${tid}', this.value)">${ns.notes}</textarea>
     </div>
   </div>`;
@@ -1412,16 +1442,16 @@ function buildNationCard(tid) {
           <span class="nc-flag">${nationIconHTML(nat, 'nation-icon--md')}</span>
           <div class="nc-info">
             <div class="nc-name">${nat.shortName}</div>
-          <div class="nc-side ${nat.side}">${nat.side === 'axis' ? 'Akse' : 'Alliert'}</div>
+          <div class="nc-side ${nat.side}">${nat.side === 'axis' ? t('nc.side.axis') : t('nc.side.allies')}</div>
         </div>
       </div>
       <div class="nc-header-fields" id="nc-hf-${tid}" onclick="event.stopPropagation()">
         ${buildNationHeaderFieldsInner(tid)}
       </div>
       <div class="nc-header-right">
-        <span class="nc-done-badge" id="nc-done-badge-${tid}">✅ Runde ferdig</span>
+        <span class="nc-done-badge" id="nc-done-badge-${tid}">${t('nc.round_done')}</span>
         <div class="nc-treasury">
-          <div class="nc-treasury-label">Skattkammer</div>
+          <div class="nc-treasury-label">${t('nc.treasury')}</div>
           <div class="nc-treasury-val" id="nc-treasury-${tid}">${ns.treasury}</div>
           <div class="nc-treasury-unit">IPC</div>
         </div>
@@ -1470,10 +1500,10 @@ function scrollToNation(tid) {
 
 // ── Purchase calculator ─────────────────────────────────────────
 const PC_GROUPS = [
-  { label: '🪖 Land', filter: u => u.type === 'land'     },
-  { label: '✈️ Luft',  filter: u => u.type === 'air'      },
-  { label: '⚓ Sjø',   filter: u => u.type === 'sea'      },
-  { label: '🏗️ Bygg',  filter: u => u.type === 'building' },
+  { labelKey: 'pc.group.land',  filter: u => u.type === 'land'     },
+  { labelKey: 'pc.group.air',   filter: u => u.type === 'air'      },
+  { labelKey: 'pc.group.sea',   filter: u => u.type === 'sea'      },
+  { labelKey: 'pc.group.build', filter: u => u.type === 'building' },
 ];
 
 function buildPurchaseUnitRows(tid) {
@@ -1501,17 +1531,17 @@ function buildPurchaseUnitRows(tid) {
       const selectedTerr = placements[u.id] || '';
       const placementRow = isBuilding && qty > 0 ? `
         <div class="pc-building-placement" id="pc-place-row-${tid}-${u.id}">
-          <label class="pc-place-label">📍 Plassering:</label>
+          <label class="pc-place-label">${t('pc.placement')}</label>
           <select class="pc-place-select" id="pc-place-${tid}-${u.id}"
             onchange="setBuildingPlacement('${tid}','${u.id}',this.value)">
-            <option value="">— velg territorium —</option>
+            <option value="">${t('bomb.target_ph')}</option>
             ${terrOptions}
           </select>
         </div>` : (isBuilding ? `<div class="pc-building-placement" id="pc-place-row-${tid}-${u.id}" style="display:none">
-          <label class="pc-place-label">📍 Plassering:</label>
+          <label class="pc-place-label">${t('pc.placement')}</label>
           <select class="pc-place-select" id="pc-place-${tid}-${u.id}"
             onchange="setBuildingPlacement('${tid}','${u.id}',this.value)">
-            <option value="">— velg territorium —</option>
+            <option value="">${t('bomb.target_ph')}</option>
             ${terrOptions}
           </select>
         </div>` : '');
@@ -1526,7 +1556,7 @@ function buildPurchaseUnitRows(tid) {
         <span class="pc-subtotal" id="pc-sub-${tid}-${u.id}">${sub > 0 ? sub + ' IPC' : '—'}</span>
       </div>${placementRow}`;
     }).join('');
-    return `<div class="pc-group"><div class="pc-group-label">${g.label}</div>${rows}</div>`;
+    return `<div class="pc-group"><div class="pc-group-label">${t(g.labelKey)}</div>${rows}</div>`;
   }).join('');
 }
 
@@ -1539,7 +1569,7 @@ function buildPastPurchasesHTML(tid) {
     ).join('');
     return `<div class="pc-hist-entry"><span class="pc-hist-time">${l.date}</span><div class="pc-hist-tags">${tags}</div><span class="pc-hist-total">= ${l.totalCost} IPC</span></div>`;
   }).join('');
-  return `<div class="pc-hist-header">📦 Kjøpt denne runden:</div>${entries}`;
+  return `<div class="pc-hist-header">${t('pc.history_hdr')}</div>${entries}`;
 }
 
 // ── Facility helper ───────────────────────────────────────────
@@ -1636,13 +1666,13 @@ function stepRepairTarget(tid, terrId, type, delta) {
 }
 
 // ── Bombing / Rockets session state ──────────────────────────
-// Mission shape: { id, terrId, facType, flyType, assigned, aaRolled, survivors, damageRolled, damage }
+// Mission shape: { id, terrId, facType, flyType, assigned, aaHits, survivors, damage }
 let bombingMissions = {}; // { [nationId]: Mission[] }
 let _missionIdCounter = 0;
 
 function _newMission() {
   return { id: ++_missionIdCounter, terrId: '', facType: 'ic', flyType: 'strategic', assigned: 1,
-           aaRolled: false, survivors: null, damageRolled: false, damage: null };
+           aaHits: null, survivors: null, damage: null };
 }
 
 function ensureBombingMissions(tid) {
@@ -1668,9 +1698,15 @@ function stepMission(tid, mid, delta) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
   m.assigned = Math.max(1, m.assigned + delta);
+  // Reset AA/damage when count changes
+  m.aaHits = null; m.survivors = null; m.damage = null;
   const el = document.getElementById('bomb-count-' + tid + '-' + mid);
-  if (el) el.textContent = m.aaRolled ? m.survivors : m.assigned;
+  if (el) el.textContent = m.assigned;
+  const aaInput = document.getElementById('bomb-aa-hits-' + tid + '-' + mid);
+  if (aaInput) { aaInput.value = ''; aaInput.max = m.assigned; }
+  updateMissionSurvivors(tid, mid);
   updateBombingTotal(tid);
+  updateApplyAllBtn(tid);
 }
 
 function updateBombingTotal(tid) {
@@ -1683,7 +1719,7 @@ function updateMissionTerr(tid, mid, terrId) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
   m.terrId = terrId;
-  m.aaRolled = false; m.survivors = null; m.damageRolled = false; m.damage = null;
+  m.aaHits = null; m.survivors = null; m.damage = null;
   const facSel = document.getElementById('bomb-factype-' + tid + '-' + mid);
   if (facSel && terrId) {
     const fac = getFacility(terrId);
@@ -1703,80 +1739,131 @@ function updateMissionTerr(tid, mid, terrId) {
 function updateMissionFacType(tid, mid, facType) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
-  m.facType = facType; m.damageRolled = false; m.damage = null;
-  const dmgEl = document.getElementById('bomb-dmg-' + tid + '-' + mid);
-  if (dmgEl) dmgEl.innerHTML = '';
+  m.facType = facType; m.damage = null;
+  const dmgInput = document.getElementById('bomb-dmg-input-' + tid + '-' + mid);
+  if (dmgInput) dmgInput.value = '';
+  updateMissionFacBar(tid, mid);
   updateApplyAllBtn(tid);
 }
 
 function updateMissionFlyType(tid, mid, flyType) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
-  m.flyType = flyType; m.damageRolled = false; m.damage = null;
-  const dmgEl = document.getElementById('bomb-dmg-' + tid + '-' + mid);
-  if (dmgEl) dmgEl.innerHTML = '';
+  m.flyType = flyType; m.damage = null;
+  const dmgInput = document.getElementById('bomb-dmg-input-' + tid + '-' + mid);
+  if (dmgInput) dmgInput.value = '';
+  // Update hint text
+  const hintEl = document.getElementById('bomb-dmg-hint-' + tid + '-' + mid);
+  if (hintEl) hintEl.textContent = flyType === 'strategic' ? t('bomb.damage_hint_strat') : t('bomb.damage_hint_tact');
   updateApplyAllBtn(tid);
 }
 
 function updateApplyAllBtn(tid) {
-  const hasAny = (bombingMissions[tid] || []).some(m => m.damageRolled && m.damage > 0);
+  const hasAny = (bombingMissions[tid] || []).some(m => m.damage > 0 && m.survivors > 0);
   const btn = document.getElementById('bomb-apply-all-' + tid);
   if (btn) btn.style.display = hasAny ? '' : 'none';
 }
 
-function rollMissionAA(tid, mid) {
+/** Called when player enters the AA hits count from their physical dice roll. */
+function onMissionAAInput(tid, mid, rawVal) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
-  if (!m.terrId) { toast('Velg m\u00e5lterritorium for oppdraget.', 'error'); return; }
-  const count = m.assigned || 1;
-  const rolls = Array.from({ length: count }, () => Math.ceil(Math.random() * 6));
-  const hits = rolls.filter(r => r === 1).length;
-  m.survivors = Math.max(0, count - hits);
-  m.aaRolled = true; m.damageRolled = false; m.damage = null;
-  const rollStr = rolls.map(r => r === 1 ? '<b style="color:var(--red)">' + r + '</b>' : r).join(', ');
-  const el = document.getElementById('bomb-aa-' + tid + '-' + mid);
-  if (el) el.innerHTML = '[' + rollStr + '] \u2014 ' + hits + ' treff, <b>' + m.survivors + '</b> overlevde';
-  const countEl = document.getElementById('bomb-count-' + tid + '-' + mid);
-  if (countEl) countEl.textContent = m.survivors;
-  const dmgBtn = document.getElementById('bomb-dmg-btn-' + tid + '-' + mid);
-  if (dmgBtn) { dmgBtn.disabled = false; dmgBtn.removeAttribute('title'); }
+  const hits = Math.min(Math.max(parseInt(rawVal) || 0, 0), m.assigned);
+  m.aaHits = hits;
+  m.survivors = m.assigned - hits;
+  m.damage = null;
+  updateMissionSurvivors(tid, mid);
+  // Reset damage input when AA changes
+  const dmgInput = document.getElementById('bomb-dmg-input-' + tid + '-' + mid);
+  if (dmgInput) dmgInput.value = '';
+  updateMissionFacBar(tid, mid);
   updateApplyAllBtn(tid);
 }
 
-function rollMissionDamage(tid, mid) {
+/** Called when player enters the total damage from their physical dice roll. */
+function onMissionDamageInput(tid, mid, rawVal) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
-  if (!m.aaRolled)      { toast('Rull AA-ild f\u00f8rst.', 'error'); return; }
-  if (m.survivors === 0){ toast('Ingen fly overlevde AA-ilden for dette oppdraget.', 'error'); return; }
-  if (!m.terrId)        { toast('Velg m\u00e5lterritorium.', 'error'); return; }
-  if (m.facType === 'ic' && m.flyType === 'tactical') {
-    toast('Taktiske bombere kan ikke angripe fabrikker.', 'error'); return;
-  }
-  const count = m.survivors || 1;
-  const bonus = m.flyType === 'strategic' ? 2 : 0;
-  const rolls = Array.from({ length: count }, () => Math.ceil(Math.random() * 6));
-  m.damage = rolls.reduce((s, r) => s + r + bonus, 0);
-  m.damageRolled = true;
-  const rollStr = rolls.map(r => r + (bonus ? '+' + bonus : '')).join(', ');
-  const el = document.getElementById('bomb-dmg-' + tid + '-' + mid);
-  if (el) el.innerHTML = '[' + rollStr + '] = <b>' + m.damage + ' skade</b>';
+  const maxDmg = getMissionMaxDamage(m);
+  m.damage = Math.min(Math.max(parseInt(rawVal) || 0, 0), maxDmg > 0 ? maxDmg : 9999);
+  updateMissionFacBar(tid, mid);
   updateApplyAllBtn(tid);
+}
+
+/** Returns the max possible damage for this mission (based on current facility state). */
+function getMissionMaxDamage(m) {
+  if (!m.terrId) return 9999;
+  const fac = getFacility(m.terrId);
+  const maxKey = m.facType === 'ic' ? (fac.ic === 'major' ? 'ic_major' : 'ic_minor') : m.facType;
+  const maxTotal = FACILITY_MAX[maxKey] ?? 9999;
+  const curDmg = getFacilityDamage(m.terrId)[m.facType] || 0;
+  return Math.max(0, maxTotal - curDmg);
+}
+
+/** Updates the survivors badge display. */
+function updateMissionSurvivors(tid, mid) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  const badge = document.getElementById('bomb-survivors-' + tid + '-' + mid);
+  if (!badge) return;
+  if (m.survivors === null) {
+    badge.textContent = t('bomb.survivors_label') + ' \u2014';
+    badge.className = 'bomb-survivors-badge';
+  } else {
+    badge.textContent = t('bomb.survivors_label') + ' ' + m.survivors;
+    badge.className = 'bomb-survivors-badge' + (m.survivors === 0 ? ' bomb-survivors-zero' : '');
+  }
+  // Disable damage input if no survivors
+  const dmgWrap = document.getElementById('bomb-dmg-wrap-' + tid + '-' + mid);
+  if (dmgWrap) dmgWrap.classList.toggle('bomb-input-disabled', m.survivors === 0);
+  const dmgInput = document.getElementById('bomb-dmg-input-' + tid + '-' + mid);
+  if (dmgInput) dmgInput.disabled = m.survivors === 0;
+}
+
+/** Updates the facility HP bar and production capacity note. */
+function updateMissionFacBar(tid, mid) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m || !m.terrId) return;
+  const fac = getFacility(m.terrId);
+  const maxKey = m.facType === 'ic' ? (fac.ic === 'major' ? 'ic_major' : 'ic_minor') : m.facType;
+  const maxTotal = FACILITY_MAX[maxKey] ?? 0;
+  const committed = getFacilityDamage(m.terrId)[m.facType] || 0;
+  const pending = m.damage || 0;
+  const displayDmg = Math.min(committed + pending, maxTotal);
+  const pct = maxTotal > 0 ? Math.round((displayDmg / maxTotal) * 100) : 0;
+
+  const fill = document.getElementById('bomb-hp-fill-' + tid + '-' + mid);
+  if (fill) fill.style.width = pct + '%';
+  const text = document.getElementById('bomb-hp-text-' + tid + '-' + mid);
+  if (text) text.textContent = t('bomb.hp_current', { cur: displayDmg, max: maxTotal });
+
+  if (m.facType === 'ic' && fac.ic) {
+    const maxProd = fac.ic === 'major' ? 10 : 3;
+    const prodCap = Math.max(0, maxProd - displayDmg);
+    const capEl = document.getElementById('bomb-prod-cap-' + tid + '-' + mid);
+    if (capEl) {
+      capEl.textContent = t('bomb.production_cap', { cur: prodCap, max: maxProd });
+      capEl.style.display = '';
+    }
+  }
 }
 
 function applyAllBombingDamage(tid) {
-  const missions = (bombingMissions[tid] || []).filter(m => m.damageRolled && m.damage > 0);
-  if (!missions.length) { toast('Ingen skade \u00e5 anvende.', 'error'); return; }
+  const missions = (bombingMissions[tid] || []).filter(m => m.damage > 0 && m.survivors > 0);
+  if (!missions.length) { toast(t('toast.no_damage'), 'error'); return; }
   const affectedControllers = new Set();
   const summary = [];
   for (const m of missions) {
     const fac = getFacility(m.terrId);
-    const facLabel = m.facType === 'ic' ? (fac.ic === 'major' ? 'Stor IC' : 'Liten IC')
-      : (m.facType === 'airBase' ? 'Luftbase' : 'Marinebase');
+    const facLabel = m.facType === 'ic' ? (fac.ic === 'major' ? t('repair.major_ic') : t('repair.minor_ic'))
+      : (m.facType === 'airBase' ? t('repair.airbase') : t('repair.navalbase'));
     const terr = TERRITORIES.find(t => t.id === m.terrId);
     applyFacilityDamage(m.terrId, m.facType, m.damage);
     affectedControllers.add(getController(m.terrId));
     summary.push((terr ? terr.name : m.terrId) + ' ' + facLabel + ': ' + m.damage);
-    m.aaRolled = false; m.survivors = null; m.damageRolled = false; m.damage = null;
+    if (!state.bombingEvents) state.bombingEvents = [];
+    state.bombingEvents.push({ attackerId: tid, terrId: m.terrId, terrName: terr?.name ?? m.terrId, facLabel, damage: m.damage });
+    m.aaHits = null; m.survivors = null; m.damage = null;
   }
   saveState();
   for (const ctrl of affectedControllers) {
@@ -1784,69 +1871,130 @@ function applyAllBombingDamage(tid) {
     if (repairEl) repairEl.innerHTML = buildRepairDetailHTML(ctrl);
   }
   renderBombingMissions(tid);
-  toast('\uD83D\uDCA3 Skade anvendt: ' + summary.join(' | '), 'warning');
+  toast(t('toast.bombing_applied', { summary: summary.join(' | ') }), 'warning');
 }
 
 function buildMissionRowHTML(tid, m, idx, bombTerrOpts) {
   const mid = m.id;
-  let facOpts = '<option value="ic">Fabrikk (IC)</option><option value="airBase">Luftbase</option><option value="navalBase">Marinebase</option>';
+  let facOpts = '<option value="ic">' + t('bomb.fac_ic') + '</option>'
+    + '<option value="airBase">' + t('bomb.fac_airbase') + '</option>'
+    + '<option value="navalBase">' + t('bomb.fac_navalbase') + '</option>';
   if (m.terrId) {
     const fac = getFacility(m.terrId);
     const opts = [];
-    if (fac.ic)        opts.push('<option value="ic"'        + (m.facType === 'ic'        ? ' selected' : '') + '>Fabrikk (IC)</option>');
-    if (fac.airBase)   opts.push('<option value="airBase"'   + (m.facType === 'airBase'   ? ' selected' : '') + '>Luftbase</option>');
-    if (fac.navalBase) opts.push('<option value="navalBase"' + (m.facType === 'navalBase' ? ' selected' : '') + '>Marinebase</option>');
+    if (fac.ic)        opts.push('<option value="ic"'        + (m.facType === 'ic'        ? ' selected' : '') + '>' + t('bomb.fac_ic')       + '</option>');
+    if (fac.airBase)   opts.push('<option value="airBase"'   + (m.facType === 'airBase'   ? ' selected' : '') + '>' + t('bomb.fac_airbase')  + '</option>');
+    if (fac.navalBase) opts.push('<option value="navalBase"' + (m.facType === 'navalBase' ? ' selected' : '') + '>' + t('bomb.fac_navalbase')+ '</option>');
     if (opts.length) facOpts = opts.join('');
   }
-  const terrOptsSel  = m.terrId ? bombTerrOpts.replace('value="' + m.terrId + '"', 'value="' + m.terrId + '" selected') : bombTerrOpts;
-  const dmgDisabled  = !m.aaRolled ? ' disabled title="Rull AA-ild f\u00f8rst"' : '';
-  const aaResult     = m.aaRolled    ? '[rullet] \u2014 <b>' + m.survivors + '</b> overlevde' : '';
-  const dmgResult    = m.damageRolled ? '[rullet] = <b>' + m.damage + ' skade</b>' : '';
-  const displayCount = (m.aaRolled && m.survivors !== null) ? m.survivors : m.assigned;
-  return '<div class="bomb-mission" id="bomb-mission-' + tid + '-' + mid + '">' +
-    '<div class="bomb-mission-hdr">' +
-    '<span class="bomb-mission-title">Oppdrag ' + (idx + 1) + '</span>' +
-    '<button class="btn btn-ghost btn-xs" onclick="removeBombingMission(\'' + tid + '\',' + mid + ')" title="Fjern oppdrag">\uD83D\uDDD1</button>' +
-    '</div>' +
-    '<div class="bombing-row"><label class="bombing-label">M\u00e5l:</label>' +
-    '<select class="bombing-select" id="bomb-terr-' + tid + '-' + mid + '" onchange="updateMissionTerr(\'' + tid + '\',' + mid + ',this.value)">' +
-    terrOptsSel + '</select></div>' +
-    '<div class="bombing-row"><label class="bombing-label">Fasilitet:</label>' +
-    '<select class="bombing-select" id="bomb-factype-' + tid + '-' + mid + '" onchange="updateMissionFacType(\'' + tid + '\',' + mid + ',this.value)">' +
-    facOpts + '</select></div>' +
-    '<div class="bombing-row"><label class="bombing-label">Flytype:</label>' +
-    '<select class="bombing-select" id="bomb-flytype-' + tid + '-' + mid + '" onchange="updateMissionFlyType(\'' + tid + '\',' + mid + ',this.value)">' +
-    '<option value="strategic"' + (m.flyType === 'strategic' ? ' selected' : '') + '>Strategisk (+2)</option>' +
-    '<option value="tactical"'  + (m.flyType === 'tactical'  ? ' selected' : '') + '>Taktisk (kun baser)</option>' +
-    '</select></div>' +
-    '<div class="bombing-row"><label class="bombing-label">Antall fly:</label>' +
-    '<div class="pc-qty-ctrl">' +
-    '<button class="btn btn-ghost btn-sm" onclick="stepMission(\'' + tid + '\',' + mid + ',-1)">\u2212</button>' +
-    '<span class="pc-qty" id="bomb-count-' + tid + '-' + mid + '">' + displayCount + '</span>' +
-    '<button class="btn btn-ghost btn-sm" onclick="stepMission(\'' + tid + '\',' + mid + ',+1)">+</button>' +
-    '</div></div>' +
-    '<div class="bombing-row">' +
-    '<button class="btn btn-sm btn-warning" onclick="rollMissionAA(\'' + tid + '\',' + mid + ')">\uD83C\uDFB2 Rull AA-ild</button>' +
-    '<span class="bombing-aa-result" id="bomb-aa-' + tid + '-' + mid + '">' + aaResult + '</span></div>' +
-    '<div class="bombing-row">' +
-    '<button class="btn btn-sm btn-danger" id="bomb-dmg-btn-' + tid + '-' + mid + '"' + dmgDisabled + ' onclick="rollMissionDamage(\'' + tid + '\',' + mid + ')">\uD83D\uDCA5 Rull skade</button>' +
-    '<span class="bombing-dmg-result" id="bomb-dmg-' + tid + '-' + mid + '">' + dmgResult + '</span></div>' +
-    '</div>';
+  const terrOptsSel = m.terrId ? bombTerrOpts.replace('value="' + m.terrId + '"', 'value="' + m.terrId + '" selected') : bombTerrOpts;
+  const survivorsText = m.survivors === null ? '\u2014' : String(m.survivors);
+  const survivorsZero = m.survivors === 0;
+  const dmgDisabledAttr = survivorsZero ? ' disabled' : '';
+  const dmgWrapClass = 'bomb-input-group' + (survivorsZero ? ' bomb-input-disabled' : '');
+  const dmgHint = m.flyType === 'strategic' ? t('bomb.damage_hint_strat') : t('bomb.damage_hint_tact');
+
+  // Facility HP bar (shown when territory and facility are selected)
+  let facBarHTML = '';
+  if (m.terrId) {
+    const fac = getFacility(m.terrId);
+    const maxKey = m.facType === 'ic' ? (fac.ic === 'major' ? 'ic_major' : 'ic_minor') : m.facType;
+    const maxTotal = FACILITY_MAX[maxKey] ?? 0;
+    const committed = getFacilityDamage(m.terrId)[m.facType] || 0;
+    const pending = m.damage || 0;
+    const displayDmg = maxTotal > 0 ? Math.min(committed + pending, maxTotal) : 0;
+    const pct = maxTotal > 0 ? Math.round((displayDmg / maxTotal) * 100) : 0;
+    const facKeyMap = { ic: fac.ic === 'major' ? 'bomb.fac_label.major_ic' : 'bomb.fac_label.minor_ic', airBase: 'bomb.fac_label.airbase', navalBase: 'bomb.fac_label.navalbase' };
+    const facLabelStr = t(facKeyMap[m.facType] ?? 'bomb.fac_ic');
+
+    let prodCapHTML = '';
+    if (m.facType === 'ic' && fac.ic) {
+      const maxProd = fac.ic === 'major' ? 10 : 3;
+      const prodCap = Math.max(0, maxProd - displayDmg);
+      prodCapHTML = '<div class="bomb-prod-cap" id="bomb-prod-cap-' + tid + '-' + mid + '">'
+        + t('bomb.production_cap', { cur: prodCap, max: maxProd }) + '</div>';
+    }
+
+    facBarHTML = '<div class="bomb-facility-status">'
+      + '<div class="bomb-hp-bar-wrap">'
+      + '<span class="bomb-hp-label">' + facLabelStr + '</span>'
+      + '<div class="bomb-hp-track"><div class="bomb-hp-fill" id="bomb-hp-fill-' + tid + '-' + mid + '" style="width:' + pct + '%"></div></div>'
+      + '<span class="bomb-hp-text" id="bomb-hp-text-' + tid + '-' + mid + '">' + t('bomb.hp_current', { cur: displayDmg, max: maxTotal }) + '</span>'
+      + '</div>'
+      + prodCapHTML
+      + '</div>';
+  }
+
+  return '<div class="bomb-mission" id="bomb-mission-' + tid + '-' + mid + '">'
+    + '<div class="bomb-mission-hdr">'
+    + '<span class="bomb-mission-title">' + t('bomb.mission_title') + ' ' + (idx + 1) + '</span>'
+    + '<button type="button" class="btn btn-ghost btn-xs" onclick="removeBombingMission(\'' + tid + '\',' + mid + ')" title="' + t('bomb.remove_title') + '">\uD83D\uDDD1</button>'
+    + '</div>'
+    // Target
+    + '<div class="bombing-row"><label class="bombing-label">' + t('bomb.target') + '</label>'
+    + '<select class="bombing-select" id="bomb-terr-' + tid + '-' + mid + '" onchange="updateMissionTerr(\'' + tid + '\',' + mid + ',this.value)">'
+    + terrOptsSel + '</select></div>'
+    // Facility
+    + '<div class="bombing-row"><label class="bombing-label">' + t('bomb.facility') + '</label>'
+    + '<select class="bombing-select" id="bomb-factype-' + tid + '-' + mid + '" onchange="updateMissionFacType(\'' + tid + '\',' + mid + ',this.value)">'
+    + facOpts + '</select></div>'
+    // Aircraft type
+    + '<div class="bombing-row"><label class="bombing-label">' + t('bomb.fly_type') + '</label>'
+    + '<select class="bombing-select" id="bomb-flytype-' + tid + '-' + mid + '" onchange="updateMissionFlyType(\'' + tid + '\',' + mid + ',this.value)">'
+    + '<option value="strategic"' + (m.flyType === 'strategic' ? ' selected' : '') + '>' + t('bomb.strategic') + '</option>'
+    + '<option value="tactical"'  + (m.flyType === 'tactical'  ? ' selected' : '') + '>' + t('bomb.tactical')  + '</option>'
+    + '</select></div>'
+    // Bomber count
+    + '<div class="bombing-row"><label class="bombing-label">' + t('bomb.bomber_count') + '</label>'
+    + '<div class="pc-qty-ctrl">'
+    + '<button type="button" class="btn btn-ghost btn-sm" onclick="stepMission(\'' + tid + '\',' + mid + ',-1)">\u2212</button>'
+    + '<span class="pc-qty" id="bomb-count-' + tid + '-' + mid + '">' + m.assigned + '</span>'
+    + '<button type="button" class="btn btn-ghost btn-sm" onclick="stepMission(\'' + tid + '\',' + mid + ',+1)">+</button>'
+    + '</div></div>'
+    // Manual inputs section
+    + '<div class="bomb-manual-inputs">'
+    // AA hits
+    + '<div class="bomb-input-group">'
+    + '<label class="bomb-input-label" for="bomb-aa-hits-' + tid + '-' + mid + '">'
+    + t('bomb.aa_hits_label')
+    + '<span class="bomb-hint">' + t('bomb.aa_hint') + '</span></label>'
+    + '<input type="number" class="bomb-number-input" id="bomb-aa-hits-' + tid + '-' + mid + '"'
+    + ' min="0" max="' + m.assigned + '" value="' + (m.aaHits !== null ? m.aaHits : '') + '"'
+    + ' placeholder="0" title="' + t('bomb.aa_hits_label') + '"'
+    + ' oninput="onMissionAAInput(\'' + tid + '\',' + mid + ',this.value)">'
+    + '<span class="bomb-survivors-badge' + (survivorsZero ? ' bomb-survivors-zero' : '') + '" id="bomb-survivors-' + tid + '-' + mid + '">'
+    + t('bomb.survivors_label') + ' ' + survivorsText + '</span>'
+    + '</div>'
+    // Damage
+    + '<div class="' + dmgWrapClass + '" id="bomb-dmg-wrap-' + tid + '-' + mid + '">'
+    + '<label class="bomb-input-label" for="bomb-dmg-input-' + tid + '-' + mid + '">'
+    + t('bomb.damage_label')
+    + '<span class="bomb-hint" id="bomb-dmg-hint-' + tid + '-' + mid + '">' + dmgHint + '</span></label>'
+    + '<input type="number" class="bomb-number-input" id="bomb-dmg-input-' + tid + '-' + mid + '"'
+    + ' min="0" value="' + (m.damage !== null ? m.damage : '') + '"'
+    + ' placeholder="0" title="' + t('bomb.damage_label') + '"'
+    + dmgDisabledAttr
+    + ' oninput="onMissionDamageInput(\'' + tid + '\',' + mid + ',this.value)">'
+    + '</div>'
+    + '</div>'
+    // Facility HP bar
+    + facBarHTML
+    + '</div>';
 }
 
 function renderBombingMissions(tid) {
   const container = document.getElementById('bomb-missions-' + tid);
   if (!container) return;
   ensureBombingMissions(tid);
-  const targets = TERRITORIES.filter(t => {
-    const c = getController(t.id);
-    return c !== tid && c !== 'neutral' && c !== 'dutch' && hasFacility(t.id);
+  const targets = TERRITORIES.filter(terr => {
+    const c = getController(terr.id);
+    return c !== tid && c !== 'neutral' && c !== 'dutch' && hasFacility(terr.id);
   });
-  const opts = '<option value="">— velg territorium —</option>' + targets.map(t => {
-    const fac = getFacility(t.id);
-    const owner = NATIONS[getController(t.id)]?.shortName ?? '?';
-    const facs = [fac.ic ? (fac.ic === 'major' ? 'Stor IC' : 'Liten IC') : null, fac.airBase ? 'Luftbase' : null, fac.navalBase ? 'Marinebase' : null].filter(Boolean).join(', ');
-    return '<option value="' + t.id + '">' + t.name + ' [' + owner + '] \u2014 ' + facs + '</option>';
+  const opts = '<option value="">' + t('bomb.target_ph') + '</option>' + targets.map(terr => {
+    const fac = getFacility(terr.id);
+    const owner = NATIONS[getController(terr.id)]?.shortName ?? '?';
+    const facs = [fac.ic ? (fac.ic === 'major' ? t('repair.major_ic') : t('repair.minor_ic')) : null, fac.airBase ? t('repair.airbase') : null, fac.navalBase ? t('repair.navalbase') : null].filter(Boolean).join(', ');
+    return '<option value="' + terr.id + '">' + terr.name + ' [' + owner + '] \u2014 ' + facs + '</option>';
   }).join('');
   container.innerHTML = bombingMissions[tid].map((m, idx) => buildMissionRowHTML(tid, m, idx, opts)).join('');
   updateBombingTotal(tid);
@@ -1856,29 +2004,29 @@ function renderBombingMissions(tid) {
 function launchRocket(tid, sourceTerrId) {
   const targetSel  = document.getElementById('rocket-target-'  + tid + '-' + sourceTerrId);
   const factypeSel = document.getElementById('rocket-factype-' + tid + '-' + sourceTerrId);
-  if (!targetSel || !targetSel.value) { toast('Velg et mal.', 'error'); return; }
+  const dmgInput   = document.getElementById('rocket-dmg-' + tid + '-' + sourceTerrId);
+  if (!targetSel || !targetSel.value) { toast(t('toast.no_target'), 'error'); return; }
   if (!isOperativeAirBase(sourceTerrId)) {
-    toast('Luftbasen er ikke operativ (for mye skade).', 'error'); return;
+    toast(t('toast.airbase_damaged'), 'error'); return;
   }
   const targetTerrId = targetSel.value;
   const facType = factypeSel ? factypeSel.value : 'ic';
   const fac = getFacility(targetTerrId);
-  if (facType === 'ic'        && !fac.ic)       { toast('Ingen fabrikk pa malet.',   'error'); return; }
-  if (facType === 'airBase'   && !fac.airBase)   { toast('Ingen luftbase pa malet.',  'error'); return; }
-  if (facType === 'navalBase' && !fac.navalBase) { toast('Ingen marinebase pa malet.','error'); return; }
-  const roll = Math.ceil(Math.random() * 6);
-  const terr = TERRITORIES.find(t => t.id === targetTerrId);
-  const facLabel = facType === 'ic' ? 'Fabrikk' : facType === 'airBase' ? 'Luftbase' : 'Marinebase';
+  if (facType === 'ic'        && !fac.ic)       { toast(t('toast.no_factory'),   'error'); return; }
+  if (facType === 'airBase'   && !fac.airBase)   { toast(t('toast.no_airbase'),  'error'); return; }
+  if (facType === 'navalBase' && !fac.navalBase) { toast(t('toast.no_navalbase'),'error'); return; }
+  const roll = Math.min(Math.max(parseInt(dmgInput?.value) || 1, 1), 6);
+  const terrObj = TERRITORIES.find(terr => terr.id === targetTerrId);
+  const facLabelKey = facType === 'ic' ? 'fac.major_ic' : facType === 'airBase' ? 'fac.airbase' : 'fac.navalbase';
   applyFacilityDamage(targetTerrId, facType, roll);
   saveState();
   const controller = getController(targetTerrId);
   const repairEl = document.getElementById('pc-repair-detail-' + controller);
   if (repairEl) repairEl.innerHTML = buildRepairDetailHTML(controller);
+  if (dmgInput) dmgInput.value = '';
   const curDmg = getFacilityDamage(targetTerrId)[facType] || 0;
   const maxKey = facType === 'ic' ? (fac.ic === 'major' ? 'ic_major' : 'ic_minor') : facType;
-  toast('\uD83D\uDE80 Rakettangrep pa ' + (terr ? terr.name : targetTerrId)
-    + ' ' + facLabel + ' \u2014 terning: ' + roll
-    + '. Total skade: ' + curDmg + '/' + FACILITY_MAX[maxKey], 'warning');
+  toast(t('toast.rocket_hit', { terr: terrObj ? terrObj.name : targetTerrId, fac: t(facLabelKey), roll, cur: curDmg, max: FACILITY_MAX[maxKey] }), 'warning');
 }
 
 function addToCart(tid, unitId, delta) {
@@ -1925,24 +2073,24 @@ function confirmPurchase(tid) {
     if (qty === 0) continue;
     const terrId = placements[unit.id];
     if (!terrId) {
-      toast('Velg et territorium for ' + unit.name + ' for du bekrefter.', 'error');
+      toast(t('pc.pick_territory', { name: unit.name }), 'error');
       return;
     }
-    const terr = TERRITORIES.find(t => t.id === terrId);
+    const terr = TERRITORIES.find(terr => terr.id === terrId);
     if (unit.id === 'minor_ic' || unit.id === 'major_ic') {
       const minIpc = unit.id === 'major_ic' ? 3 : 2;
       if (!terr || terr.ipc < minIpc) {
-        toast(unit.name + ' krever territorium med minst ' + minIpc + ' IPC.', 'error');
+        toast(t('pc.min_ipc_required', { name: unit.name, ipc: minIpc }), 'error');
         return;
       }
       if (getFacility(terrId).ic) {
-        toast((terr ? terr.name : terrId) + ' har allerede en fabrikk.', 'error');
+        toast(t('pc.already_has_factory', { terr: terr ? terr.name : terrId }), 'error');
         return;
       }
     } else {
       const key = unit.id === 'air_base' ? 'airBase' : 'navalBase';
       if (getFacility(terrId)[key]) {
-        toast((terr ? terr.name : terrId) + ' har allerede en ' + unit.name.toLowerCase() + '.', 'error');
+        toast(t('pc.already_has_building', { terr: terr ? terr.name : terrId, name: unit.name.toLowerCase() }), 'error');
         return;
       }
     }
@@ -1957,9 +2105,9 @@ function confirmPurchase(tid) {
     totalCost += qty * costEach;
   }
   totalCost += repairCost;
-  if (!items.length && repairCost === 0) { toast('Handlekurven er tom!', 'error'); return; }
+  if (!items.length && repairCost === 0) { toast(t('pc.cart_empty'), 'error'); return; }
   if (totalCost > ns.treasury) {
-    toast(`Ikke nok IPC! Trenger ${totalCost} IPC, har ${ns.treasury} IPC.`, 'error');
+    toast(t('pc.not_enough_ipc', { need: totalCost, have: ns.treasury }), 'error');
     return;
   }
   ns.treasury -= totalCost;
@@ -2011,8 +2159,8 @@ function confirmPurchase(tid) {
   const pastEl = document.getElementById(`pc-past-${tid}`);
   if (pastEl) pastEl.innerHTML = buildPastPurchasesHTML(tid);
   const purchaseNames = items.map(it => `${it.qty}× ${it.name}`).join(', ');
-  const repairNote = repairTotals.marks > 0 ? `${purchaseNames ? ', ' : ''}reparert ${repairTotals.marks} skade` : '';
-  toast(`${NATIONS[tid].flag} Fase 1 fullført — ${purchaseNames}${repairNote} for ${totalCost} IPC. Skattkammer: ${ns.treasury} IPC.`, 'success');
+  const repairNote = repairTotals.marks > 0 ? `${purchaseNames ? ', ' : ''}${t('toast.phase1_repair', { marks: repairTotals.marks })}` : '';
+  toast(t('toast.phase1_done', { flag: NATIONS[tid].flag, items: purchaseNames, repair: repairNote, cost: totalCost, treasury: ns.treasury }), 'success');
 }
 
 function updatePurchaseDisplay(tid) {
@@ -2064,10 +2212,10 @@ function updateIncomeDisplay(tid) {
 
   const fmtEl = document.getElementById(`nc-formula-${tid}`);
   if (fmtEl) {
-    const treasuryPart = ns.treasury > 0 ? `${ns.treasury} (skattkammer) + ` : '';
-    const capturedPart = (ns.capturedTreasury || 0) > 0 ? `${ns.capturedTreasury} (kapturet) + ` : '';
-    const adjPart = (ns.manualAdjust || 0) !== 0 ? ` ${ns.manualAdjust > 0 ? '+' : ''}${ns.manualAdjust} (justering)` : '';
-    fmtEl.innerHTML = `= ${treasuryPart}${capturedPart}${income} (terr.) + ${bonus} (bonus) + ${ns.warBonds || 0} (obligasjoner) − ${ns.convoyLoss || 0} (konvoi)${adjPart} = <strong>${toUse} IPC</strong>`;
+    const treasuryPart = ns.treasury > 0 ? `${ns.treasury} (${t('nc.formula.treasury')}) + ` : '';
+    const capturedPart = (ns.capturedTreasury || 0) > 0 ? `${ns.capturedTreasury} (${t('nc.formula.captured')}) + ` : '';
+    const adjustPart2 = (ns.manualAdjust || 0) !== 0 ? ` ${ns.manualAdjust > 0 ? '+' : ''}${ns.manualAdjust} (${t('nc.formula.adjust')})` : '';
+    fmtEl.innerHTML = `= ${treasuryPart}${capturedPart}${income} (${t('nc.formula.terr')}) + ${bonus} (${t('nc.formula.bonus')}) + ${ns.warBonds || 0} (${t('nc.formula.bonds')}) − ${ns.convoyLoss || 0} (${t('nc.formula.convoy')})${adjustPart2} = <strong>${toUse} IPC</strong>`;
   }
 
   const collectBtn = document.getElementById(`nc-collect-${tid}`);
@@ -2078,14 +2226,14 @@ function updateIncomeDisplay(tid) {
       collectBtn.disabled = true;
       collectBtn.style.opacity = '0.5';
       collectBtn.style.cursor  = 'not-allowed';
-      collectBtn.title = 'Allerede innsamlet denne runden';
-      collectBtn.textContent = '🔒 Allerede innsamlet';
+      collectBtn.title = t('nc.already_coll_title');
+      collectBtn.textContent = t('nc.already_collected');
     } else {
       collectBtn.disabled = !hasCapital;
       collectBtn.style.opacity = hasCapital ? '' : '0.4';
       collectBtn.style.cursor  = hasCapital ? '' : 'not-allowed';
-      collectBtn.title = hasCapital ? '' : 'Kan ikke samle inn inntekt — kapitalen er okkupert!';
-      collectBtn.textContent = hasCapital ? '✅ Samle inn inntekt' : '🔒 Kapital okkupert';
+      collectBtn.title = hasCapital ? '' : t('nc.capital_locked_tip');
+      collectBtn.textContent = hasCapital ? t('nc.collect') : t('nc.capital_locked');
     }
   }
 }
@@ -2141,13 +2289,13 @@ function buildRDSectionHTML(tid) {
     const ukpNs    = state.nations['uk_pacific'];
     return `
     <div class="nc-section nc-s-rd" id="rd-section-${tid}">
-      <div class="nc-section-title">🎲 Forskning & Utvikling — Fase 0 (valgfritt)</div>
-      <div class="rd-info">UK Europe og UK Pacific deler forskning. Begge økonomier kan betale helt eller delvis. Teknologier gjelder begge.</div>
+      <div class="nc-section-title">${t('rd.title_uk')}</div>
+      <div class="rd-info">${t('rd.uk_info')}</div>
       <div class="rd-counter-row">
         <div class="rd-dice-display">
           <span class="rd-dice-icon">🎲</span>
           <span class="rd-dice-count" id="rd-count-${tid}">${count}</span>
-          <span class="rd-dice-label" id="rd-label-${tid}">terning${count !== 1 ? 'er' : ''} (delt)</span>
+          <span class="rd-dice-label" id="rd-label-${tid}">${count !== 1 ? t('rd.dice_plural') : t('rd.dice_singular')} ${t('rd.dice_shared')}</span>
         </div>
       </div>
       <div class="rd-uk-treasuries">
@@ -2155,14 +2303,14 @@ function buildRDSectionHTML(tid) {
         <span class="rd-uk-treas">🏴 UKP: <strong id="rd-ukp-treas-${tid}">${ukpNs.treasury}</strong> IPC</span>
       </div>
       <div class="rd-buy-btns" style="flex-wrap:wrap;gap:.3rem;margin-top:.3rem">
-        <button class="btn btn-primary btn-sm" onclick="buyResearchDice('uk_europe', 1)" title="Betal 5 IPC fra UK Europe">+ Kjøp fra UKE (5 IPC)</button>
-        <button class="btn btn-primary btn-sm" onclick="buyResearchDice('uk_pacific', 1)" title="Betal 5 IPC fra UK Pacific">+ Kjøp fra UKP (5 IPC)</button>
-        <button class="btn btn-accent btn-sm" onclick="showUKSplitBuy('${tid}')" title="Del kostnaden mellom UKE og UKP">✂️ Spleis (5 IPC)</button>
-        <button class="btn btn-ghost btn-sm" onclick="buyResearchDiceUKRemove('${tid}')" title="Fjern 1 terning (5 IPC refunderes til sist betalende)">−</button>
+        <button class="btn btn-primary btn-sm" onclick="buyResearchDice('uk_europe', 1)" title="${t('rd.uk_buy_uke_title')}">${t('rd.uk_buy_uke')}</button>
+        <button class="btn btn-primary btn-sm" onclick="buyResearchDice('uk_pacific', 1)" title="${t('rd.uk_buy_ukp_title')}">${t('rd.uk_buy_ukp')}</button>
+        <button class="btn btn-accent btn-sm" onclick="showUKSplitBuy('${tid}')" title="${t('rd.uk_split_title')}">${t('rd.uk_split_btn')}</button>
+        <button class="btn btn-ghost btn-sm" onclick="buyResearchDiceUKRemove('${tid}')" title="${t('rd.remove_title')}">−</button>
       </div>
       <div id="rd-split-ui-${tid}" style="display:none"></div>
       <div class="rd-actions">
-        <button class="btn btn-ghost btn-sm" onclick="resetResearchDice('${tid}')">&#128465; Nullstill</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetResearchDice('${tid}')">${t('rd.reset_btn')}</button>
       </div>
       <div id="rd-result-${tid}"></div>
     </div>`;
@@ -2172,29 +2320,29 @@ function buildRDSectionHTML(tid) {
   const count = ns.researchDice || 0;
   return `
     <div class="nc-section nc-s-rd" id="rd-section-${tid}">
-      <div class="nc-section-title">🎲 Forskning &amp; Utvikling <span class="rd-phase-badge">Fase 0</span></div>
-      <div class="rd-cost-hint">5 IPC per terning — minst én 6 = gjennombrudd</div>
+      <div class="nc-section-title">${t('rd.title')} <span class="rd-phase-badge">${t('rd.phase_badge')}</span></div>
+      <div class="rd-cost-hint">${t('rd.cost_hint')}</div>
       <div class="rd-stepper">
         <button class="rd-step-btn" onclick="buyResearchDice('${tid}', -1)">−</button>
         <div class="rd-step-display">
           <span class="rd-step-icon">🎲</span>
           <span class="rd-step-count" id="rd-count-${tid}">${count}</span>
-          <span class="rd-step-label" id="rd-label-${tid}">terning${count !== 1 ? 'er' : ''}</span>
+          <span class="rd-step-label" id="rd-label-${tid}">${count !== 1 ? t('rd.dice_plural') : t('rd.dice_singular')}</span>
         </div>
         <button class="rd-step-btn rd-step-add" onclick="buyResearchDice('${tid}', 1)">+ 5 IPC</button>
       </div>
-      <button class="btn btn-ghost btn-sm rd-reset-btn" onclick="resetResearchDice('${tid}')">&#128465; Nullstill</button>
+      <button class="btn btn-ghost btn-sm rd-reset-btn" onclick="resetResearchDice('${tid}')">${t('rd.reset_btn')}</button>
       <div id="rd-result-${tid}"></div>
     </div>`;
 }
 
 function buyResearchDice(tid, delta) {
-  if (tid === 'china') { toast('Kina kan ikke forske!', 'error'); return; }
+  if (tid === 'china') { toast(t('nc.china_no_rd'), 'error'); return; }
   const ns = state.nations[tid];
 
   // UK shared dice handling
   if (isUK(tid)) {
-    if (delta > 0 && ns.treasury < 5) { toast(`Ikke nok IPC i ${NATIONS[tid].name} — 5 IPC per terning.`, 'error'); return; }
+    if (delta > 0 && ns.treasury < 5) { toast(`${t('toast.not_enough_ipc_nation', { name: NATIONS[tid].name })}`, 'error'); return; }
     if (delta > 0) ns.treasury -= 5;
     if (delta < 0) {
       // Refund to this economy
@@ -2216,7 +2364,7 @@ function buyResearchDice(tid, delta) {
   }
 
   // Standard (non-UK) handling
-  if (delta > 0 && ns.treasury < 5) { toast('Ikke nok IPC — 5 IPC per terning.', 'error'); return; }
+  if (delta > 0 && ns.treasury < 5) { toast(t('toast.not_enough_ipc'), 'error'); return; }
   if (delta < 0 && (ns.researchDice || 0) <= 0) return;
   if (delta > 0) ns.treasury -= 5;
   if (delta < 0) ns.treasury += 5;
@@ -2279,15 +2427,15 @@ function confirmUKSplitBuy(tid) {
   const ukeVal = parseInt(document.getElementById(`rd-split-uke-${tid}`)?.value) || 0;
   const ukpVal = parseInt(document.getElementById(`rd-split-ukp-${tid}`)?.value) || 0;
   const errEl  = document.getElementById(`rd-split-err-${tid}`);
-  if (ukeVal + ukpVal !== 5) { if (errEl) errEl.textContent = 'Summen må være 5 IPC!'; return; }
-  if (ukeVal < 0 || ukpVal < 0) { if (errEl) errEl.textContent = 'Kan ikke være negativt!'; return; }
-  if (state.nations['uk_europe'].treasury < ukeVal) { if (errEl) errEl.textContent = `UK Europe har bare ${state.nations['uk_europe'].treasury} IPC!`; return; }
-  if (state.nations['uk_pacific'].treasury < ukpVal) { if (errEl) errEl.textContent = `UK Pacific har bare ${state.nations['uk_pacific'].treasury} IPC!`; return; }
+  if (ukeVal + ukpVal !== 5) { if (errEl) errEl.textContent = t('uk.split_sum_error'); return; }
+  if (ukeVal < 0 || ukpVal < 0) { if (errEl) errEl.textContent = t('uk.split_neg_error'); return; }
+  if (state.nations['uk_europe'].treasury < ukeVal) { if (errEl) errEl.textContent = t('uk.split_uke_low', { ipc: state.nations['uk_europe'].treasury }); return; }
+  if (state.nations['uk_pacific'].treasury < ukpVal) { if (errEl) errEl.textContent = t('uk.split_ukp_low', { ipc: state.nations['uk_pacific'].treasury }); return; }
   state.nations['uk_europe'].treasury -= ukeVal;
   state.nations['uk_pacific'].treasury -= ukpVal;
   setUKSharedDice(getUKSharedDice() + 1);
   saveState();
-  toast(`Spleis: UKE betalte ${ukeVal} + UKP betalte ${ukpVal} = 1 terning kjøpt!`, 'success');
+  toast(t('toast.uk_split', { uke: ukeVal, ukp: ukpVal }), 'success');
   document.getElementById(`rd-split-ui-${tid}`).style.display = 'none';
   updateRDPanel('uk_europe');
   updateRDPanel('uk_pacific');
@@ -2334,12 +2482,12 @@ function rollResearchDice(tid) {
     rdResult.innerHTML = `
       <div class="rd-roll-result">
         <div class="rd-rolls">${diceHtml}</div>
-        <div class="rd-breakthrough">🎉 GJENNOMBRUDD!</div>
+        <div class="rd-breakthrough">${t('rd.breakthrough')}</div>
         <div class="rd-chart-choice">
-          <div class="rd-chart-hint">Velg gjennombruddsdiagram og rull:</div>
+          <div class="rd-chart-hint">${t('rd.chart_hint')}</div>
           <div class="rd-chart-btns">
             <div class="rd-chart-col">
-              <div class="rd-chart-header">📋 Diagram 1 — Land &amp; Industri</div>
+              <div class="rd-chart-header">${t('rd.chart1_header')}</div>
               <div class="rd-chart-list">
                 <div class="rd-chart-entry"><span class="rd-chart-num">1</span>Advanced Artillery</div>
                 <div class="rd-chart-entry"><span class="rd-chart-num">2</span>Rockets</div>
@@ -2348,10 +2496,10 @@ function rollResearchDice(tid) {
                 <div class="rd-chart-entry"><span class="rd-chart-num">5</span>War Bonds</div>
                 <div class="rd-chart-entry"><span class="rd-chart-num">6</span>Impr. Mech. Infantry</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="showChartRoll('${tid}', 1)">🎲 Rull Diagram 1</button>
+              <button class="btn btn-primary btn-sm" onclick="showChartRoll('${tid}', 1)">${t('rd.roll_chart1')}</button>
             </div>
             <div class="rd-chart-col">
-              <div class="rd-chart-header">📋 Diagram 2 — Hav &amp; Luft</div>
+              <div class="rd-chart-header">${t('rd.chart2_header')}</div>
               <div class="rd-chart-list">
                 <div class="rd-chart-entry"><span class="rd-chart-num">1</span>Super Submarines</div>
                 <div class="rd-chart-entry"><span class="rd-chart-num">2</span>Jet Fighters</div>
@@ -2360,7 +2508,7 @@ function rollResearchDice(tid) {
                 <div class="rd-chart-entry"><span class="rd-chart-num">5</span>Long-Range Aircraft</div>
                 <div class="rd-chart-entry"><span class="rd-chart-num">6</span>Heavy Bombers</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="showChartRoll('${tid}', 2)">🎲 Rull Diagram 2</button>
+              <button class="btn btn-primary btn-sm" onclick="showChartRoll('${tid}', 2)">${t('rd.roll_chart2')}</button>
             </div>
           </div>
           <div id="rd-chart-result-${tid}"></div>
@@ -2370,7 +2518,7 @@ function rollResearchDice(tid) {
     rdResult.innerHTML = `
       <div class="rd-roll-result">
         <div class="rd-rolls">${diceHtml}</div>
-        <div class="rd-no-breakthrough">Ingen gjennombrudd — terninger beholdes til neste runde.</div>
+        <div class="rd-no-breakthrough">${t('rd.no_breakthrough')}</div>
       </div>`;
   }
 }
@@ -2386,14 +2534,14 @@ function showChartRoll(tid, chart) {
   let html = `<div class="rd-chart-outcome">
     <span class="rd-die rd-die-roll">${roll}</span>
     <strong>${tech ? tech.name : '?'}</strong>
-    ${alreadyHas ? '<span class="rd-already-has">(har allerede — rull igjen)</span>' : ''}
+    ${alreadyHas ? `<span class="rd-already-has">${t('rd.already_has')}</span>` : ''}
   </div>`;
 
   if (tech && !alreadyHas) {
-    html += `<button class="btn btn-success btn-sm rd-confirm-btn" onclick="assignResearchTech('${tid}','${tech.id}')">&#9989; Bekreft: ${tech.name}</button>`;
+    html += `<button class="btn btn-success btn-sm rd-confirm-btn" onclick="assignResearchTech('${tid}','${tech.id}')">${t('rd.confirm_tech', {name: tech.name})}</button>`;
   } else {
     html += `<div class="rd-chart-btns" style="margin-top:.4rem">
-      <button class="btn btn-primary btn-sm" onclick="showChartRoll('${tid}', ${chart})">🎲 Rull igjen</button>
+      <button class="btn btn-primary btn-sm" onclick="showChartRoll('${tid}', ${chart})">${t('rd.reroll')}</button>
     </div>`;
   }
   chartResultEl.innerHTML = html;
@@ -2417,9 +2565,9 @@ function assignResearchTech(tid, techId) {
   const tech = TECHNOLOGIES.find(t => t.id === techId);
 
   if (isUK(tid)) {
-    toast(`🇬🇧 United Kingdom utviklet: ${tech?.name}! 🔬 Gjelder begge økonomier. Terninger nullstilt.`, 'success');
+    toast(t('toast.tech_developed_uk', { name: tech?.name }), 'success');
   } else {
-    toast(`${NATIONS[tid].flag} ${NATIONS[tid].name} utviklet: ${tech?.name}! 🔬 Terninger nullstilt.`, 'success');
+    toast(t('toast.tech_developed', { flag: NATIONS[tid].flag, nation: NATIONS[tid].name, name: tech?.name }), 'success');
   }
 
   // Update tech grid checkboxes
@@ -2435,7 +2583,7 @@ function assignResearchTech(tid, techId) {
     }
     updateRDPanel(uid);
     const rdResult = document.getElementById(`rd-result-${uid}`);
-    if (rdResult) rdResult.innerHTML = `<div class="rd-tech-acquired">✅ ${tech?.name} låst opp! Terninger nullstilt.</div>`;
+    if (rdResult) rdResult.innerHTML = `<div class="rd-tech-acquired">${t('rd.tech_unlocked', { name: tech?.name })}</div>`;
   }
   renderPhaseTracker();
   renderTurnStrip();
@@ -2466,7 +2614,7 @@ function updateRDPanel(tid) {
 function buildObjectivesHTML(tid) {
   evalObjectivesForNation(tid);
   const objs = NATIONAL_OBJECTIVES[tid] ?? [];
-  if (!objs.length) return '<span style="color:var(--text-muted);font-size:.8rem">Ingen spesifikke mål.</span>';
+  if (!objs.length) return `<span style="color:var(--text-muted);font-size:.8rem">${t('obj.no_objectives')}</span>`;
   const ns      = state.nations[tid] ?? {};
   const atWar   = getEffectiveAtWar(tid);
   const showAll = objShowAll[tid] ?? false;
@@ -2478,9 +2626,7 @@ function buildObjectivesHTML(tid) {
   });
 
   if (!visible.length) {
-    return `<span class="obj-empty-msg">${atWar
-      ? 'Ingen bonus-IPC-mål aktive i krig for denne nasjonen.'
-      : 'Ingen bonus-IPC-mål i fredstid for denne nasjonen.'}</span>`;
+    return `<span class="obj-empty-msg">${atWar ? t('obj.no_active_war') : t('obj.no_active_peace')}</span>`;
   }
 
   return visible.map(o => {
@@ -2489,21 +2635,21 @@ function buildObjectivesHTML(tid) {
     const claimed     = ns.objectivesClaimed?.[o.id];
     const disabled    = (o.oneTime && claimed) || hasRule ? 'disabled' : '';
     const claimedNote = (o.oneTime && claimed)
-      ? ' <span style="color:var(--text-muted);font-size:.7rem">(allerede hentet)</span>' : '';
+      ? ` <span style="color:var(--text-muted);font-size:.7rem">${t('obj.claimed')}</span>` : '';
     let ipcTag, detailTag = '';
     if (o.dynamicIpc && o.id === 'sov_axis_territories') {
       const axisTerms = getSovAxisTerritories();
       const total     = axisTerms.length * (o.ipcPerTerritory || 0);
-      const terrList  = axisTerms.length ? axisTerms.map(t => t.name).join(', ') : 'Ingen ennå';
+      const terrList  = axisTerms.length ? axisTerms.map(terr => terr.name).join(', ') : t('obj.no_territories');
       ipcTag    = `<span style="color:var(--gold);font-weight:700;margin-left:.3rem">+${total} IPC (${axisTerms.length}×${o.ipcPerTerritory})</span>`;
-      detailTag = `<br><span style="font-size:.75rem;color:var(--text-muted);margin-left:1.3rem">Territorier: ${terrList}</span>`;
+      detailTag = `<br><span style="font-size:.75rem;color:var(--text-muted);margin-left:1.3rem">${t('obj.territories_label')} ${terrList}</span>`;
     } else {
       ipcTag = `<span style="color:var(--gold);font-weight:700;margin-left:.3rem">+${o.ipc} IPC</span>`;
     }
-    const warBadge    = showAll && o.warOnly   ? '<span class="obj-badge obj-badge-war">⚔️ krig</span>'  : '';
-    const peaceBadge  = showAll && o.peaceOnly ? '<span class="obj-badge obj-badge-peace">☘ fred</span>' : '';
-    const autoBadge   = hasRule ? '<span class="obj-badge obj-badge-auto" title="Evalueres automatisk basert på territorier">⚙ auto</span>' : '';
-    const titleAttr   = hasRule ? `Automatisk evaluert basert på territorier. ${o.hint}` : o.hint;
+    const warBadge    = showAll && o.warOnly   ? `<span class="obj-badge obj-badge-war">${t('obj.badge.war')}</span>`   : '';
+    const peaceBadge  = showAll && o.peaceOnly ? `<span class="obj-badge obj-badge-peace">${t('obj.badge.peace')}</span>` : '';
+    const autoBadge   = hasRule ? `<span class="obj-badge obj-badge-auto" title="${t('obj.auto_title')}">⚙ auto</span>` : '';
+    const titleAttr   = hasRule ? t('obj.auto_full_title', { hint: o.hint }) : o.hint;
     return `<label class="tech-item${checked ? ' researched' : ''}" title="${titleAttr}" style="grid-column:1/-1;align-items:flex-start">
       <input type="checkbox" data-nation="${tid}" data-obj="${o.id}" ${checked} ${disabled}
         style="margin-top:.15rem;flex-shrink:0" onchange="onObjectiveChange('${tid}','${o.id}',this.checked)">
@@ -2665,11 +2811,11 @@ function onObjectiveChange(tid, objId, isChecked) {
 
 function collectIncome(tid) {
   if (!ownsMainCapital(tid)) {
-    toast(`${NATIONS[tid].flag} ${NATIONS[tid].name} kan ikke samle inn inntekt — kapitalen er okkupert!`, 'error');
+    toast(`${NATIONS[tid].flag} ${NATIONS[tid].name} ${t('toast.capital_locked_income', { flag: NATIONS[tid].flag, name: NATIONS[tid].name })}`, 'error');
     return;
   }
   if (state.turnPhases?.[tid]?.includes('p6')) {
-    toast(`${NATIONS[tid].flag} ${NATIONS[tid].name} har allerede samlet inn inntekt denne runden!`, 'error');
+    toast(`${NATIONS[tid].flag} ${NATIONS[tid].name} ${t('toast.income_already_collected', { flag: NATIONS[tid].flag, name: NATIONS[tid].name })}`, 'error');
     return;
   }
   const ns       = state.nations[tid];
@@ -2734,12 +2880,13 @@ function collectIncome(tid) {
   renderTurnStrip();
   renderSidePanels();
   updatePurchaseDisplay(tid);
-  const details = (bonus > 0 || adjust !== 0) ? ` (terr: ${income} + bonus: ${bonus} + obl: ${warBonds} − konvoi: ${loss}${adjust !== 0 ? ` ${adjust > 0 ? '+' : ''}${adjust} justering` : ''})` : '';
+  const adjStr = adjust !== 0 ? t('toast.income_adj', { sign: adjust > 0 ? '+' : '', adj: adjust }) : '';
+  const details = (bonus > 0 || adjust !== 0) ? t('toast.income_details', { income, bonus, bonds: warBonds, loss, adj: adjStr }) : '';
   updateIncomeDisplay(tid);
   updateIncomeAdjVisibility(tid);
   updateNationPhaseTracker(tid);
   updateNationCardDoneState(tid);
-  toast(`${NATIONS[tid].flag} ${NATIONS[tid].name} samlet inn ${net} IPC${details}. Ny sum: ${ns.treasury} IPC`, 'success');
+  toast(t('toast.income_done', { flag: NATIONS[tid].flag, name: NATIONS[tid].name, net, details, treasury: ns.treasury }), 'success');
   checkAllNationsDone();
 
   // ── Auto-advance: collapse current card, next turn, open next card ──
@@ -2817,20 +2964,20 @@ function renderTerritories() {
       const otherN = other ? (NATIONS[other] ?? null) : null;
 
       const transferAllBtn = otherN
-        ? `<button class="btn btn-ghost btn-sm ng-transfer-all" onclick="confirmTransferAll('${nid}','${other}')" title="Overfør alle viste territorier til ${otherN.name}">
-            Overfør alle → ${nationIconHTML(otherN, 'nation-icon--xs')} ${otherN.shortName}
+        ? `<button class="btn btn-ghost btn-sm ng-transfer-all" onclick="confirmTransferAll('${nid}','${other}')" title="${t('ter.transfer_all_tip', { name: otherN.name })}">
+            ${t('ter.transfer_all_btn')} ${nationIconHTML(otherN, 'nation-icon--xs')} ${otherN.shortName}
           </button>`
         : '';
 
       const thAction = otherN
         ? `→ ${nationIconHTML(otherN, 'nation-icon--xs')} ${otherN.name}`
-        : 'Endre eier';
+        : t('ter.change_owner');
 
       html += `<div class="nation-group" style="--ng-accent:${nat.accent ?? '#9ca3af'}">
         <div class="nation-group-header">
           <span class="ng-flag">${nationIconHTML(nat, 'nation-icon--sm')}</span>
           <span class="ng-name">${nat.name}</span>
-          <span class="ng-stats">${rows.length} territorier · ${ipcSum} IPC</span>
+          <span class="ng-stats">${t('ter.ng_stats', {n: rows.length, ipc: ipcSum})}</span>
           ${transferAllBtn}
         </div>
         ${
@@ -2844,20 +2991,20 @@ function renderTerritories() {
                   <col class="col-origin">
                 </colgroup>
                 <thead><tr>
-                  <th>Territorium</th>
-                  <th style="text-align:center">IPC</th>
-                  <th>Kontrollert av</th>
+                  <th>${t('ter.col_territory')}</th>
+                  <th style="text-align:center">${t('ter.col_ipc')}</th>
+                  <th>${t('ter.col_controlled_by')}</th>
                   <th>${thAction}</th>
-                  <th>Erobret fra</th>
+                  <th>${t('ter.col_captured_from')}</th>
                 </tr></thead>
-                <tbody>${rows.map(t => buildTerritoryRowNation(t, other)).join('')}</tbody>
+                <tbody>${rows.map(terr => buildTerritoryRowNation(terr, other)).join('')}</tbody>
               </table>`
-            : `<div class="ng-empty">Ingen territorier funnet</div>`
+            : `<div class="ng-empty">${t('ter.no_results')}</div>`
         }
       </div>`;
     }
 
-    container.innerHTML = html || '<div class="empty-state"><div class="es-icon">🔍</div>Ingen territorier funnet.</div>';
+    container.innerHTML = html || `<div class="empty-state"><div class="es-icon">🔍</div>${t('ter.no_results')}</div>`;
     updateTerritoryCountBar(allFiltered);
     return;
   }
@@ -2892,11 +3039,11 @@ function renderTerritories() {
             <col class="col-origin">
           </colgroup>
           <thead><tr>
-            <th>Territorium</th>
-            <th style="text-align:center">IPC</th>
-            <th>Kontrollert av</th>
-            <th>Endre eier</th>
-            <th>Erobret fra</th>
+            <th>${t('ter.col_territory')}</th>
+            <th style="text-align:center">${t('ter.col_ipc')}</th>
+            <th>${t('ter.col_controlled_by')}</th>
+            <th>${t('ter.change_owner')}</th>
+            <th>${t('ter.col_captured_from')}</th>
           </tr></thead>
           <tbody>
             ${rows.map(t => buildTerritoryRow(t)).join('')}
@@ -2906,14 +3053,14 @@ function renderTerritories() {
     </div>`;
   }
 
-  container.innerHTML = html || '<div class="empty-state"><div class="es-icon">🔍</div>Ingen territorier funnet.</div>';
+  container.innerHTML = html || `<div class="empty-state"><div class="es-icon">🔍</div>${t('ter.no_results')}</div>`;
   updateTerritoryCountBar(filtered);
 }
 
-function getNeutralTypeBadge(t, ctrl) {
-  if (ctrl !== 'neutral' || !t.neutralType || t.neutralType === 'neutral') return '';
-  const labels = { strict: 'Strengt nøytral', pro_allied: 'Pro-Alliert', pro_axis: 'Pro-Akse', mongolia: 'Mongolia' };
-  const label = labels[t.neutralType] ?? t.neutralType;
+function getNeutralTypeBadge(terr, ctrl) {
+  if (ctrl !== 'neutral' || !terr.neutralType || terr.neutralType === 'neutral') return '';
+  const labels = { strict: t('ter.neutral.strict'), pro_allied: t('ter.neutral.pro_allied'), pro_axis: t('ter.neutral.pro_axis'), mongolia: t('ter.neutral.mongolia') };
+  const label = labels[terr.neutralType] ?? terr.neutralType;
   return `<span style="font-size:.65rem;color:var(--text-muted);margin-left:.25rem;font-style:italic">(${label})</span>`;
 }
 
@@ -2925,62 +3072,62 @@ function buildFacilityBadges(terrId) {
   if (fac.ic) {
     const icon = fac.ic === 'major' ? '\uD83C\uDFED' : '\uD83D\uDD27';
     const d = dmg.ic || 0;
-    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}" title="${fac.ic === 'major' ? 'Stor IC' : 'Liten IC'}${d > 0 ? ' \u2014 ' + d + ' skade' : ''}">${icon}${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
+    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}" title="${fac.ic === 'major' ? t('fac.badge.major') : t('fac.badge.minor')}${d > 0 ? ' \u2014 ' + t('fac.badge.damage', { n: d }) : ''}">${icon}${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
   }
   if (fac.airBase) {
     const d = dmg.airBase || 0;
     const inop = d >= 6;
-    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}${inop ? ' fac-badge--inop' : ''}" title="Luftbase${d > 0 ? ' \u2014 ' + d + '/6 skade' : ''}${inop ? ' (INOPERATIV)' : ''}">\u2708\uFE0F${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
+    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}${inop ? ' fac-badge--inop' : ''}" title="${t('fac.badge.airbase')}${d > 0 ? ' \u2014 ' + t('fac.badge.damage', { n: d + '/6' }) : ''}${inop ? t('fac.badge.inop') : ''}">\u2708\uFE0F${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
   }
   if (fac.navalBase) {
     const d = dmg.navalBase || 0;
     const inop = d >= 6;
-    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}${inop ? ' fac-badge--inop' : ''}" title="Marinebase${d > 0 ? ' \u2014 ' + d + '/6 skade' : ''}${inop ? ' (INOPERATIV)' : ''}">\u2693${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
+    parts.push(`<span class="fac-badge${d > 0 ? ' fac-badge--dmg' : ''}${inop ? ' fac-badge--inop' : ''}" title="${t('fac.navalbase')}${d > 0 ? ' \u2014 ' + t('fac.badge.damage', { n: d + '/6' }) : ''}${inop ? t('fac.badge.inop') : ''}">\u2693${d > 0 ? '<sup>' + d + '</sup>' : ''}</span>`);
   }
   return ' ' + parts.join('');
 }
 
-function buildTerritoryRow(t) {
-  const ctrl    = getController(t.id);
+function buildTerritoryRow(terr) {
+  const ctrl    = getController(terr.id);
   const nat     = NATIONS[ctrl] ?? NATIONS.neutral;
-  const capital = t.isCapital ? 'is-capital' : '';
-  const ipcCls  = t.ipc === 0 ? 'zero' : '';
-  const origNat = (t.startController && t.startController !== ctrl)
-    ? (NATIONS[t.startController] ?? null) : null;
+  const capital = terr.isCapital ? 'is-capital' : '';
+  const ipcCls  = terr.ipc === 0 ? 'zero' : '';
+  const origNat = (terr.startController && terr.startController !== ctrl)
+    ? (NATIONS[terr.startController] ?? null) : null;
 
   return `<tr>
-    <td class="t-name ${capital}">${t.name}${t.isMainCapital ? ' \uD83C\uDFDB\uFE0F' : ''}${getNeutralTypeBadge(t, ctrl)}${buildFacilityBadges(t.id)}</td>
-    <td class="t-ipc ${ipcCls}">${t.ipc || '—'}</td>
+    <td class="t-name ${capital}">${terr.name}${terr.isMainCapital ? ' \uD83C\uDFDB\uFE0F' : ''}${getNeutralTypeBadge(terr, ctrl)}${buildFacilityBadges(terr.id)}</td>
+    <td class="t-ipc ${ipcCls}">${terr.ipc || '—'}</td>
     <td><span class="owner-badge" data-nation="${ctrl}">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName}</span></td>
-    <td><button class="owner-change-btn" onclick="openOwnerPicker('${t.id}')">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName} <span class="ocb-arrow">▼</span></button></td>
-    <td>${origNat ? `<span class="owner-badge conquered-from" data-nation="${t.startController}">${nationIconHTML(origNat, 'nation-icon--xs')} ${origNat.shortName}</span>` : ''}</td>
+    <td><button class="owner-change-btn" onclick="openOwnerPicker('${terr.id}')">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName} <span class="ocb-arrow">▼</span></button></td>
+    <td>${origNat ? `<span class="owner-badge conquered-from" data-nation="${terr.startController}">${nationIconHTML(origNat, 'nation-icon--xs')} ${origNat.shortName}</span>` : ''}</td>
   </tr>`;
 }
 
-function buildTerritoryRowNation(t, quickTransferTo) {
-  const ctrl    = getController(t.id);
+function buildTerritoryRowNation(terr, quickTransferTo) {
+  const ctrl    = getController(terr.id);
   const nat     = NATIONS[ctrl] ?? NATIONS.neutral;
-  const capital = t.isCapital ? 'is-capital' : '';
-  const ipcCls  = t.ipc === 0 ? 'zero' : '';
+  const capital = terr.isCapital ? 'is-capital' : '';
+  const ipcCls  = terr.ipc === 0 ? 'zero' : '';
   const toNat   = quickTransferTo ? (NATIONS[quickTransferTo] ?? null) : null;
-  const origNat = (t.startController && t.startController !== ctrl)
-    ? (NATIONS[t.startController] ?? null) : null;
+  const origNat = (terr.startController && terr.startController !== ctrl)
+    ? (NATIONS[terr.startController] ?? null) : null;
 
   const actionCell = toNat
     ? `<div class="quick-transfer-cell">
-        <button class="quick-transfer-btn" onclick="onOwnerChange('${t.id}','${quickTransferTo}')" title="Overfør til ${toNat.name}">
+        <button class="quick-transfer-btn" onclick="onOwnerChange('${terr.id}','${quickTransferTo}')" title="${t('ter.transfer_to', { name: toNat.name })}">
           ${nationIconHTML(toNat, 'nation-icon--xs')} ${toNat.shortName}
         </button>
-        <button class="owner-change-btn-sm" onclick="openOwnerPicker('${t.id}')" title="Velg annen eier">⋯</button>
+        <button class="owner-change-btn-sm" onclick="openOwnerPicker('${terr.id}')" title="${t('ter.pick_owner')}">⋯</button>
       </div>`
-    : `<button class="owner-change-btn" onclick="openOwnerPicker('${t.id}')">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName} <span class="ocb-arrow">▼</span></button>`;
+    : `<button class="owner-change-btn" onclick="openOwnerPicker('${terr.id}')">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName} <span class="ocb-arrow">▼</span></button>`;
 
   return `<tr>
-    <td class="t-name ${capital}">${t.name}${t.isMainCapital ? ' 🏛️' : ''}${getNeutralTypeBadge(t, ctrl)}</td>
-    <td class="t-ipc ${ipcCls}">${t.ipc || '—'}</td>
+    <td class="t-name ${capital}">${terr.name}${terr.isMainCapital ? ' 🏛️' : ''}${getNeutralTypeBadge(terr, ctrl)}</td>
+    <td class="t-ipc ${ipcCls}">${terr.ipc || '—'}</td>
     <td><span class="owner-badge" data-nation="${ctrl}">${nationIconHTML(nat, 'nation-icon--xs')} ${nat.shortName}</span></td>
     <td>${actionCell}</td>
-    <td>${origNat ? `<span class="owner-badge conquered-from" data-nation="${t.startController}">${nationIconHTML(origNat, 'nation-icon--xs')} ${origNat.shortName}</span>` : ''}</td>
+    <td>${origNat ? `<span class="owner-badge conquered-from" data-nation="${terr.startController}">${nationIconHTML(origNat, 'nation-icon--xs')} ${origNat.shortName}</span>` : ''}</td>
   </tr>`;
 }
 
@@ -2989,16 +3136,16 @@ function confirmTransferAll(fromNation, toNation) {
   const fromN = NATIONS[fromNation];
   const toN   = NATIONS[toNation];
   if (!territories.length) {
-    toast(`${fromN?.name ?? fromNation} har ingen territorier å overføre.`, 'error');
+    toast(t('ter.no_territories_err', { name: fromN?.name ?? fromNation }), 'error');
     return;
   }
-  if (!confirm(`Overfør ALLE ${territories.length} territorier fra ${fromN?.shortName} ${fromN?.name} til ${toN?.shortName} ${toN?.name}?\n\nDette inkluderer alle territorier, ikke bare de som vises nå.`)) return;
-  territories.forEach(t => setController(t.id, toNation));
+  if (!confirm(t('ter.transfer_all_confirm', { count: territories.length, fromShort: fromN?.shortName, fromName: fromN?.name, toShort: toN?.shortName, toName: toN?.name }))) return;
+  territories.forEach(terr => setController(terr.id, toNation));
   saveState();
   renderTerritories();
   updateNationCards();
   if (activeTab === 'overview') renderOverview();
-  toast(`${territories.length} territorier overført til ${toN?.shortName} ${toN?.name}!`, 'success');
+  toast(t('ter.transferred_done', { count: territories.length, toShort: toN?.shortName, toName: toN?.name }), 'success');
 }
 
 function updateTerritoryCountBar(filtered) {
@@ -3061,10 +3208,10 @@ let _ownerPickerTid = null;
 
 function openOwnerPicker(tid) {
   _ownerPickerTid = tid;
-  const t    = TERRITORIES.find(t => t.id === tid);
+  const terr = TERRITORIES.find(t => t.id === tid);
   const ctrl = getController(tid);
 
-  document.getElementById('ownerPickerTitle').textContent = `${t?.name ?? tid} — Endre eier`;
+  document.getElementById('ownerPickerTitle').textContent = t('ter.owner_picker_title', { name: terr?.name ?? tid });
 
   const grid = document.getElementById('ownerPickerGrid');
   grid.innerHTML = Object.keys(NATIONS).map(nid => {
@@ -3134,15 +3281,15 @@ function renderVictoryCities() {
   const cols = [];
   cols.push(`
     <div class="vc-col vc-axis">
-      <div class="vc-col-header">⚔️ Aksen — ${axisCities.length} byer</div>
-      <div class="vc-list">${axisCities.map(renderCard).join('')}${axisCities.length===0?'<div class="empty-state">Ingen</div>':''}</div>
+      <div class="vc-col-header">${t('vc.axis_header', { n: axisCities.length })}</div>
+      <div class="vc-list">${axisCities.map(renderCard).join('')}${axisCities.length===0?`<div class="empty-state">${t('vc.axis_none')}</div>`:''}</div>
     </div>
   `);
 
   if (neutralCities.length > 0) {
     cols.push(`
       <div class="vc-col vc-neutral">
-        <div class="vc-col-header">📍 Nøytrale / annet — ${neutralCities.length} byer</div>
+        <div class="vc-col-header">${t('vc.neutral_header', { n: neutralCities.length })}</div>
         <div class="vc-list">${neutralCities.map(renderCard).join('')}</div>
       </div>
     `);
@@ -3150,8 +3297,8 @@ function renderVictoryCities() {
 
   cols.push(`
     <div class="vc-col vc-allies">
-      <div class="vc-col-header">🏳️ Allierte — ${alliesCities.length} byer</div>
-      <div class="vc-list">${alliesCities.map(renderCard).join('')}${alliesCities.length===0?'<div class="empty-state">Ingen</div>':''}</div>
+      <div class="vc-col-header">${t('vc.allies_header', { n: alliesCities.length })}</div>
+      <div class="vc-list">${alliesCities.map(renderCard).join('')}${alliesCities.length===0?`<div class="empty-state">${t('vc.allies_none')}</div>`:''}</div>
     </div>
   `);
 
@@ -3162,7 +3309,7 @@ function renderVictoryCities() {
 function renderHistory() {
   const container = document.getElementById('historyList');
   if (!state.history.length) {
-    container.innerHTML = '<div class="empty-state"><div class="es-icon">📜</div>Ingen rundehistorikk ennå.<br>Avslutt en runde for å logge data.</div>';
+    container.innerHTML = `<div class="empty-state"><div class="es-icon">📜</div>${t('hist.empty').replace('\n', '<br>')}</div>`;
     return;
   }
   container.innerHTML = [...state.history].reverse().map((h, i) => {
@@ -3179,7 +3326,7 @@ function renderHistory() {
         : '';
       return `<div class="history-nation-row">
         <span>${nationIconHTML(nat, 'nation-icon--xs')} ${nat.name}</span>
-        <span style="color:var(--text-dim);flex:1;margin-left:.5rem">Samlet inn</span>
+        <span style="color:var(--text-dim);flex:1;margin-left:.5rem">${t('hist.income_label')}</span>
         <span class="history-delta ${cls}">${delta >= 0 ? '+' : ''}${delta} IPC</span>
         <span style="color:var(--text-muted);margin-left:.5rem;font-size:.75rem">→ ${nd.endTreasury} IPC</span>
         ${purchaseHtml}
@@ -3190,7 +3337,7 @@ function renderHistory() {
     const terrChanges = h.territoryChanges ?? [];
     const terrHtml = terrChanges.length ? `
       <div class="hist-terr-section">
-        <div class="hist-terr-title">🗺️ Territorier erobret / mistet</div>
+        <div class="hist-terr-title">${t('hist.terr_section')}</div>
         ${terrChanges.map(tc => {
           const fromNat  = NATIONS[tc.from];
           const toNat    = NATIONS[tc.to];
@@ -3205,16 +3352,33 @@ function renderHistory() {
           </div>`;
         }).join('')}
       </div>` : '';
+    const bombingEvs = h.bombingEvents ?? [];
+    const bombHtml = bombingEvs.length ? `
+      <div class="hist-bombing-section">
+        <div class="hist-section-title">💣 ${t('hist.bombing_section')}</div>
+        ${bombingEvs.map(b => {
+          const atkNat = NATIONS[b.attackerId];
+          const atkIcon = atkNat ? nationIconHTML(atkNat, 'nation-icon--xs') : '✈️';
+          return `<div class="hist-bombing-row">
+            <span class="hist-bombing-atk">${atkIcon} ${atkNat?.shortName ?? b.attackerId}</span>
+            <span class="hist-bombing-sep">→</span>
+            <span class="hist-bombing-detail">${escHtml(b.terrName)}</span>
+            <span class="hist-bombing-fac">${escHtml(b.facLabel)}</span>
+            <span class="hist-bombing-dmg">${b.damage} ${t('hist.bombing_dmg')}</span>
+          </div>`;
+        }).join('')}
+      </div>` : '';
     return `<div class="history-entry">
       <div class="history-entry-header" onclick="toggleHistory('${id}')">
-        <span class="history-round-badge">Runde ${h.round}</span>
+        <span class="history-round-badge">${t('hist.round_badge', { n: h.round })}</span>
         <span style="color:var(--text-dim);font-size:.82rem">
           Axis ${h.axisVC} VC · Allies ${h.alliesVC} VC
           ${(h.territoryChanges ?? []).length ? `· ${h.territoryChanges.length} terr.` : ''}
+          ${bombingEvs.length ? `· ${bombingEvs.length} 💣` : ''}
         </span>
         <span class="history-date">${h.date}</span>
       </div>
-      <div class="history-entry-body" id="${id}">${rows}${terrHtml}</div>
+      <div class="history-entry-body" id="${id}">${rows}${terrHtml}${bombHtml}</div>
     </div>`;
   }).join('');
 }
@@ -3225,19 +3389,6 @@ function toggleHistory(id) {
 }
 
 // ── Round management ──────────────────────────────────────────
-function checkAllNationsDone() {
-  const allDone = TURN_ORDER.every(tid => {
-    const completed = state.turnPhases?.[tid] ?? [];
-    const visible   = getVisiblePhases(tid);
-    return visible.length > 0 && visible.every(p => completed.includes(p.id));
-  });
-  if (allDone) {
-    endRound();
-    saveState();
-    renderAll();
-  }
-}
-
 function checkAllNationsDone() {
   const allDone = TURN_ORDER.every(tid => {
     const completed = state.turnPhases?.[tid] ?? [];
@@ -3279,6 +3430,8 @@ function endRound() {
   });
   snapshot.territoryChanges = state.territoryChanges ? [...state.territoryChanges] : [];
   state.territoryChanges = [];
+  snapshot.bombingEvents = state.bombingEvents ? [...state.bombingEvents] : [];
+  state.bombingEvents = [];
   state.history.push(snapshot);
 
   // Advance round
@@ -3294,7 +3447,11 @@ function endRound() {
   // Reset phase tracking for new round
   state.turnPhases = {};
 
-  toast(`Runde ${state.round} starter! ▶️`, 'success');
+  // Force nation cards to fully rebuild so phase checkboxes are cleared
+  const ng = document.getElementById('nationsGrid');
+  if (ng) ng.dataset.built = '';
+
+  toast(t('toast.round_start', { n: state.round }), 'success');
 }
 
 function prevTurn() {
@@ -3320,7 +3477,7 @@ function startNewGame() {
   if (ng) ng.dataset.built = '';
   closeNewGameModal();
   renderAll();
-  toast('Nytt spill startet! ⚔️', 'success');
+  toast(t('toast.new_game'), 'success');
 }
 
 // ── Utilities ─────────────────────────────────────────────────
@@ -3335,26 +3492,26 @@ function ownerBadge(nationId) {
 
 // ── Battle Board ────────────────────────────────────────────────────────────
 const BATTLE_UNITS = [
-  { id:'infantry',   name:'Infanteri',           icon:'🪖', type:'land', attack:1, defense:2 },
-  { id:'mech_inf',   name:'Mek. Infanteri',       icon:'🚛', type:'land', attack:1, defense:2 },
-  { id:'artillery',  name:'Artilleri',            icon:'💣', type:'land', attack:2, defense:2 },
-  { id:'tank',       name:'Tank',                 icon:'🏎️', type:'land', attack:3, defense:3 },
-  { id:'aaa',        name:'Anti-Luft (AAA)',       icon:'🔫', type:'land', attack:0, defense:0, aaOnly:true },
-  { id:'fighter',    name:'Jagerfly',             icon:'✈️', type:'air',  attack:3, defense:4 },
-  { id:'tac_bomber', name:'Taktisk Bomber',       icon:'💥', type:'air',  attack:3, defense:3 },
-  { id:'str_bomber', name:'Strategisk Bomber',    icon:'🛩️', type:'air',  attack:4, defense:1 },
-  { id:'submarine',  name:'Ubåt',                icon:'🌊', type:'sea',  attack:2, defense:1 },
-  { id:'destroyer',  name:'Destroyer',            icon:'⚓', type:'sea',  attack:2, defense:2 },
-  { id:'cruiser',    name:'Krysser',              icon:'🚢', type:'sea',  attack:3, defense:3 },
-  { id:'carrier',    name:'Hangarskip',           icon:'🛳️', type:'sea',  attack:0, defense:2 },
-  { id:'battleship', name:'Slagskip',             icon:'⛵', type:'sea',  attack:4, defense:4 },
-  { id:'transport',  name:'Transport',            icon:'🚤', type:'sea',  attack:0, defense:0 },
+  { id:'infantry',   nameKey:'unit.infantry',    icon:'🪖', type:'land', attack:1, defense:2 },
+  { id:'mech_inf',   nameKey:'unit.mech_inf',    icon:'🚛', type:'land', attack:1, defense:2 },
+  { id:'artillery',  nameKey:'unit.artillery',   icon:'💣', type:'land', attack:2, defense:2 },
+  { id:'tank',       nameKey:'unit.tank',        icon:'🏎️', type:'land', attack:3, defense:3 },
+  { id:'aaa',        nameKey:'unit.aaa',         icon:'🔫', type:'land', attack:0, defense:0, aaOnly:true },
+  { id:'fighter',    nameKey:'unit.fighter',     icon:'✈️', type:'air',  attack:3, defense:4 },
+  { id:'tac_bomber', nameKey:'unit.tactical_bomb',icon:'💥', type:'air',  attack:3, defense:3 },
+  { id:'str_bomber', nameKey:'unit.strat_bomb',  icon:'🛩️', type:'air',  attack:4, defense:1 },
+  { id:'submarine',  nameKey:'unit.submarine',   icon:'🌊', type:'sea',  attack:2, defense:1 },
+  { id:'destroyer',  nameKey:'unit.destroyer',   icon:'⚓', type:'sea',  attack:2, defense:2 },
+  { id:'cruiser',    nameKey:'unit.cruiser',     icon:'🚢', type:'sea',  attack:3, defense:3 },
+  { id:'carrier',    nameKey:'unit.carrier',     icon:'🛳️', type:'sea',  attack:0, defense:2 },
+  { id:'battleship', nameKey:'unit.battleship',  icon:'⛵', type:'sea',  attack:4, defense:4 },
+  { id:'transport',  nameKey:'unit.transport',   icon:'🚤', type:'sea',  attack:0, defense:0 },
 ];
 
 const BATTLE_GROUPS = [
-  { label:'🪖 Land', filter: u => u.type === 'land' },
-  { label:'✈️ Luft', filter: u => u.type === 'air'  },
-  { label:'⚓ Sjø',  filter: u => u.type === 'sea'  },
+  { labelKey:'battle.group.land', filter: u => u.type === 'land' },
+  { labelKey:'battle.group.air',  filter: u => u.type === 'air'  },
+  { labelKey:'battle.group.sea',  filter: u => u.type === 'sea'  },
 ];
 
 let battleUnits = { atk: {}, def: {} };
@@ -3382,7 +3539,7 @@ function populateBattleNationSelects() {
   ['atk','def'].forEach(side => {
     const sel = document.getElementById(`battle-nation-${side}`);
     if (!sel || sel.dataset.built === '1') return;
-    sel.innerHTML = '<option value="">— Velg nasjon —</option>';
+    sel.innerHTML = `<option value="">${t('battle.select_ph')}</option>`;
     TURN_ORDER.forEach(tid => {
       const n = NATIONS[tid];
       const opt = document.createElement('option');
@@ -3423,11 +3580,11 @@ function buildBattleUnitRows(side) {
       const dot  = `<div class="bu-hit-dot" style="background:${hitColor(val)}"></div>`;
       const note = u.aaOnly ? 'AA' : (val === 0 ? '—' : `≤${val}`);
       const aaNote = u.aaOnly
-        ? `<div style="font-size:.7rem;color:var(--text-muted)">(skyter på fly)</div>`
+        ? `<div style="font-size:.7rem;color:var(--text-muted)">${t('battle.unit.aa_note')}</div>`
         : '';
       return `<div class="bu-row">
         ${dot}
-        <div><div class="bu-name">${u.icon} ${u.name}</div>${aaNote}</div>
+        <div><div class="bu-name">${u.icon} ${t(u.nameKey)}</div>${aaNote}</div>
         <div class="bu-val">${note}</div>
         <div class="bu-ctrl">
           <button class="bu-btn" onclick="changeBattleUnit('${side}','${u.id}',-1)">−</button>
@@ -3436,7 +3593,7 @@ function buildBattleUnitRows(side) {
         </div>
       </div>`;
     }).join('');
-    return `<div class="bu-group-label">${g.label}</div>${rows}`;
+    return `<div class="bu-group-label">${t(g.labelKey)}</div>${rows}`;
   }).join('');
 }
 
@@ -3481,7 +3638,7 @@ function calcBattleDice(side) {
       if (['infantry','mech_inf','artillery','aaa','transport'].includes(u.id)) return;
       const qty = (battleUnits.atk[u.id] || 0);
       if (qty <= 0 || u.attack <= 0) return;
-      dice.push({ label: u.name, val: u.attack, qty });
+      dice.push({ label: t(u.nameKey), val: u.attack, qty });
     });
 
   } else {
@@ -3490,7 +3647,7 @@ function calcBattleDice(side) {
       if (u.aaOnly || u.id === 'transport') return;
       const qty = (battleUnits.def[u.id] || 0);
       if (qty <= 0 || u.defense <= 0) return;
-      dice.push({ label: u.name, val: u.defense, qty });
+      dice.push({ label: t(u.nameKey), val: u.defense, qty });
     });
   }
 
@@ -3506,15 +3663,21 @@ function updateBattleSummary() {
   const defExpected = defDice.reduce((s, d) => s + d.qty * (d.val / 6), 0);
 
   const atkDiceEl = document.getElementById('atk-total-dice');
-  if (atkDiceEl) atkDiceEl.textContent = `${atkTotal} terning${atkTotal !== 1 ? 'er' : ''}`;
+  if (atkDiceEl) atkDiceEl.textContent = `${atkTotal} ${atkTotal === 1 ? t('battle.dice_singular') : t('battle.dice_plural')}`;
   const defDiceEl = document.getElementById('def-total-dice');
-  if (defDiceEl) defDiceEl.textContent = `${defTotal} terning${defTotal !== 1 ? 'er' : ''}`;
+  if (defDiceEl) defDiceEl.textContent = `${defTotal} ${defTotal === 1 ? t('battle.dice_singular') : t('battle.dice_plural')}`;
   const atkExpEl = document.getElementById('atk-expected');
   if (atkExpEl) atkExpEl.textContent = atkExpected.toFixed(1);
   const defExpEl = document.getElementById('def-expected');
   if (defExpEl) defExpEl.textContent = defExpected.toFixed(1);
-  const rollBtn = document.getElementById('btnBattleRoll');
-  if (rollBtn) rollBtn.disabled = atkTotal === 0 && defTotal === 0;
+  const applyBtn = document.getElementById('btnBattleApply');
+  if (applyBtn) {
+    const atkHitsEl = document.getElementById('battle-atk-hits');
+    const defHitsEl = document.getElementById('battle-def-hits');
+    const a = parseInt(atkHitsEl?.value) || 0;
+    const d = parseInt(defHitsEl?.value) || 0;
+    applyBtn.disabled = (a === 0 && d === 0);
+  }
 
   // Pairing info panel
   const pairingEl = document.getElementById('battle-pairing-info');
@@ -3549,45 +3712,42 @@ function updateBattleSummary() {
   }
 }
 
-function rollBattle() {
-  function rollSide(dice) {
-    const rolls = [];
-    dice.forEach(d => {
-      for (let i = 0; i < d.qty; i++) {
-        const r = Math.floor(Math.random() * 6) + 1;
-        rolls.push({ roll: r, val: d.val, hit: r <= d.val, label: d.label });
-      }
-    });
-    return rolls;
-  }
-  const atkRolls = rollSide(calcBattleDice('atk'));
-  const defRolls = rollSide(calcBattleDice('def'));
-  const atkHits  = atkRolls.filter(r => r.hit).length;
-  const defHits  = defRolls.filter(r => r.hit).length;
+function onBattleHitsChange() {
+  const applyBtn = document.getElementById('btnBattleApply');
+  if (!applyBtn) return;
+  const a = parseInt(document.getElementById('battle-atk-hits')?.value) || 0;
+  const d = parseInt(document.getElementById('battle-def-hits')?.value) || 0;
+  applyBtn.disabled = (a === 0 && d === 0);
+}
 
-  function diceHTML(rolls) {
-    if (!rolls.length) return '<span style="color:var(--text-muted);font-size:.8rem">Ingen terninger</span>';
-    return rolls.map(r =>
-      `<div class="br-die${r.hit ? ' hit' : ''}" title="${r.label} ≤${r.val}: ${r.hit ? 'Treff!' : 'Bom'}">${r.roll}</div>`
-    ).join('');
-  }
-
+function applyBattleHits() {
+  const atkHits = Math.max(0, parseInt(document.getElementById('battle-atk-hits')?.value) || 0);
+  const defHits = Math.max(0, parseInt(document.getElementById('battle-def-hits')?.value) || 0);
   const atkNat  = getBattleNation('atk');
   const defNat  = getBattleNation('def');
-  const atkName = atkNat ? `${NATIONS[atkNat].flag} ${NATIONS[atkNat].name}` : 'Angriper';
-  const defName = defNat ? `${NATIONS[defNat].flag} ${NATIONS[defNat].name}` : 'Forsvarer';
+  const atkName = atkNat ? `${NATIONS[atkNat].flag} ${NATIONS[atkNat].name}` : t('battle.attacker_default');
+  const defName = defNat ? `${NATIONS[defNat].flag} ${NATIONS[defNat].name}` : t('battle.defender_default');
+
+  const atkLossKey = atkHits === 1 ? 'battle.result.loses' : 'battle.result.loses_pl';
+  const defLossKey = defHits === 1 ? 'battle.result.loses' : 'battle.result.loses_pl';
 
   const el = document.getElementById('battle-result');
   if (!el) return;
   el.innerHTML = `
     <div class="br-round">
-      <div class="br-round-title">🎲 Terningkast</div>
-      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.3rem">⚔️ ${atkName} (${atkRolls.length} terninger)</div>
-      <div class="br-dice-row">${diceHTML(atkRolls)}</div>
-      <div class="br-hits-text">Treff: <span class="hit-count">${atkHits}</span>${atkHits > 0 ? ` — ${defName} mister ${atkHits} enhet${atkHits > 1 ? 'er' : ''}` : ' — Ingen treff'}</div>
-      <div style="margin-top:.6rem;font-size:.75rem;color:var(--text-muted);margin-bottom:.3rem">🛡️ ${defName} (${defRolls.length} terninger)</div>
-      <div class="br-dice-row">${diceHTML(defRolls)}</div>
-      <div class="br-hits-text">Treff: <span class="hit-count def">${defHits}</span>${defHits > 0 ? ` — ${atkName} mister ${defHits} enhet${defHits > 1 ? 'er' : ''}` : ' — Ingen treff'}</div>
+      <div class="br-round-title">${t('battle.result.round')}</div>
+      <div class="br-hits-text">
+        ⚔️ ${atkName}: <span class="hit-count">${atkHits}</span>
+        ${atkHits > 0
+          ? ` — ${defName} ${t(atkLossKey, { n: atkHits })}`
+          : ` — ${t('battle.result.no_hits')}`}
+      </div>
+      <div class="br-hits-text">
+        🛡️ ${defName}: <span class="hit-count def">${defHits}</span>
+        ${defHits > 0
+          ? ` — ${atkName} ${t(defLossKey, { n: defHits })}`
+          : ` — ${t('battle.result.no_hits')}`}
+      </div>
     </div>`;
 }
 
@@ -3601,6 +3761,12 @@ function resetBattle() {
   if (resultEl) resultEl.innerHTML = '';
   const pairingEl = document.getElementById('battle-pairing-info');
   if (pairingEl) pairingEl.innerHTML = '';
+  const atkHitsEl = document.getElementById('battle-atk-hits');
+  if (atkHitsEl) atkHitsEl.value = '0';
+  const defHitsEl = document.getElementById('battle-def-hits');
+  if (defHitsEl) defHitsEl.value = '0';
+  const applyBtn = document.getElementById('btnBattleApply');
+  if (applyBtn) applyBtn.disabled = true;
   renderBattle();
 }
 
@@ -3673,6 +3839,48 @@ async function _loadTerritoriesCSV() {
   }
   console.warn('[FC] territories.csv not loaded from data/ or src/, using static data');
   return null;
+}
+
+// ── Internationalisation helpers ──────────────────────────────
+
+/** Apply translations to all [data-i18n] and [data-i18n-attr-*] elements. */
+function applyStaticI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  // data-i18n-attr-ATTRNAME="key" → el.setAttribute(ATTRNAME, t(key))
+  document.querySelectorAll('[data-i18n-attr-placeholder]').forEach(el => {
+    el.setAttribute('placeholder', t(el.dataset.i18nAttrPlaceholder));
+  });
+  document.querySelectorAll('[data-i18n-attr-title]').forEach(el => {
+    el.setAttribute('title', t(el.dataset.i18nAttrTitle));
+  });
+  // Sync lang toggle button label
+  const langBtn = document.getElementById('btnLang');
+  if (langBtn) langBtn.textContent = (state?.lang ?? 'no').toUpperCase();
+  // Sync html lang attribute
+  document.documentElement.lang = state?.lang ?? 'no';
+}
+
+function toggleLang() {
+  state.lang = state.lang === 'no' ? 'en' : 'no';
+  saveState();
+  // Force full rebuild of dynamically-built panels that cache their DOM
+  const ng = document.getElementById('nationsGrid');
+  if (ng) ng.dataset.built = '';
+  ['atk-units', 'def-units'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.dataset.built = '';
+  });
+  applyStaticI18n();
+  renderAll();
+  // Sync rules and setup iframes
+  ['tab-rules', 'tab-setup'].forEach(tabId => {
+    const iframe = document.querySelector(`#${tabId} iframe`);
+    if (iframe?.contentWindow) {
+      try { iframe.contentWindow.postMessage({ lang: state.lang }, '*'); } catch(_) {}
+    }
+  });
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────
@@ -3766,6 +3974,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initial render
   renderAll();
   switchTab('overview');
+  applyStaticI18n();
   // Re-measure after render (turn pill text can change header height)
   requestAnimationFrame(syncHeaderHeight);
 });

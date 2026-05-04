@@ -31,6 +31,40 @@
       line-height: 1.7;
     }
 
+    /* ── i18n ── */
+    .lang-en { display: none; }
+    body.lang-en .lang-no { display: none; }
+    body.lang-en .lang-en { display: block; }
+    span.lang-en { display: none; }
+    body.lang-en span.lang-no { display: none; }
+    body.lang-en span.lang-en { display: inline; }
+    /* tables need special treatment */
+    table.lang-en { display: none; }
+    body.lang-en table.lang-no { display: none; }
+    body.lang-en table.lang-en { display: table; }
+    /* lists */
+    ul.lang-en, ol.lang-en { display: none; }
+    body.lang-en ul.lang-no, body.lang-en ol.lang-no { display: none; }
+    body.lang-en ul.lang-en, body.lang-en ol.lang-en { display: block; }
+
+    /* ── Language toggle button ── */
+    .lang-toggle-btn {
+      position: fixed;
+      top: .8rem;
+      right: 1rem;
+      z-index: 100;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--amber);
+      font-weight: 700;
+      font-size: .8rem;
+      padding: .3rem .7rem;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: .5px;
+    }
+    .lang-toggle-btn:hover { background: var(--amber-dim); }
+
     /* ── Layout ── */
     .page {
       display: grid;
@@ -201,85 +235,119 @@
   </style>
 </head>
 <body>
+
+<button class="lang-toggle-btn" id="rulesLangBtn" onclick="toggleRulesLang()">NO/EN</button>
+
 <div class="page">
 
   <!-- ════ SIDEBAR TOC ════ -->
   <nav class="toc">
-    <div class="toc-header">⚔️ Innholdsfortegnelse</div>
-    <a href="#board">Spillbrettet</a>
-    <a href="#territories" class="l2">Territorier</a>
-    <a href="#sea-zones" class="l2">Sjøsoner</a>
-    <a href="#islands" class="l2">Øyer</a>
-    <a href="#canals" class="l2">Kanaler &amp; Steder</a>
-    <a href="#winning">Seiersbetingelser</a>
-    <a href="#players">Antall spillere</a>
-    <a href="#setup">Oppsett</a>
-    <a href="#order">Turrekkefølge</a>
-    <a href="#phase1" class="l2">Fase 1: Kjøp &amp; Reparasjon</a>
-    <a href="#phase2" class="l2">Fase 2: Kampbevegelse</a>
-    <a href="#phase3" class="l2">Fase 3: Gjennomfør Kamp</a>
-    <a href="#kamikaze" class="l3">Kamikaze</a>
-    <a href="#bombing" class="l3">Bombetokter</a>
-    <a href="#amphibious" class="l3">Amfibielandsetting</a>
-    <a href="#general-combat" class="l2">Generell Kamp</a>
-    <a href="#phase4" class="l2">Fase 4: Ikke-Kampbevegelse</a>
-    <a href="#phase5" class="l2">Fase 5: Mobiliser Nye Enheter</a>
-    <a href="#phase6" class="l2">Fase 6: Samle Inn Inntekt</a>
-    <a href="#convoy" class="l3">Konvoiforstyrrelser</a>
-    <a href="#uk-global">UK Globale Regler</a>
-    <a href="#map-movement">Bevegelse mellom kart</a>
-    <a href="#politics">Politisk Situasjon</a>
-    <a href="#germany" class="l2">Tyskland</a>
-    <a href="#soviet" class="l2">Sovjetunionen</a>
-    <a href="#japan" class="l2">Japan</a>
+    <div class="toc-header">⚔️ <span class="lang-no">Innholdsfortegnelse</span><span class="lang-en">Table of Contents</span></div>
+    <a href="#board"><span class="lang-no">Spillbrettet</span><span class="lang-en">The Game Board</span></a>
+    <a href="#territories" class="l2"><span class="lang-no">Territorier</span><span class="lang-en">Territories</span></a>
+    <a href="#sea-zones" class="l2"><span class="lang-no">Sjøsoner</span><span class="lang-en">Sea Zones</span></a>
+    <a href="#islands" class="l2"><span class="lang-no">Øyer</span><span class="lang-en">Islands</span></a>
+    <a href="#canals" class="l2"><span class="lang-no">Kanaler &amp; Steder</span><span class="lang-en">Canals &amp; Straits</span></a>
+    <a href="#winning"><span class="lang-no">Seiersbetingelser</span><span class="lang-en">Victory Conditions</span></a>
+    <a href="#players"><span class="lang-no">Antall spillere</span><span class="lang-en">Number of Players</span></a>
+    <a href="#setup"><span class="lang-no">Oppsett</span><span class="lang-en">Setup</span></a>
+    <a href="#order"><span class="lang-no">Turrekkefølge</span><span class="lang-en">Order of Play</span></a>
+    <a href="#phase1" class="l2"><span class="lang-no">Fase 1: Kjøp &amp; Reparasjon</span><span class="lang-en">Phase 1: Purchase &amp; Repair</span></a>
+    <a href="#phase2" class="l2"><span class="lang-no">Fase 2: Kampbevegelse</span><span class="lang-en">Phase 2: Combat Move</span></a>
+    <a href="#phase3" class="l2"><span class="lang-no">Fase 3: Gjennomfør Kamp</span><span class="lang-en">Phase 3: Conduct Combat</span></a>
+    <a href="#kamikaze" class="l3"><span class="lang-no">Kamikaze</span><span class="lang-en">Kamikaze</span></a>
+    <a href="#bombing" class="l3"><span class="lang-no">Bombetokter</span><span class="lang-en">Bombing Raids</span></a>
+    <a href="#amphibious" class="l3"><span class="lang-no">Amfibielandsetting</span><span class="lang-en">Amphibious Assault</span></a>
+    <a href="#general-combat" class="l2"><span class="lang-no">Generell Kamp</span><span class="lang-en">General Combat</span></a>
+    <a href="#phase4" class="l2"><span class="lang-no">Fase 4: Ikke-Kampbevegelse</span><span class="lang-en">Phase 4: Non-Combat Move</span></a>
+    <a href="#phase5" class="l2"><span class="lang-no">Fase 5: Mobiliser Nye Enheter</span><span class="lang-en">Phase 5: Mobilize New Units</span></a>
+    <a href="#phase6" class="l2"><span class="lang-no">Fase 6: Samle Inn Inntekt</span><span class="lang-en">Phase 6: Collect Income</span></a>
+    <a href="#convoy" class="l3"><span class="lang-no">Konvoiforstyrrelser</span><span class="lang-en">Convoy Disruption</span></a>
+    <a href="#uk-global"><span class="lang-no">UK Globale Regler</span><span class="lang-en">UK Global Rules</span></a>
+    <a href="#map-movement"><span class="lang-no">Bevegelse mellom kart</span><span class="lang-en">Cross-Map Movement</span></a>
+    <a href="#politics"><span class="lang-no">Politisk Situasjon</span><span class="lang-en">Political Situation</span></a>
+    <a href="#germany" class="l2"><span class="lang-no">Tyskland</span><span class="lang-en">Germany</span></a>
+    <a href="#soviet" class="l2"><span class="lang-no">Sovjetunionen</span><span class="lang-en">Soviet Union</span></a>
+    <a href="#japan" class="l2"><span class="lang-no">Japan</span><span class="lang-en">Japan</span></a>
     <a href="#usa" class="l2">USA</a>
-    <a href="#china-pol" class="l2">Kina</a>
-    <a href="#uk-pol" class="l2">Storbritannia</a>
-    <a href="#italy" class="l2">Italia</a>
+    <a href="#china-pol" class="l2"><span class="lang-no">Kina</span><span class="lang-en">China</span></a>
+    <a href="#uk-pol" class="l2"><span class="lang-no">Storbritannia</span><span class="lang-en">United Kingdom</span></a>
+    <a href="#italy" class="l2"><span class="lang-no">Italia</span><span class="lang-en">Italy</span></a>
     <a href="#anzac-pol" class="l2">ANZAC</a>
-    <a href="#france-pol" class="l2">Frankrike</a>
-    <a href="#dutch" class="l2">Nederlandske territorier</a>
-    <a href="#neutrals" class="l2">Nøytrale territorier</a>
-    <a href="#china-rules">Kina-regler</a>
-    <a href="#additional">Tilleggsregler</a>
-    <a href="#rd">Forskning &amp; Utvikling (Valgfri)</a>
-    <a href="#breakthrough1" class="l2">Gjennombruddsdiagram 1</a>
-    <a href="#breakthrough2" class="l2">Gjennombruddsdiagram 2</a>
-    <a href="#units">Enhetsprofiler</a>
+    <a href="#france-pol" class="l2"><span class="lang-no">Frankrike</span><span class="lang-en">France</span></a>
+    <a href="#dutch" class="l2"><span class="lang-no">Nederlandske territorier</span><span class="lang-en">Dutch Territories</span></a>
+    <a href="#neutrals" class="l2"><span class="lang-no">Nøytrale territorier</span><span class="lang-en">Neutral Territories</span></a>
+    <a href="#china-rules"><span class="lang-no">Kina-regler</span><span class="lang-en">China Rules</span></a>
+    <a href="#additional"><span class="lang-no">Tilleggsregler</span><span class="lang-en">Additional Rules</span></a>
+    <a href="#rd"><span class="lang-no">Forskning &amp; Utvikling (Valgfri)</span><span class="lang-en">Research &amp; Development (Optional)</span></a>
+    <a href="#breakthrough1" class="l2"><span class="lang-no">Gjennombruddsdiagram 1</span><span class="lang-en">Breakthrough Chart 1</span></a>
+    <a href="#breakthrough2" class="l2"><span class="lang-no">Gjennombruddsdiagram 2</span><span class="lang-en">Breakthrough Chart 2</span></a>
+    <a href="#units"><span class="lang-no">Enhetsprofiler</span><span class="lang-en">Unit Profiles</span></a>
   </nav>
 
   <!-- ════ CONTENT ════ -->
   <main class="content">
     <div class="page-title">⚔️ Axis &amp; Allies Global 1940 – 2nd Edition</div>
     <p class="page-subtitle">
-      Offisielle regler – lagret lokalt for frakoblet bruk.<br>
-      Kilde: <a href="https://axisallies.com/global-1940-second-edition-rules/" target="_blank">axisallies.com</a>
+      <span class="lang-no">Offisielle regler – lagret lokalt for frakoblet bruk.</span>
+      <span class="lang-en">Official rules – stored locally for offline use.</span>
+      <br>
+      <span class="lang-no">Kilde:</span><span class="lang-en">Source:</span>
+      <a href="https://axisallies.com/global-1940-second-edition-rules/" target="_blank">axisallies.com</a>
     </p>
 
     <!-- ── BOARD ── -->
-    <h2 id="board">Spillbrettet</h2>
+    <h2 id="board">
+      <span class="lang-no">Spillbrettet</span>
+      <span class="lang-en">The Game Board</span>
+    </h2>
 
-    <h3 id="territories">Territorier</h3>
-    <p>Grensefarger viser hvilken makt som kontrollerer territoriet ved spillstart. Hver makt har sin egen farge og emblem. Når reglene refererer til «original kontrollant» menes makten hvis emblem er trykket på territoriet.</p>
-    <p>De fleste territorier har en IPC-verdi fra 1–10. Enhet kan bevege seg mellom tilstøtende felt (de som deler en felles grense). Felt som kun møtes i et punkt er <em>ikke</em> tilstøtende.</p>
-    <p>Alle territorier er i én av tre tilstander:</p>
-    <ul>
+    <h3 id="territories">
+      <span class="lang-no">Territorier</span>
+      <span class="lang-en">Territories</span>
+    </h3>
+    <p class="lang-no">Grensefarger viser hvilken makt som kontrollerer territoriet ved spillstart. Hver makt har sin egen farge og emblem. Når reglene refererer til «original kontrollant» menes makten hvis emblem er trykket på territoriet.</p>
+    <p class="lang-en">Border colors show which power controls the territory at the start of play. Each power has its own color and symbol. When the rules refer to "original controller," this means the power whose symbol is printed on the territory.</p>
+    <p class="lang-no">De fleste territorier har en IPC-verdi fra 1–10. Enheter kan bevege seg mellom tilstøtende felt (de som deler en felles grense). Felt som kun møtes i et punkt er <em>ikke</em> tilstøtende.</p>
+    <p class="lang-en">Most territories have an IPC value of 1–10. Units may move between adjacent territories (those sharing a common border). Territories that meet only at a single point are <em>not</em> adjacent.</p>
+    <p class="lang-no">Alle territorier er i én av tre tilstander:</p>
+    <p class="lang-en">All territories are in one of three states:</p>
+    <ul class="lang-no">
       <li><strong>Vennlig:</strong> Kontrollert av deg eller en vennlig makt.</li>
       <li><strong>Fiendtlig:</strong> Kontrollert av en fiendtlig makt.</li>
       <li><strong>Nøytral:</strong> Ikke kontrollert av noen makt, eller kontrollert av en makt du ikke er i krig med.</li>
     </ul>
-    <p>Himalaya, Sahara og Pripet-myrene er upasserbale og kan ikke beveges inn i eller gjennom.</p>
+    <ul class="lang-en">
+      <li><strong>Friendly:</strong> Controlled by you or a friendly power.</li>
+      <li><strong>Hostile:</strong> Controlled by an enemy power.</li>
+      <li><strong>Neutral:</strong> Not controlled by any power, or controlled by a power you are not at war with.</li>
+    </ul>
+    <p class="lang-no">Himalaya, Sahara og Pripet-myrene er upasserbale og kan ikke beveges inn i eller gjennom.</p>
+    <p class="lang-en">The Himalayas, Sahara, and Pripyat Marshes are impassable and cannot be moved into or through.</p>
 
-    <h3 id="sea-zones">Sjøsoner</h3>
-    <p>Sjøsoner er enten vennlige eller fiendtlige. Vennlige sjøsoner inneholder ingen overflatefartøy (ikke ubåter og transportskip) tilhørende en makt du er i krig med.</p>
-    <p class="callout callout-note">Det Kaspiske Hav (omgitt av Kaukasus, Kazakhstan, etc.) regnes som en sjøsone, selv om det ikke har et nummer.</p>
+    <h3 id="sea-zones">
+      <span class="lang-no">Sjøsoner</span>
+      <span class="lang-en">Sea Zones</span>
+    </h3>
+    <p class="lang-no">Sjøsoner er enten vennlige eller fiendtlige. Vennlige sjøsoner inneholder ingen overflatefartøy (ikke ubåter og transportskip) tilhørende en makt du er i krig med.</p>
+    <p class="lang-en">Sea zones are either friendly or hostile. A friendly sea zone contains no surface warships (excluding submarines and transports) belonging to a power you are at war with.</p>
+    <p class="callout callout-note lang-no">Det Kaspiske Hav (omgitt av Kaukasus, Kazakhstan, etc.) regnes som en sjøsone, selv om det ikke har et nummer.</p>
+    <p class="callout callout-note lang-en">The Caspian Sea (surrounded by Caucasus, Kazakhstan, etc.) counts as a sea zone, even though it has no number.</p>
 
-    <h3 id="islands">Øyer</h3>
-    <p>En øy eller øygruppe er én enkelt territorium omgitt av sjøsoner. En sjøsone kan inneholde høyst én øy/øygruppe. Øyer uten navnelapp er ikke spillfelt.</p>
+    <h3 id="islands">
+      <span class="lang-no">Øyer</span>
+      <span class="lang-en">Islands</span>
+    </h3>
+    <p class="lang-no">En øy eller øygruppe er én enkelt territorium omgitt av sjøsoner. En sjøsone kan inneholde høyst én øy/øygruppe. Øyer uten navnelapp er ikke spillfelt.</p>
+    <p class="lang-en">An island or island group is a single territory surrounded by sea zones. A sea zone may contain at most one island or island group. Islands with no name tag are not playable territories.</p>
 
-    <h3 id="canals">Kanaler og smale steder</h3>
-    <p>Kontroll av landområder rundt kanaler/steder gir din side rettigheten til å passere:</p>
-    <table>
+    <h3 id="canals">
+      <span class="lang-no">Kanaler og smale steder</span>
+      <span class="lang-en">Canals and Straits</span>
+    </h3>
+    <p class="lang-no">Kontroll av landområder rundt kanaler/steder gir din side rettigheten til å passere:</p>
+    <p class="lang-en">Control of the land areas around canals/straits grants your side the right of passage:</p>
+    <table class="lang-no">
       <tr><th>Kanal / Sted</th><th>Kontrollerende territorium</th></tr>
       <tr><td>Suezkanalen</td><td>Egypt og Trans-Jordan</td></tr>
       <tr><td>Panamakanalen</td><td>Mellom-Amerika</td></tr>
@@ -287,20 +355,37 @@
       <tr><td>Gibraltarstredet</td><td>Gibraltar</td></tr>
       <tr><td>Danske steder</td><td>Danmark</td></tr>
     </table>
-    <p>Ubåter kan passere gjennom Gibraltarstredet uavhengig av hvem som kontrollerer det. Luftenheters bevegelse påvirkes ikke av kanaler eller steder.</p>
+    <table class="lang-en">
+      <tr><th>Canal / Strait</th><th>Controlling Territory</th></tr>
+      <tr><td>Suez Canal</td><td>Egypt and Trans-Jordan</td></tr>
+      <tr><td>Panama Canal</td><td>Central America</td></tr>
+      <tr><td>Turkish Straits</td><td>Turkey</td></tr>
+      <tr><td>Strait of Gibraltar</td><td>Gibraltar</td></tr>
+      <tr><td>Danish Straits</td><td>Denmark</td></tr>
+    </table>
+    <p class="lang-no">Ubåter kan passere gjennom Gibraltarstredet uavhengig av hvem som kontrollerer det. Luftenheters bevegelse påvirkes ikke av kanaler eller steder.</p>
+    <p class="lang-en">Submarines may pass through the Strait of Gibraltar regardless of who controls it. Air unit movement is not affected by canals or straits.</p>
 
     <hr class="divider">
 
     <!-- ── WINNING ── -->
-    <h2 id="winning">Seiersbetingelser</h2>
-    <p><strong>Akse vinner</strong> ved å kontrollere enten 8 seiersbyer på Europa-kartet <em>eller</em> 6 seiersbyer på Stillehavs-kartet i én hel spillrunde, så lenge de kontrollerer en Akse-hovedstad (Berlin, Roma eller Tokyo).</p>
-    <p><strong>Allierte vinner</strong> ved å kontrollere Berlin, Roma og Tokyo i én hel spillrunde, så lenge de kontrollerer en Alliert hovedstad (Washington, London, Paris eller Moskva).</p>
+    <h2 id="winning">
+      <span class="lang-no">Seiersbetingelser</span>
+      <span class="lang-en">Victory Conditions</span>
+    </h2>
+    <p class="lang-no"><strong>Akse vinner</strong> ved å kontrollere enten 8 seiersbyer på Europa-kartet <em>eller</em> 6 seiersbyer på Stillehavs-kartet i én hel spillrunde, så lenge de kontrollerer en Akse-hovedstad (Berlin, Roma eller Tokyo).</p>
+    <p class="lang-en"><strong>Axis wins</strong> by controlling either 8 victory cities on the Europe map <em>or</em> 6 victory cities on the Pacific map at the end of a complete game round, provided they control an Axis capital (Berlin, Rome, or Tokyo).</p>
+    <p class="lang-no"><strong>Allierte vinner</strong> ved å kontrollere Berlin, Roma og Tokyo i én hel spillrunde, så lenge de kontrollerer en Alliert hovedstad (Washington, London, Paris eller Moskva).</p>
+    <p class="lang-en"><strong>Allies win</strong> by controlling Berlin, Rome, and Tokyo at the end of a complete game round, provided they control an Allied capital (Washington, London, Paris, or Moscow).</p>
 
     <hr class="divider">
 
     <!-- ── PLAYERS ── -->
-    <h2 id="players">Antall spillere</h2>
-    <table>
+    <h2 id="players">
+      <span class="lang-no">Antall spillere</span>
+      <span class="lang-en">Number of Players</span>
+    </h2>
+    <table class="lang-no">
       <tr><th>Spillere</th><th>Fordeling</th></tr>
       <tr><td>2</td><td>S1: Aksen / S2: Allierte</td></tr>
       <tr><td>3</td><td>S1: Aksen / S2: Sovjet, USA, Kina / S3: UK, ANZAC, Frankrike</td></tr>
@@ -308,14 +393,27 @@
       <tr><td>5</td><td>S1: Ty + It / S2: Japan / S3: Sovjet + Fr / S4: USA + Kina / S5: UK + ANZAC</td></tr>
       <tr><td>6</td><td>S1: Tyskland / S2: Japan / S3: Italia / S4: Sovjet + Fr / S5: USA + Kina / S6: UK + ANZAC</td></tr>
     </table>
+    <table class="lang-en">
+      <tr><th>Players</th><th>Division</th></tr>
+      <tr><td>2</td><td>P1: Axis / P2: Allies</td></tr>
+      <tr><td>3</td><td>P1: Axis / P2: Soviet, USA, China / P3: UK, ANZAC, France</td></tr>
+      <tr><td>4</td><td>P1: Axis / P2: Soviet + France / P3: USA + China / P4: UK + ANZAC</td></tr>
+      <tr><td>5</td><td>P1: Ger + Ita / P2: Japan / P3: Soviet + Fr / P4: USA + China / P5: UK + ANZAC</td></tr>
+      <tr><td>6</td><td>P1: Germany / P2: Japan / P3: Italy / P4: Soviet + Fr / P5: USA + China / P6: UK + ANZAC</td></tr>
+    </table>
 
     <hr class="divider">
 
     <!-- ── SETUP ── -->
-    <h2 id="setup">Oppsett</h2>
-    <p>Koble vestlig kant av Stillehavskartet med østlig kant av Europakartet. Brettet er horisontalt sammenhengende.</p>
-    <p>Ekstra enheter ved spillstart: Amur: 6 Sov. Infanteri · Sakha: 6 + 2 AAA · Buryatia: 6 · Egypt: 2 ANZAC Inf. (fjern 1 UK Inf.)</p>
-    <table>
+    <h2 id="setup">
+      <span class="lang-no">Oppsett</span>
+      <span class="lang-en">Setup</span>
+    </h2>
+    <p class="lang-no">Koble vestlig kant av Stillehavskartet med østlig kant av Europakartet. Brettet er horisontalt sammenhengende.</p>
+    <p class="lang-en">Connect the western edge of the Pacific board to the eastern edge of the Europe board. The boards are horizontally continuous.</p>
+    <p class="lang-no">Ekstra enheter ved spillstart: Amur: 6 Sov. Infanteri · Sakha: 6 + 2 AAA · Buryatia: 6 · Egypt: 2 ANZAC Inf. (fjern 1 UK Inf.)</p>
+    <p class="lang-en">Extra starting units: Amur: 6 Soviet Infantry · Sakha: 6 + 2 AA Guns · Buryatia: 6 · Egypt: 2 ANZAC Inf. (remove 1 UK Inf.)</p>
+    <table class="lang-no">
       <tr><th>Makt</th><th>Start-IPC</th><th>Startinntekt</th></tr>
       <tr><td>🇩🇪 Tyskland</td><td>–</td><td>30</td></tr>
       <tr><td>🇷🇺 Sovjet</td><td>–</td><td>37</td></tr>
@@ -328,15 +426,34 @@
       <tr><td>🇦🇺 ANZAC</td><td>–</td><td>10</td></tr>
       <tr><td>🇫🇷 Frankrike</td><td>–</td><td>19</td></tr>
     </table>
+    <table class="lang-en">
+      <tr><th>Power</th><th>Starting IPC</th><th>Starting Income</th></tr>
+      <tr><td>🇩🇪 Germany</td><td>–</td><td>30</td></tr>
+      <tr><td>🇷🇺 Soviet Union</td><td>–</td><td>37</td></tr>
+      <tr><td>🇯🇵 Japan</td><td>–</td><td>26</td></tr>
+      <tr><td>🇺🇸 USA</td><td>–</td><td>52</td></tr>
+      <tr><td>🇨🇳 China</td><td>–</td><td>12</td></tr>
+      <tr><td>🇬🇧 UK – Europe</td><td>–</td><td>28</td></tr>
+      <tr><td>🇬🇧 UK – Pacific</td><td>–</td><td>17</td></tr>
+      <tr><td>🇮🇹 Italy</td><td>–</td><td>10</td></tr>
+      <tr><td>🇦🇺 ANZAC</td><td>–</td><td>10</td></tr>
+      <tr><td>🇫🇷 France</td><td>–</td><td>19</td></tr>
+    </table>
 
     <hr class="divider">
 
     <!-- ── ORDER OF PLAY ── -->
-    <h2 id="order">Turrekkefølge</h2>
-    <p>Makten som spiller avslutter sin tur etter Fase 6 (Samle inn inntekt). Deretter tar neste makt sin tur.</p>
-    <div class="callout">Rekkefølge: 1. Tyskland · 2. Sovjet · 3. Japan · 4. USA · 5. Kina · 6. Storbritannia · 7. Italia · 8. ANZAC · 9. Frankrike</div>
-    <p>Tursekvenssen:</p>
-    <ol class="seq">
+    <h2 id="order">
+      <span class="lang-no">Turrekkefølge</span>
+      <span class="lang-en">Order of Play</span>
+    </h2>
+    <p class="lang-no">Makten som spiller avslutter sin tur etter Fase 6 (Samle inn inntekt). Deretter tar neste makt sin tur.</p>
+    <p class="lang-en">The active power completes its turn after Phase 6 (Collect Income). Then the next power takes its turn.</p>
+    <div class="callout lang-no">Rekkefølge: 1. Tyskland · 2. Sovjet · 3. Japan · 4. USA · 5. Kina · 6. Storbritannia · 7. Italia · 8. ANZAC · 9. Frankrike</div>
+    <div class="callout lang-en">Order: 1. Germany · 2. Soviet Union · 3. Japan · 4. USA · 5. China · 6. United Kingdom · 7. Italy · 8. ANZAC · 9. France</div>
+    <p class="lang-no">Tursekvensen:</p>
+    <p class="lang-en">Turn sequence:</p>
+    <ol class="seq lang-no">
       <li>Kjøp og reparer enheter</li>
       <li>Kampbevegelse (kun makter i krig)</li>
       <li>Gjennomfør kamp (kun makter i krig)</li>
@@ -344,54 +461,120 @@
       <li>Mobiliser nye enheter</li>
       <li>Samle inn inntekt</li>
     </ol>
+    <ol class="seq lang-en">
+      <li>Purchase and repair units</li>
+      <li>Combat move (powers at war only)</li>
+      <li>Conduct combat (powers at war only)</li>
+      <li>Non-combat move</li>
+      <li>Mobilize new units</li>
+      <li>Collect income</li>
+    </ol>
 
-    <h3 id="phase1">Fase 1: Kjøp &amp; Reparer enheter</h3>
-    <p>Kjøp ønskede enheter og plasser dem i mobiliseringssonen. Du kan også betale for å fjerne skade fra fasiliteter (1 IPC per skademarkør). Reparerte fasiliteter kan brukes umiddelbart. Slagskip og hangarskip i sjøsoner tilknyttet operative marinebasene repareres gratis.</p>
-    <p><strong>Erklær krig</strong> ved starten av Kampbevegelse-fasen (ikke Purchase), unntatt spesifisert i politiske regler.</p>
+    <h3 id="phase1">
+      <span class="lang-no">Fase 1: Kjøp &amp; Reparer enheter</span>
+      <span class="lang-en">Phase 1: Purchase &amp; Repair Units</span>
+    </h3>
+    <p class="lang-no">Kjøp ønskede enheter og plasser dem i mobiliseringssonen. Du kan også betale for å fjerne skade fra fasiliteter (1 IPC per skademarkør). Reparerte fasiliteter kan brukes umiddelbart. Slagskip og hangarskip i sjøsoner tilknyttet operative marinebasene repareres gratis.</p>
+    <p class="lang-en">Purchase desired units and place them in your mobilization zone. You may also pay to remove damage markers from facilities (1 IPC per marker). Repaired facilities may be used immediately. Battleships and carriers in sea zones adjacent to operative naval bases repair for free.</p>
+    <p class="lang-no"><strong>Erklær krig</strong> ved starten av Kampbevegelse-fasen (ikke Purchase), unntatt spesifisert i politiske regler.</p>
+    <p class="lang-en"><strong>Declare war</strong> at the start of the Combat Move phase (not Purchase), unless specified otherwise in the political rules.</p>
 
-    <h3 id="phase2">Fase 2: Kampbevegelse</h3>
-    <p>Flytt enheter inn i fiendtlige felt. Enheter kan bevege seg gjennom vennlige felt. Luftenheter må reservere nok bevegelse til å lande et trygt sted i Ikke-kampbevegelse-fasen.</p>
-    <h4>Spesielle kampbevegelser</h4>
-    <ul>
+    <h3 id="phase2">
+      <span class="lang-no">Fase 2: Kampbevegelse</span>
+      <span class="lang-en">Phase 2: Combat Move</span>
+    </h3>
+    <p class="lang-no">Flytt enheter inn i fiendtlige felt. Enheter kan bevege seg gjennom vennlige felt. Luftenheter må reservere nok bevegelse til å lande et trygt sted i Ikke-kampbevegelse-fasen.</p>
+    <p class="lang-en">Move units into hostile territories. Units may move through friendly territories. Air units must retain enough movement to land in a safe location during the Non-Combat Move phase.</p>
+    <h4>
+      <span class="lang-no">Spesielle kampbevegelser</span>
+      <span class="lang-en">Special Combat Moves</span>
+    </h4>
+    <ul class="lang-no">
       <li><strong>Tanks (Blitzing):</strong> En tank kan «blitze» gjennom et uokkupert fiendtlig territorium. Én mekanisert infanterienhet kan bevege seg med en blitzende tank.</li>
       <li><strong>Ubåter:</strong> Kan bevege seg gjennom fiendtlige sjøsoner (uten destroyer til stede). Stopper ved destroyer.</li>
       <li><strong>Scramble:</strong> 0–3 jagerfly/taktiske bombere fra øy/kyst med operativ luftbase kan «scrambles» til å forsvare tilstøtende sjøsoner.</li>
       <li><strong>Luftbaser:</strong> Gir +1 bevegelse til flyvende enheter fra det territoriet.</li>
       <li><strong>Marinebasene:</strong> Gir +1 bevegelse til skip som starter i tilstøtende sjøsone.</li>
     </ul>
+    <ul class="lang-en">
+      <li><strong>Tanks (Blitzing):</strong> A tank may blitz through an unoccupied enemy territory. One mechanized infantry unit may move with a blitzing tank.</li>
+      <li><strong>Submarines:</strong> May move through hostile sea zones (if no destroyer is present). Stop when a destroyer is encountered.</li>
+      <li><strong>Scramble:</strong> 0–3 fighters/tactical bombers from an island or coastal territory with an operative air base may scramble to defend adjacent sea zones.</li>
+      <li><strong>Air Bases:</strong> Grant +1 movement to aircraft departing from that territory.</li>
+      <li><strong>Naval Bases:</strong> Grant +1 movement to ships that start in the adjacent sea zone.</li>
+    </ul>
 
-    <h3 id="phase3">Fase 3: Gjennomfør Kamp</h3>
-    <p>Utfør kamp i denne rekkefølgen: 1) Bombetokter / 2) Amfibielandsettinger / 3) Generell kamp.</p>
+    <h3 id="phase3">
+      <span class="lang-no">Fase 3: Gjennomfør Kamp</span>
+      <span class="lang-en">Phase 3: Conduct Combat</span>
+    </h3>
+    <p class="lang-no">Utfør kamp i denne rekkefølgen: 1) Bombetokter / 2) Amfibielandsettinger / 3) Generell kamp.</p>
+    <p class="lang-en">Conduct combat in this order: 1) Bombing raids / 2) Amphibious assaults / 3) General combat.</p>
 
-    <h4 id="kamikaze">Kamikaze-slag</h4>
-    <p>Japan har 6 kamikazeslag totalt. Kan kun brukes i sjøsoner med kamikazesymbol (rundt Japan, Okinawa, Iwo Jima, Formosa, Marianene, Filippinene). Slåes ut på 2 eller under. Rammer angitt overflatefartøy. Forhindrer offshore-bombing.</p>
+    <h4 id="kamikaze">
+      <span class="lang-no">Kamikaze-slag</span>
+      <span class="lang-en">Kamikaze Strikes</span>
+    </h4>
+    <p class="lang-no">Japan har 6 kamikazeslag totalt. Kan kun brukes i sjøsoner med kamikazesymbol (rundt Japan, Okinawa, Iwo Jima, Formosa, Marianene, Filippinene). Slåes ut på 2 eller under. Rammer angitt overflatefartøy. Forhindrer offshore-bombing.</p>
+    <p class="lang-en">Japan has 6 kamikaze strikes in total. May only be used in sea zones marked with the kamikaze symbol (around Japan, Okinawa, Iwo Jima, Formosa, Marianas, Philippines). Hit on a roll of 2 or less. Strike a designated surface warship. Prevent offshore bombardment.</p>
 
-    <h4 id="bombing">Strategiske og taktiske bombetokter</h4>
-    <p>Strategiske bombere angriper industrielle komplekser, luftbaser og marinebasene. Taktiske bombere kan angripe luft- og marinebasene (ikke industrielle komplekser).</p>
-    <p>Maksimal skade: 20 for stor IC, 6 for liten IC, 6 for luft/marinebaser. Hver overlevende strategisk bomber kaster 1 terning + 2; taktiske kaster 1 terning uten bonus. AAA-ild mot bombere: 1 per bomber, treffer på 1.</p>
-    <p>Eskortejagere kan beskytte bombere. Forsvarsjagere kan «intercepte» (kun ett luftslag per territorium, alle med angrepsverdier 1, bare én runde).</p>
+    <h4 id="bombing">
+      <span class="lang-no">Strategiske og taktiske bombetokter</span>
+      <span class="lang-en">Strategic and Tactical Bombing Raids</span>
+    </h4>
+    <p class="lang-no">Strategiske bombere angriper industrielle komplekser, luftbaser og marinebasene. Taktiske bombere kan angripe luft- og marinebasene (ikke industrielle komplekser).</p>
+    <p class="lang-en">Strategic bombers attack industrial complexes, air bases, and naval bases. Tactical bombers may attack air and naval bases (but not industrial complexes).</p>
+    <p class="lang-no">Maksimal skade: 20 for stor IC, 6 for liten IC, 6 for luft/marinebaser. Hver overlevende strategisk bomber kaster 1 terning + 2; taktiske kaster 1 terning uten bonus. AAA-ild mot bombere: 1 per bomber, treffer på 1.</p>
+    <p class="lang-en">Maximum damage: 20 for a major IC, 6 for a minor IC, 6 for air/naval bases. Each surviving strategic bomber rolls 1 die +2; tactical bombers roll 1 die with no bonus. AA fire against bombers: 1 shot per bomber, hits on a roll of 1.</p>
+    <p class="lang-no">Eskortejagere kan beskytte bombere. Forsvarsjagere kan «intercepte» (kun ett luftslag per territorium, alle med angrepsverdier 1, bare én runde).</p>
+    <p class="lang-en">Escort fighters may protect bombers. Defending interceptor fighters may intercept (only one air battle per territory, all roll at attack value 1, one round only).</p>
 
-    <h4 id="amphibious">Amfibielandsettinger</h4>
-    <ol class="seq">
+    <h4 id="amphibious">
+      <span class="lang-no">Amfibielandsettinger</span>
+      <span class="lang-en">Amphibious Assaults</span>
+    </h4>
+    <ol class="seq lang-no">
       <li>Sjøkamp (hvis forsvarende overflatefartøy eller scramblede fly er tilstede)</li>
       <li>Slagskip/krysserbombing (kun hvis ingen sjøkamp fant sted; 1 skip per landende enhet)</li>
       <li>Landkamp</li>
     </ol>
-    <p>Sjøbårne enheter kan ikke retirere. Overland-enheter kan retirere som en gruppe. Luftenheter lander i NCM-fasen.</p>
+    <ol class="seq lang-en">
+      <li>Sea combat (if defending surface warships or scrambled aircraft are present)</li>
+      <li>Battleship/cruiser offshore bombardment (only if no sea combat occurred; 1 ship per landing unit)</li>
+      <li>Land combat</li>
+    </ol>
+    <p class="lang-no">Sjøbårne enheter kan ikke retirere. Overland-enheter kan retirere som en gruppe. Luftenheter lander i NCM-fasen.</p>
+    <p class="lang-en">Sea-borne units may not retreat. Overland units may retreat as a group. Aircraft land during the Non-Combat Move phase.</p>
 
-    <h3 id="general-combat">Generell Kamp</h3>
-    <p>Kampsekvens:</p>
-    <ol class="seq">
+    <h3 id="general-combat">
+      <span class="lang-no">Generell Kamp</span>
+      <span class="lang-en">General Combat</span>
+    </h3>
+    <p class="lang-no">Kampsekvens:</p>
+    <p class="lang-en">Combat sequence:</p>
+    <ol class="seq lang-no">
       <li>Plasser enheter langs kampstripa</li>
       <li>Ubåt-overraskelsesstrike eller nedsenk (kun sjøkamp)</li>
       <li>Angripende enheter skyter</li>
       <li>Forsvarende enheter skyter</li>
-      <li>Fjern forsvararens tap</li>
+      <li>Fjern forsvarerens tap</li>
       <li>Press angrep eller retreater</li>
       <li>Avslutt kamp</li>
     </ol>
-    <h4>Kombinerte armer</h4>
-    <table class="combined-arms">
+    <ol class="seq lang-en">
+      <li>Place units on the battle strip</li>
+      <li>Submarine surprise strike or submerge (sea combat only)</li>
+      <li>Attacking units fire</li>
+      <li>Defending units fire</li>
+      <li>Remove defender's casualties</li>
+      <li>Press attack or retreat</li>
+      <li>End combat</li>
+    </ol>
+    <h4>
+      <span class="lang-no">Kombinerte armer</span>
+      <span class="lang-en">Combined Arms</span>
+    </h4>
+    <table class="combined-arms lang-no">
       <tr><th>Kombinasjon</th><th>Effekt</th></tr>
       <tr><td>Infanteri + Artilleri</td><td>Infanteri angriper med 2</td></tr>
       <tr><td>Mek.inf + Artilleri</td><td>Mek.inf angriper med 2</td></tr>
@@ -400,60 +583,127 @@
       <tr><td>Mek.inf + Tank</td><td>Mek.inf kan blitze</td></tr>
       <tr><td>Fly + Destroyer</td><td>Fly kan treffe ubåter</td></tr>
     </table>
-    <h4>Ubåt-overraskelsesstrike</h4>
-    <p>Angriper ubåter: treffer på 2 eller under. Forsvar ubåter: treffer på 1. Ubåter kan ikke treffe luftenheter. Hvis motstanderen har en destroyer kan ikke ubåter senke seg eller surprise-strike.</p>
-    <h4>Forsvarsfrie transportskip</h4>
-    <p>Hvis forsvareren kun har transportskip igjen, ødelegges de alle umiddelbart uten ytterligere terningkast.</p>
-    <h4>Fange og frigjøre territorier</h4>
-    <p>Fanget territoriet gir fiendens inntekt til deg; mister sin eier IPC. Kapital fanget: du samler inn alle uspente IPC. Frigjort territorium: tilbake til opprinnelig kontrollant (ikke IPC-overføring ved frigjøring).</p>
+    <table class="combined-arms lang-en">
+      <tr><th>Combination</th><th>Effect</th></tr>
+      <tr><td>Infantry + Artillery</td><td>Infantry attacks at 2</td></tr>
+      <tr><td>Mech. Inf + Artillery</td><td>Mech. Inf attacks at 2</td></tr>
+      <tr><td>Tactical Bomber + Tank</td><td>Tac. bomber attacks at 4</td></tr>
+      <tr><td>Tactical Bomber + Fighter</td><td>Tac. bomber attacks at 4</td></tr>
+      <tr><td>Mech. Inf + Tank</td><td>Mech. Inf may blitz</td></tr>
+      <tr><td>Aircraft + Destroyer</td><td>Aircraft may hit submarines</td></tr>
+    </table>
+    <h4>
+      <span class="lang-no">Ubåt-overraskelsesstrike</span>
+      <span class="lang-en">Submarine Surprise Strike</span>
+    </h4>
+    <p class="lang-no">Angriper ubåter: treffer på 2 eller under. Forsvar ubåter: treffer på 1. Ubåter kan ikke treffe luftenheter. Hvis motstanderen har en destroyer kan ikke ubåter senke seg eller surprise-strike.</p>
+    <p class="lang-en">Attacking submarines: hit on 2 or less. Defending submarines: hit on 1. Submarines cannot hit air units. If the opponent has a destroyer, submarines cannot submerge or surprise-strike.</p>
+    <h4>
+      <span class="lang-no">Forsvarsfrie transportskip</span>
+      <span class="lang-en">Defenseless Transports</span>
+    </h4>
+    <p class="lang-no">Hvis forsvareren kun har transportskip igjen, ødelegges de alle umiddelbart uten ytterligere terningkast.</p>
+    <p class="lang-en">If the defender has only transports remaining, they are all destroyed immediately with no further dice rolls.</p>
+    <h4>
+      <span class="lang-no">Fange og frigjøre territorier</span>
+      <span class="lang-en">Capturing and Liberating Territories</span>
+    </h4>
+    <p class="lang-no">Fanget territoriet gir fiendens inntekt til deg; mister sin eier IPC. Kapital fanget: du samler inn alle uspente IPC. Frigjort territorium: tilbake til opprinnelig kontrollant (ikke IPC-overføring ved frigjøring).</p>
+    <p class="lang-en">A captured territory transfers its income to you; the previous controller loses those IPC. Capital captured: you collect all unspent IPC from that power's treasury. Liberated territory: returns to its original controller (no IPC transfer upon liberation).</p>
 
-    <h3 id="phase4">Fase 4: Ikke-Kampbevegelse</h3>
-    <p>Flytt enheter som ikke deltok i kamp. Alle luftenheter lander. Landenheter kan bevege seg inn i vennlige territorier. Luftenheter må avslutte bevegelse i gyldig landingssted. Ubåter er de eneste sjøenhetene som kan bevege seg gjennom fiendtlige sjøsoner (stopper ved destroyer).</p>
+    <h3 id="phase4">
+      <span class="lang-no">Fase 4: Ikke-Kampbevegelse</span>
+      <span class="lang-en">Phase 4: Non-Combat Move</span>
+    </h3>
+    <p class="lang-no">Flytt enheter som ikke deltok i kamp. Alle luftenheter lander. Landenheter kan bevege seg inn i vennlige territorier. Luftenheter må avslutte bevegelse i gyldig landingssted. Ubåter er de eneste sjøenhetene som kan bevege seg gjennom fiendtlige sjøsoner (stopper ved destroyer).</p>
+    <p class="lang-en">Move units that did not participate in combat. All air units must land. Land units may move into friendly territories. Air units must end movement at a valid landing site. Submarines are the only sea units that may move through hostile sea zones (stopping when they meet a destroyer).</p>
 
-    <h3 id="phase5">Fase 5: Mobiliser Nye Enheter</h3>
-    <p>Flytt alle kjøpte enheter fra mobiliseringssonen til gyldige felt. Krav: du must ha kontrollert territoriet siden turens start. Du kan ikke bruke fiendtlige eller alliertes IC.</p>
-    <ul>
+    <h3 id="phase5">
+      <span class="lang-no">Fase 5: Mobiliser Nye Enheter</span>
+      <span class="lang-en">Phase 5: Mobilize New Units</span>
+    </h3>
+    <p class="lang-no">Flytt alle kjøpte enheter fra mobiliseringssonen til gyldige felt. Krav: du must ha kontrollert territoriet siden turens start. Du kan ikke bruke fiendtlige eller alliertes IC.</p>
+    <p class="lang-en">Move all purchased units from the mobilization zone to valid territories. Requirement: you must have controlled the territory since the start of your turn. You may not use enemy or allied ICs.</p>
+    <ul class="lang-no">
       <li><strong>Stor IC:</strong> maks 10 enheter (minus skademarkører)</li>
       <li><strong>Liten IC:</strong> maks 3 enheter (minus skademarkører)</li>
       <li>Fly kan plasseres på IC-territorier eller eget hangarskip i tilstøtende sjøsone</li>
       <li>Store IC kan kun bygges på opprinnelig kontrollerte territorier med IPC ≥ 3</li>
       <li>Små IC kan bygges på territorier med IPC ≥ 2. Ikke på øyer.</li>
     </ul>
+    <ul class="lang-en">
+      <li><strong>Major IC:</strong> max 10 units (minus damage markers)</li>
+      <li><strong>Minor IC:</strong> max 3 units (minus damage markers)</li>
+      <li>Aircraft may be placed at IC territories or on your own carrier in an adjacent sea zone</li>
+      <li>Major ICs may only be built on originally controlled territories with IPC value ≥ 3</li>
+      <li>Minor ICs may be built on territories with IPC value ≥ 2. Not on islands.</li>
+    </ul>
 
-    <h3 id="phase6">Fase 6: Samle inn inntekt</h3>
-    <p>Slå opp nasjonal produksjonsnivå på produksjonskartet. Din inntekt = IPC-inntekt + bonusinntekt − konvoiforstyrrelses-tap.</p>
-    <p class="callout callout-warn">Hvis din hovedstad er okkupert kan du ikke samle inn inntekt eller lide konvoitap.</p>
+    <h3 id="phase6">
+      <span class="lang-no">Fase 6: Samle inn inntekt</span>
+      <span class="lang-en">Phase 6: Collect Income</span>
+    </h3>
+    <p class="lang-no">Slå opp nasjonal produksjonsnivå på produksjonskartet. Din inntekt = IPC-inntekt + bonusinntekt − konvoiforstyrrelses-tap.</p>
+    <p class="lang-en">Look up the national production level on the production chart. Your income = territory IPC + national objective bonus − convoy disruption losses.</p>
+    <p class="callout callout-warn lang-no">Hvis din hovedstad er okkupert kan du ikke samle inn inntekt eller lide konvoitap.</p>
+    <p class="callout callout-warn lang-en">If your capital is occupied you may not collect income or suffer convoy losses.</p>
 
-    <h4 id="convoy">Konvoiforstyrrelser</h4>
-    <p>Krav for angrep: 1) Sjøsone har «Convoy»-bilde, 2) Sjøsone støter til et av dine territorier, 3) Minst 1 fiendtlig krigsskip er i sjøsonen.</p>
-    <ul>
+    <h4 id="convoy">
+      <span class="lang-no">Konvoiforstyrrelser</span>
+      <span class="lang-en">Convoy Disruption</span>
+    </h4>
+    <p class="lang-no">Krav for angrep: 1) Sjøsone har «Convoy»-bilde, 2) Sjøsone støter til et av dine territorier, 3) Minst 1 fiendtlig krigsskip er i sjøsonen.</p>
+    <p class="lang-en">Requirements to disrupt: 1) Sea zone has a convoy symbol, 2) Sea zone is adjacent to one of your territories, 3) At least 1 enemy warship is in the sea zone.</p>
+    <ul class="lang-no">
       <li>Slagskip/kryssere/destroyere: kast 1 terning; treff på 3 eller under</li>
       <li>Ubåter/luftenheter: kast 2 terninger; treff på 3 eller under</li>
       <li>Maks tap: IPC-verdi av tilstøtende territorier du kontrollerer (per sone)</li>
       <li>Hvert territorium kan maks miste sine egne IPC fra totalen</li>
     </ul>
+    <ul class="lang-en">
+      <li>Battleships/cruisers/destroyers: roll 1 die; disrupt on 3 or less</li>
+      <li>Submarines/aircraft: roll 2 dice; disrupt on 3 or less per die</li>
+      <li>Maximum loss: IPC value of adjacent territories you control (per zone)</li>
+      <li>Each territory can lose at most its own IPC value from the total</li>
+    </ul>
 
     <hr class="divider">
 
     <!-- ── UK GLOBAL ── -->
-    <h2 id="uk-global">UK Globale Regler – To økonomier</h2>
-    <p>Storbritannia er én makt med to separate økonomier: Europa (London) og Stillehavet (Calcutta). Inntektsnivåer og skattkister spores separat.</p>
-    <ul>
+    <h2 id="uk-global">
+      <span class="lang-no">UK Globale Regler – To økonomier</span>
+      <span class="lang-en">UK Global Rules – Two Economies</span>
+    </h2>
+    <p class="lang-no">Storbritannia er én makt med to separate økonomier: Europa (London) og Stillehavet (Calcutta). Inntektsnivåer og skattkister spores separat.</p>
+    <p class="lang-en">The United Kingdom is one power with two separate economies: Europe (London) and Pacific (Calcutta). Income levels and treasuries are tracked separately.</p>
+    <ul class="lang-no">
       <li><strong>F&amp;U:</strong> Alle kan betale; resultat gjelder hele UK-makten.</li>
       <li><strong>Kjøp:</strong> Hver økonomi gjør sine egne kjøp.</li>
       <li><strong>Kamp:</strong> Alle uk-enheter er ett samlet kampkorps.</li>
       <li><strong>Mobilisering:</strong> Enheter plasseres på IC-er i sin respektive økonomi.</li>
       <li><strong>Inntekt:</strong> Samles inn separat per økonomi.</li>
     </ul>
-    <p>Hvis en regional hovedstad fanges av Aksen: den økonomien kan ikke samle inn inntekt, bruke IPC eller reparere. Fri regional hovedstad kan ikke samle inn IPC for den fangede regionens territorier.</p>
+    <ul class="lang-en">
+      <li><strong>R&amp;D:</strong> Either economy may pay; the result applies to the entire UK power.</li>
+      <li><strong>Purchases:</strong> Each economy makes its own purchases.</li>
+      <li><strong>Combat:</strong> All UK units fight as one combined force.</li>
+      <li><strong>Mobilization:</strong> Units are placed at ICs in their respective economy.</li>
+      <li><strong>Income:</strong> Collected separately per economy.</li>
+    </ul>
+    <p class="lang-no">Hvis en regional hovedstad fanges av Aksen: den økonomien kan ikke samle inn inntekt, bruke IPC eller reparere. Fri regional hovedstad kan ikke samle inn IPC for den fangede regionens territorier.</p>
+    <p class="lang-en">If a regional capital is captured by the Axis: that economy cannot collect income, spend IPC, or repair. The free regional capital cannot collect IPC for territories belonging to the captured region.</p>
 
     <hr class="divider">
 
     <!-- ── MAP MOVEMENT ── -->
-    <h2 id="map-movement">Bevegelse mellom kart</h2>
-    <p>Øst- og vestkantene på brettene markerer grensene. Alberta/Saskatchewan/Manitoba (Eurokart) ↔ Western Canada (Stillehavskart). Central US ↔ Western US. SE Mexico ↔ Mexico.</p>
+    <h2 id="map-movement">
+      <span class="lang-no">Bevegelse mellom kart</span>
+      <span class="lang-en">Cross-Map Movement</span>
+    </h2>
+    <p class="lang-no">Øst- og vestkantene på brettene markerer grensene. Alberta/Saskatchewan/Manitoba (Eurokart) ↔ Western Canada (Stillehavskart). Central US ↔ Western US. SE Mexico ↔ Mexico.</p>
+    <p class="lang-en">The east and west edges of the boards mark the boundaries. Alberta/Saskatchewan/Manitoba (Europe map) ↔ Western Canada (Pacific map). Central US ↔ Western US. SE Mexico ↔ Mexico.</p>
     <table>
-      <tr><th>Sone</th><th>Tilstøtende til</th></tr>
+      <tr><th><span class="lang-no">Sone</span><span class="lang-en">Zone</span></th><th><span class="lang-no">Tilstøtende til</span><span class="lang-en">Adjacent to</span></th></tr>
       <tr><td>11</td><td>64</td></tr>
       <tr><td>28</td><td>64</td></tr>
       <tr><td>51</td><td>64, 65, 66</td></tr>
@@ -466,118 +716,200 @@
     <hr class="divider">
 
     <!-- ── POLITICS ── -->
-    <h2 id="politics">Politisk situasjon, nasjonale mål og bonusinntekt</h2>
+    <h2 id="politics">
+      <span class="lang-no">Politisk situasjon, nasjonale mål og bonusinntekt</span>
+      <span class="lang-en">Political Situation, National Objectives, and Bonus Income</span>
+    </h2>
 
-    <h3 id="germany">🇩🇪 Tyskland</h3>
-    <p>I krig med Frankrike, UK og ANZAC ved spillstart. Kan erklære krig mot USA, Sovjet eller Kina på vilkårlig tid.</p>
-    <h4>Nasjonal mål – Lebensraum</h4>
-    <ul>
+    <h3 id="germany">🇩🇪 <span class="lang-no">Tyskland</span><span class="lang-en">Germany</span></h3>
+    <p class="lang-no">I krig med Frankrike, UK og ANZAC ved spillstart. Kan erklære krig mot USA, Sovjet eller Kina på vilkårlig tid.</p>
+    <p class="lang-en">At war with France, UK, and ANZAC at game start. May declare war on USA, Soviet Union, or China at any time.</p>
+    <h4><span class="lang-no">Nasjonal mål – Lebensraum</span><span class="lang-en">National Objective – Lebensraum</span></h4>
+    <ul class="lang-no">
       <li><strong>Ikke i krig med Sovjet:</strong> +5 IPC (handel)</li>
       <li><strong>I krig med Sovjet:</strong> +5 per kontrollert: Novgorod, Volgograd, Moskva; +5 om Aksen kontrollerer Kaukasus</li>
       <li><strong>I krig med UK og Fr:</strong> +5 om minst 1 tysk landenhet er i aksekontrollert Egypt; +5 om Ty kontrollerer Danmark og Norge mens Sverige er nøytralt; +2 per kontrollert: Irak, Persia, NV-Persia</li>
     </ul>
+    <ul class="lang-en">
+      <li><strong>Not at war with Soviet:</strong> +5 IPC (trade)</li>
+      <li><strong>At war with Soviet:</strong> +5 per controlled: Novgorod, Volgograd, Moscow; +5 if Axis controls Caucasus</li>
+      <li><strong>At war with UK and France:</strong> +5 if at least 1 German land unit is in Axis-controlled Egypt; +5 if Germany controls Denmark and Norway while Sweden is neutral; +2 per controlled: Iraq, Persia, NW Persia</li>
+    </ul>
 
-    <h3 id="soviet">🇷🇺 Sovjetunionen</h3>
-    <p>Nøytral ved start. Kan ikke erklære krig mot europeisk Akse før runde 4 (med unntak). Kan erklære krig mot Japan når som helst.</p>
-    <h4>Nasjonal mål – Sikkerhetsbuffer</h4>
-    <ul>
+    <h3 id="soviet">🇷🇺 <span class="lang-no">Sovjetunionen</span><span class="lang-en">Soviet Union</span></h3>
+    <p class="lang-no">Nøytral ved start. Kan ikke erklære krig mot europeisk Akse før runde 4 (med unntak). Kan erklære krig mot Japan når som helst.</p>
+    <p class="lang-en">Neutral at game start. May not declare war on the European Axis until Round 4 (with exceptions). May declare war on Japan at any time.</p>
+    <h4><span class="lang-no">Nasjonal mål – Sikkerhetsbuffer</span><span class="lang-en">National Objective – Security Buffer</span></h4>
+    <ul class="lang-no">
       <li>+5 IPC om konvoi i sone 125 er fri for akseskip, Arkangel er sovjet-kontrollert, og ingen allierte enheter er i opprinnelig sovj. territorier</li>
       <li>+3 per kontrollert opprinnelig tysk, italiensk eller pro-Akse-nøytralt territorium</li>
       <li>+10 (engangs) første gang Sovjet kontrollerer Berlin</li>
     </ul>
+    <ul class="lang-en">
+      <li>+5 IPC if convoy in zone 125 is free of Axis ships, Archangel is Soviet-controlled, and no Allied units are in originally Soviet territories</li>
+      <li>+3 per originally German, Italian, or pro-Axis neutral territory controlled</li>
+      <li>+10 (one-time) the first time the Soviet Union controls Berlin</li>
+    </ul>
 
     <h3 id="japan">🇯🇵 Japan</h3>
-    <p>I krig med Kina ved start. Krig mot UK/ANZAC utløser automatisk krig med begge. Kan angripe nederlandske territorier bare om i krig med UK og ANZAC.</p>
-    <h4>Nasjonal mål – Asias velstandssfære</h4>
-    <ul>
+    <p class="lang-no">I krig med Kina ved start. Krig mot UK/ANZAC utløser automatisk krig med begge. Kan angripe nederlandske territorier bare om i krig med UK og ANZAC.</p>
+    <p class="lang-en">At war with China at game start. War against UK/ANZAC automatically triggers war with both. May attack Dutch territories only if at war with UK and ANZAC.</p>
+    <h4><span class="lang-no">Nasjonal mål – Asias velstandssfære</span><span class="lang-en">National Objective – Greater East Asia Co-Prosperity Sphere</span></h4>
+    <ul class="lang-no">
       <li><strong>Ikke i krig med USA:</strong> +10 om Japan ikke angrep Fransk Indo-Kina og ikke har uprovosert erklært krig mot UK/ANZAC</li>
       <li><strong>I krig med Vest-Allierte:</strong> +5 om Aksen kontrollerer Guam, Midway, Wake Island, Gilbert Islands, Solomon Islands; +5 per: India, New South Wales, Hawaii, Vest-USA; +5 om Aksen kontrollerer Sumatra, Java, Borneo, Celebes</li>
     </ul>
+    <ul class="lang-en">
+      <li><strong>Not at war with USA:</strong> +10 if Japan did not attack French Indo-China and has not unprovoked declared war on UK/ANZAC</li>
+      <li><strong>At war with Western Allies:</strong> +5 if Axis controls Guam, Midway, Wake Island, Gilbert Islands, Solomon Islands; +5 per: India, New South Wales, Hawaii, Western US; +5 if Axis controls Sumatra, Java, Borneo, Celebes</li>
+    </ul>
 
     <h3 id="usa">🇺🇸 USA</h3>
-    <p>Nøytral ved start. Ekstra begrensninger: kan ikke ende sjøenheter i soner tilstøtende japansk-kontrollerte territorier; på Europakartet kun nær US-territorier unntatt sone 102. USA kan ikke erklære krig med mindre Aksen erklærer krig mot USA, fanger London, fanger nordamerikansk territorium, eller Japan gjør uprovosert krig mot UK/ANZAC. Etter runde 3 Samle inn inntekt-fase kan USA erklære krig.</p>
-    <h4>Nasjonal mål – Demokratiets arsenal</h4>
-    <ul>
+    <p class="lang-no">Nøytral ved start. Ekstra begrensninger: kan ikke ende sjøenheter i soner tilstøtende japansk-kontrollerte territorier; på Europakartet kun nær US-territorier unntatt sone 102. USA kan ikke erklære krig med mindre Aksen erklærer krig mot USA, fanger London, fanger nordamerikansk territorium, eller Japan gjør uprovosert krig mot UK/ANZAC. Etter runde 3 Samle inn inntekt-fase kan USA erklære krig.</p>
+    <p class="lang-en">Neutral at game start. Additional restrictions: cannot end naval units in sea zones adjacent to Japanese-controlled territories; on the Europe map only near US territories except zone 102. USA may not declare war unless the Axis declares war on the USA, captures London, captures a North American territory, or Japan makes unprovoked war against UK/ANZAC. After Round 3 Collect Income phase, USA may declare war freely.</p>
+    <h4><span class="lang-no">Nasjonal mål – Demokratiets arsenal</span><span class="lang-en">National Objective – Arsenal of Democracy</span></h4>
+    <ul class="lang-no">
       <li>+10 om USA kontrollerer Øst-, Sentral-, Vest-USA</li>
       <li>+5 om Alaska, Aleutene, Hawaii, Johnston, Line Islands kontrolleres av USA</li>
       <li>+5 om Mexico, SE Mexico, Mellom-Amerika, Vest-India kontrolleres av USA</li>
       <li>+5 om USA kontrollerer Filippinene</li>
       <li>+5 om minst 1 US landenhet er i Frankrike</li>
     </ul>
+    <ul class="lang-en">
+      <li>+10 if USA controls Eastern, Central, and Western US</li>
+      <li>+5 if Alaska, Aleutians, Hawaii, Johnston, Line Islands are controlled by USA</li>
+      <li>+5 if Mexico, SE Mexico, Central America, West Indies are controlled by USA</li>
+      <li>+5 if USA controls Philippines</li>
+      <li>+5 if at least 1 US land unit is in France</li>
+    </ul>
 
-    <h3 id="china-pol">🇨🇳 Kina</h3>
-    <p>I krig med Japan ved start. BurmaRoad-bonus: +6 IPC om India, Burma, Yunnan og Szechwan alle er alliert-kontrollert. Kan da også kjøpe artilleri.</p>
+    <h3 id="china-pol">🇨🇳 <span class="lang-no">Kina</span><span class="lang-en">China</span></h3>
+    <p class="lang-no">I krig med Japan ved start. BurmaRoad-bonus: +6 IPC om India, Burma, Yunnan og Szechwan alle er alliert-kontrollert. Kan da også kjøpe artilleri.</p>
+    <p class="lang-en">At war with Japan at game start. Burma Road bonus: +6 IPC if India, Burma, Yunnan, and Szechwan are all Allied-controlled. China may also purchase artillery when the Burma Road is open.</p>
 
-    <h3 id="uk-pol">🇬🇧 Storbritannia</h3>
-    <p>I krig med Italia og Tyskland ved start. Krig mot Japan utløser automatisk krig for ANZAC også.</p>
-    <h4>Nasjonal mål – Det britiske imperiet</h4>
-    <ul>
+    <h3 id="uk-pol">🇬🇧 <span class="lang-no">Storbritannia</span><span class="lang-en">United Kingdom</span></h3>
+    <p class="lang-no">I krig med Italia og Tyskland ved start. Krig mot Japan utløser automatisk krig for ANZAC også.</p>
+    <p class="lang-en">At war with Italy and Germany at game start. War against Japan automatically triggers war for ANZAC as well.</p>
+    <h4><span class="lang-no">Nasjonal mål – Det britiske imperiet</span><span class="lang-en">National Objective – The British Empire</span></h4>
+    <ul class="lang-no">
       <li><strong>Europa-økonomi:</strong> +5 IPC om UK kontrollerer alle opprinnelige europeiske territorier</li>
       <li><strong>Stillehavs-økonomi:</strong> +5 IPC om UK kontrollerer Kwangtung og Malaya</li>
     </ul>
+    <ul class="lang-en">
+      <li><strong>Europe economy:</strong> +5 IPC if UK controls all originally British European territories</li>
+      <li><strong>Pacific economy:</strong> +5 IPC if UK controls Kwangtung and Malaya</li>
+    </ul>
 
-    <h3 id="italy">🇮🇹 Italia</h3>
-    <p>I krig med Frankrike, UK og ANZAC ved start. Kan erklære krig mot USA, Sovjet eller Kina.</p>
-    <h4>Nasjonal mål – Mare Nostrum</h4>
-    <ul>
+    <h3 id="italy">🇮🇹 <span class="lang-no">Italia</span><span class="lang-en">Italy</span></h3>
+    <p class="lang-no">I krig med Frankrike, UK og ANZAC ved start. Kan erklære krig mot USA, Sovjet eller Kina.</p>
+    <p class="lang-en">At war with France, UK, and ANZAC at game start. May declare war on USA, Soviet Union, or China.</p>
+    <h4><span class="lang-no">Nasjonal mål – Mare Nostrum</span><span class="lang-en">National Objective – Mare Nostrum</span></h4>
+    <ul class="lang-no">
       <li>+5 om Aksen kontrollerer ≥ 3 av: Gibraltar, Syd-Frankrike, Hellas, Egypt</li>
       <li>+5 om ingen allierte overflatefartøy i Middelhavet (sone 92–99)</li>
       <li>+5 om Aksen kontrollerer Marokko, Algerie, Tunisia, Libya, Tobruk, Alexandria</li>
       <li>+2 per: Irak, Persia, NV-Persia (Italia-kontrollert)</li>
     </ul>
+    <ul class="lang-en">
+      <li>+5 if Axis controls ≥ 3 of: Gibraltar, Southern France, Greece, Egypt</li>
+      <li>+5 if no Allied surface warships are in the Mediterranean (zones 92–99)</li>
+      <li>+5 if Axis controls Morocco, Algeria, Tunisia, Libya, Tobruk, Alexandria</li>
+      <li>+2 per: Iraq, Persia, NW Persia (Italy-controlled)</li>
+    </ul>
 
     <h3 id="anzac-pol">🇦🇺 ANZAC</h3>
-    <p>I krig med Tyskland og Italia ved start. Krig mot Japan utløser automatisk krig for UK.</p>
-    <h4>Nasjonal mål</h4>
-    <ul>
+    <p class="lang-no">I krig med Tyskland og Italia ved start. Krig mot Japan utløser automatisk krig for UK.</p>
+    <p class="lang-en">At war with Germany and Italy at game start. War against Japan automatically triggers war for UK as well.</p>
+    <h4><span class="lang-no">Nasjonal mål</span><span class="lang-en">National Objectives</span></h4>
+    <ul class="lang-no">
       <li>+5 om en alliert makt kontrollerer Malaya og ANZAC kontrollerer alle opprinnelige territorier</li>
       <li>+5 om Allierte kontrollerer Nederlandsk Ny-Guinea, Ny-Guinea, Ny-Britannia, Solomon Islands</li>
     </ul>
+    <ul class="lang-en">
+      <li>+5 if an Allied power controls Malaya and ANZAC controls all its originally owned territories</li>
+      <li>+5 if Allies control Dutch New Guinea, New Guinea, New Britain, Solomon Islands</li>
+    </ul>
 
-    <h3 id="france-pol">🇫🇷 Frankrike</h3>
-    <p>I krig med Tyskland og Italia ved start. Kan erklære krig mot Japan. Tropp-bonus: Når Frankrike befries, plasserer den franske spilleren gratis enheter verdt opptil 12 IPC i Frankrike (kun en gang).</p>
+    <h3 id="france-pol">🇫🇷 <span class="lang-no">Frankrike</span><span class="lang-en">France</span></h3>
+    <p class="lang-no">I krig med Tyskland og Italia ved start. Kan erklære krig mot Japan. Tropp-bonus: Når Frankrike befries, plasserer den franske spilleren gratis enheter verdt opptil 12 IPC i Frankrike (kun en gang).</p>
+    <p class="lang-en">At war with Germany and Italy at game start. May declare war on Japan. Liberation bonus: When France is liberated, the French player places free units worth up to 12 IPC in France (one time only).</p>
 
-    <h3 id="dutch">🇳🇱 Nederlandske territorier</h3>
-    <p>Starter ukontrollert, men anses vennlig for Allierte. Holland er fanget av Tyskland. UK og ANZAC kan flytte landenheter inn som ikke-kampbevegelse (gratis kontroll). Et angrep på nederlandsk territorium regnes som en krigserklæring mot UK og ANZAC (og vice versa).</p>
+    <h3 id="dutch">🇳🇱 <span class="lang-no">Nederlandske territorier</span><span class="lang-en">Dutch Territories</span></h3>
+    <p class="lang-no">Starter ukontrollert, men anses vennlig for Allierte. Holland er fanget av Tyskland. UK og ANZAC kan flytte landenheter inn som ikke-kampbevegelse (gratis kontroll). Et angrep på nederlandsk territorium regnes som en krigserklæring mot UK og ANZAC (og vice versa).</p>
+    <p class="lang-en">Start uncontrolled but are considered friendly to the Allies. Holland is captured by Germany. UK and ANZAC may move land units in as non-combat movement (free control). Attacking a Dutch territory counts as a declaration of war against UK and ANZAC (and vice versa).</p>
 
-    <h3 id="neutrals">Nøytrale territorier</h3>
-    <p>De nøytrale territoriene er Mongolias territorier. Hver har et stående forsvar (vist som infanteri-silhuett + tall). Å bevege seg inn i et nøytralt er et kampangrep.</p>
-    <p>Når et nøytralt angripes: alle gjenværende nøytrale territorier blir vennlige for den <em>andre</em> siden. Pro-allierte nøytrale kan beveges inn i (ikke-kamp) som en frigjøring.</p>
-    <p><strong>Sovjet-Mongoliapakten:</strong> Mongolias territorier blir aldri pro-Akse med mindre Sovjet angriper dem. Hvis Japan angriper et sovjet-kontrollert territorium tilstøtende Mongolia, legges Mongolia under Sovjet-kontroll.</p>
+    <h3 id="neutrals">
+      <span class="lang-no">Nøytrale territorier</span>
+      <span class="lang-en">Neutral Territories</span>
+    </h3>
+    <p class="lang-no">De nøytrale territoriene er Mongolias territorier. Hver har et stående forsvar (vist som infanteri-silhuett + tall). Å bevege seg inn i et nøytralt er et kampangrep.</p>
+    <p class="lang-en">The neutral territories include Mongolia's territories. Each has a standing defense (shown as an infantry silhouette + number). Moving into a neutral territory is a combat attack.</p>
+    <p class="lang-no">Når et nøytralt angripes: alle gjenværende nøytrale territorier blir vennlige for den <em>andre</em> siden. Pro-allierte nøytrale kan beveges inn i (ikke-kamp) som en frigjøring.</p>
+    <p class="lang-en">When a neutral is attacked: all remaining neutral territories become friendly to the <em>other</em> side. Pro-Allied neutrals may be moved into (non-combat) as a liberation.</p>
+    <p class="lang-no"><strong>Sovjet-Mongoliapakten:</strong> Mongolias territorier blir aldri pro-Akse med mindre Sovjet angriper dem. Hvis Japan angriper et sovjet-kontrollert territorium tilstøtende Mongolia, legges Mongolia under Sovjet-kontroll.</p>
+    <p class="lang-en"><strong>Soviet-Mongolia Pact:</strong> Mongolia's territories never become pro-Axis unless the Soviet Union attacks them. If Japan attacks a Soviet-controlled territory adjacent to Mongolia, Mongolia comes under Soviet control.</p>
 
     <hr class="divider">
 
     <!-- ── CHINA RULES ── -->
-    <h2 id="china-rules">Kina-regler</h2>
-    <p>Kina har ingen hovedstad. Kina mister ikke uspente IPC om alle territorier fanges. Kina kan kun kjøpe infanteri (og artilleri om Burmaroad er åpen). Nye enheter kan plasseres på ethvert kinesisk-kontrollert territorium. Kinesiske enheter kan kun flytte til territorier med Kinas emblem, Kwangtung og Burma.</p>
-    <p>Flying Tigers: En US-jager representerer de amerikanske frivillige. Regnes som kinesisk enhet, kan ikke forlate kinesisk-tillatte territorier. Kan ikke erstattes ved tap.</p>
-    <p>Hvis Japan bygger IC på kinesisk territorium og det gjenerobres, fjernes IC-en.</p>
+    <h2 id="china-rules">
+      <span class="lang-no">Kina-regler</span>
+      <span class="lang-en">China Rules</span>
+    </h2>
+    <p class="lang-no">Kina har ingen hovedstad. Kina mister ikke uspente IPC om alle territorier fanges. Kina kan kun kjøpe infanteri (og artilleri om Burmaroad er åpen). Nye enheter kan plasseres på ethvert kinesisk-kontrollert territorium. Kinesiske enheter kan kun flytte til territorier med Kinas emblem, Kwangtung og Burma.</p>
+    <p class="lang-en">China has no capital. China does not lose unspent IPC if all its territories are captured. China may only purchase infantry (and artillery if the Burma Road is open). New units may be placed in any Chinese-controlled territory. Chinese units may only move to territories bearing China's symbol, Kwangtung, and Burma.</p>
+    <p class="lang-no">Flying Tigers: En US-jager representerer de amerikanske frivillige. Regnes som kinesisk enhet, kan ikke forlate kinesisk-tillatte territorier. Kan ikke erstattes ved tap.</p>
+    <p class="lang-en">Flying Tigers: One US fighter represents the American Volunteer Group. Counts as a Chinese unit, may not leave Chinese-permitted territories. Cannot be replaced if lost.</p>
+    <p class="lang-no">Hvis Japan bygger IC på kinesisk territorium og det gjenerobres, fjernes IC-en.</p>
+    <p class="lang-en">If Japan builds an IC on a Chinese territory and it is recaptured, the IC is removed.</p>
 
     <hr class="divider">
 
     <!-- ── ADDITIONAL ── -->
-    <h2 id="additional">Tilleggsregler</h2>
-    <ul>
-      <li>US-IC-er (Øst, Sentral, Vest) starter som små IC-er. Opgraderes gratis til store ved USAs inntreden i krigen.</li>
+    <h2 id="additional">
+      <span class="lang-no">Tilleggsregler</span>
+      <span class="lang-en">Additional Rules</span>
+    </h2>
+    <ul class="lang-no">
+      <li>US-IC-er (Øst, Sentral, Vest) starter som små IC-er. Oppgraderes gratis til store ved USAs inntreden i krigen.</li>
       <li>San Francisco er ikke en alliert hovedstad → USA mister ikke uspente IPC om Vest-USA fanges.</li>
       <li><strong>Sovjet-Mongoliapakten:</strong> Mongolias territorier slutter seg til Sovjet om Japan angriper tilstøtende sovjet-territorier.</li>
+    </ul>
+    <ul class="lang-en">
+      <li>US ICs (Eastern, Central, Western) start as minor ICs. They are upgraded to major ICs for free when the USA enters the war.</li>
+      <li>San Francisco is not an Allied capital → USA does not lose unspent IPC if Western US is captured.</li>
+      <li><strong>Soviet-Mongolia Pact:</strong> Mongolia's territories join the Soviet Union if Japan attacks adjacent Soviet territories.</li>
     </ul>
 
     <hr class="divider">
 
     <!-- ── R&D ── -->
-    <h2 id="rd">Forskning &amp; Utvikling (Valgfri regel)</h2>
-    <p>Gjør F&amp;U til ny Fase 1 i tursekvensen (de andre fasene flyttes opp ett nummer). Kina kan ikke gjøre F&amp;U.</p>
-    <ol class="seq">
+    <h2 id="rd">
+      <span class="lang-no">Forskning &amp; Utvikling (Valgfri regel)</span>
+      <span class="lang-en">Research &amp; Development (Optional Rule)</span>
+    </h2>
+    <p class="lang-no">Gjør F&amp;U til ny Fase 1 i tursekvensen (de andre fasene flyttes opp ett nummer). Kina kan ikke gjøre F&amp;U.</p>
+    <p class="lang-en">Make R&amp;D the new Phase 1 in the turn sequence (all other phases shift up by one). China may not conduct R&amp;D.</p>
+    <ol class="seq lang-no">
       <li><strong>Kjøp F&amp;U-terninger</strong> – 5 IPC per terning</li>
       <li><strong>Kast F&amp;U-terninger</strong> – Minst én 6 = teknologisk gjennombrudd</li>
       <li><strong>Kast gjennombrudds-terning</strong> – Velg diagram 1 eller 2, kast for å se hvilken teknologi</li>
       <li><strong>Merk utvikling</strong> – Plasser nasjonalt kontrollmerke i riktig rute; effektivt umiddelbart</li>
     </ol>
-    <p class="callout callout-note">Hvis du ruller en teknologi du allerede har, kast igjen til du får en ny.</p>
+    <ol class="seq lang-en">
+      <li><strong>Purchase R&amp;D dice</strong> – 5 IPC per die</li>
+      <li><strong>Roll R&amp;D dice</strong> – At least one 6 = technological breakthrough</li>
+      <li><strong>Roll breakthrough die</strong> – Choose Chart 1 or 2, roll to determine which technology</li>
+      <li><strong>Mark development</strong> – Place national control marker in the correct box; effective immediately</li>
+    </ol>
+    <p class="callout callout-note lang-no">Hvis du ruller en teknologi du allerede har, kast igjen til du får en ny.</p>
+    <p class="callout callout-note lang-en">If you roll a technology you already have, reroll until you get a new one.</p>
 
-    <h3 id="breakthrough1">Gjennombruddsdiagram 1</h3>
-    <table>
+    <h3 id="breakthrough1">
+      <span class="lang-no">Gjennombruddsdiagram 1</span>
+      <span class="lang-en">Breakthrough Chart 1</span>
+    </h3>
+    <table class="lang-no">
       <tr><th>#</th><th>Teknologi</th><th>Effekt</th></tr>
       <tr><td>1</td><td>Avansert artilleri</td><td>1 artillerienhet kan støtte opptil 2 infanteri/mek.inf (angriper med 2)</td></tr>
       <tr><td>2</td><td>Raketter</td><td>Operative luftbaser kan skyte raketter (1 terning skade) mot IC, luftbase eller marinebaser innen 4 felt. Ikke over nøytrale territorier.</td></tr>
@@ -586,9 +918,21 @@
       <tr><td>5</td><td>Krigsobligasjoner</td><td>Kast 1 terning under Innsamling, samle inn det antall ekstra IPC</td></tr>
       <tr><td>6</td><td>Forbedret mekanisert infanteri</td><td>Mek.inf parret med tank/artilleri angriper med 2. Mek.inf kan blitze uten tank.</td></tr>
     </table>
+    <table class="lang-en">
+      <tr><th>#</th><th>Technology</th><th>Effect</th></tr>
+      <tr><td>1</td><td>Advanced Artillery</td><td>1 artillery unit may support up to 2 infantry/mech. inf (attack at 2)</td></tr>
+      <tr><td>2</td><td>Rockets</td><td>Operative air bases may fire rockets (1 die of damage) at an IC, air base, or naval base within 4 territories. Not over neutral territories.</td></tr>
+      <tr><td>3</td><td>Paratroopers</td><td>Up to 2 infantry per territory with an operative air base may be dropped up to 3 territories to an attack target</td></tr>
+      <tr><td>4</td><td>Increased Factory Production</td><td>Major IC: max 12 units, minor IC: max 4. Repairs cost half price (2 damage markers per IPC)</td></tr>
+      <tr><td>5</td><td>War Bonds</td><td>Roll 1 die during Collect Income phase; collect that many extra IPC</td></tr>
+      <tr><td>6</td><td>Improved Mechanized Infantry</td><td>Mech. inf paired with a tank or artillery attacks at 2. Mech. inf may blitz without a tank.</td></tr>
+    </table>
 
-    <h3 id="breakthrough2">Gjennombruddsdiagram 2</h3>
-    <table>
+    <h3 id="breakthrough2">
+      <span class="lang-no">Gjennombruddsdiagram 2</span>
+      <span class="lang-en">Breakthrough Chart 2</span>
+    </h3>
+    <table class="lang-no">
       <tr><th>#</th><th>Teknologi</th><th>Effekt</th></tr>
       <tr><td>1</td><td>Superbåter</td><td>Dine ubåters angrepsverdi er nå 3</td></tr>
       <tr><td>2</td><td>Jetjagere</td><td>Dine jageres angrepsverdi er nå 4; eskort/intercepter treffer på 1 eller 2</td></tr>
@@ -597,12 +941,24 @@
       <tr><td>5</td><td>Langtrekkende fly</td><td>Alle luftenheters rekkevidde økes med 1</td></tr>
       <tr><td>6</td><td>Tunge bombere</td><td>Strategiske bombere kaster 2 terninger og velger beste resultat</td></tr>
     </table>
+    <table class="lang-en">
+      <tr><th>#</th><th>Technology</th><th>Effect</th></tr>
+      <tr><td>1</td><td>Super Submarines</td><td>Your submarines now attack at 3</td></tr>
+      <tr><td>2</td><td>Jet Fighters</td><td>Your fighters now attack at 4; escort/interceptor fighters hit on 1 or 2</td></tr>
+      <tr><td>3</td><td>Improved Shipyards</td><td>Battleship 17 · Carrier 13 · Cruiser 9 · Destroyer 7 · Transport 6 · Submarine 5</td></tr>
+      <tr><td>4</td><td>Radar</td><td>AA guns and facilities now hit on 1 or 2 (instead of only 1)</td></tr>
+      <tr><td>5</td><td>Long-Range Aircraft</td><td>All air units' movement range is increased by 1</td></tr>
+      <tr><td>6</td><td>Heavy Bombers</td><td>Strategic bombers roll 2 dice and choose the best result</td></tr>
+    </table>
 
     <hr class="divider">
 
     <!-- ── UNITS ── -->
-    <h2 id="units">Enhetsprofiler</h2>
-    <table>
+    <h2 id="units">
+      <span class="lang-no">Enhetsprofiler</span>
+      <span class="lang-en">Unit Profiles</span>
+    </h2>
+    <table class="lang-no">
       <tr><th>Enhet</th><th>Kost</th><th>Angrep</th><th>Forsvar</th><th>Bevegelse</th><th>Merknad</th></tr>
       <tr><td>Infanteri</td><td>3</td><td>1 (2 m/art.)</td><td>2</td><td>1</td><td>–</td></tr>
       <tr><td>Mek. infanteri</td><td>4</td><td>1 (2 m/art.)</td><td>2</td><td>2</td><td>Blitz m/tank</td></tr>
@@ -623,12 +979,62 @@
       <tr><td>Luftbase</td><td>15</td><td>–</td><td>–</td><td>–</td><td>+1 bevegelse for fly</td></tr>
       <tr><td>Marinebas</td><td>15</td><td>–</td><td>–</td><td>–</td><td>+1 bevegelse for skip</td></tr>
     </table>
+    <table class="lang-en">
+      <tr><th>Unit</th><th>Cost</th><th>Attack</th><th>Defense</th><th>Move</th><th>Notes</th></tr>
+      <tr><td>Infantry</td><td>3</td><td>1 (2 w/art.)</td><td>2</td><td>1</td><td>–</td></tr>
+      <tr><td>Mech. Infantry</td><td>4</td><td>1 (2 w/art.)</td><td>2</td><td>2</td><td>Blitz w/tank</td></tr>
+      <tr><td>Artillery</td><td>4</td><td>2</td><td>2</td><td>1</td><td>Supports 1 inf/mech (2 w/adv.)</td></tr>
+      <tr><td>Tank</td><td>6</td><td>3</td><td>3</td><td>2</td><td>Blitz</td></tr>
+      <tr><td>AA Gun</td><td>5</td><td>0</td><td>0</td><td>1</td><td>Hits aircraft on 1; max 3 hits per battle</td></tr>
+      <tr><td>Fighter</td><td>10</td><td>3</td><td>4</td><td>4</td><td>May land on carrier</td></tr>
+      <tr><td>Tac. Bomber</td><td>11</td><td>3 (4 w/tank/ftr)</td><td>3</td><td>4</td><td>–</td></tr>
+      <tr><td>Strat. Bomber</td><td>12</td><td>4</td><td>1</td><td>6</td><td>SBR: die +2</td></tr>
+      <tr><td>Transport</td><td>7</td><td>0</td><td>0</td><td>2</td><td>Carries 2 land units (1 land = 1 sea)</td></tr>
+      <tr><td>Submarine</td><td>6</td><td>2</td><td>1</td><td>2</td><td>Surprise strike; may submerge</td></tr>
+      <tr><td>Destroyer</td><td>8</td><td>2</td><td>2</td><td>2</td><td>Negates submarine abilities</td></tr>
+      <tr><td>Cruiser</td><td>12</td><td>3</td><td>3</td><td>2</td><td>Offshore bombardment</td></tr>
+      <tr><td>Carrier</td><td>16</td><td>0</td><td>2</td><td>2</td><td>Carries 2 aircraft; takes 2 hits</td></tr>
+      <tr><td>Battleship</td><td>20</td><td>4</td><td>4</td><td>2</td><td>Takes 2 hits; offshore bombardment</td></tr>
+      <tr><td>Minor IC</td><td>12</td><td>–</td><td>–</td><td>–</td><td>IPC ≥ 2</td></tr>
+      <tr><td>Major IC</td><td>30</td><td>–</td><td>–</td><td>–</td><td>Originally controlled, IPC ≥ 3</td></tr>
+      <tr><td>Air Base</td><td>15</td><td>–</td><td>–</td><td>–</td><td>+1 movement for aircraft</td></tr>
+      <tr><td>Naval Base</td><td>15</td><td>–</td><td>–</td><td>–</td><td>+1 movement for ships</td></tr>
+    </table>
 
     <p style="margin-top:3rem;font-size:.8rem;color:var(--text-dim);text-align:center;">
-      Regler hentet fra <a href="https://axisallies.com/global-1940-second-edition-rules/" target="_blank" style="color:var(--blue)">axisallies.com</a> – oppdatert februar 2024.
+      <span class="lang-no">Regler hentet fra</span><span class="lang-en">Rules sourced from</span>
+      <a href="https://axisallies.com/global-1940-second-edition-rules/" target="_blank" style="color:var(--blue)">axisallies.com</a>
+      – <span class="lang-no">oppdatert februar 2024.</span><span class="lang-en">updated February 2024.</span>
     </p>
 
   </main>
 </div>
+
+<script>
+  'use strict';
+
+  function toggleRulesLang() {
+    const isEn = document.body.classList.toggle('lang-en');
+    document.getElementById('rulesLangBtn').textContent = isEn ? 'EN' : 'NO';
+    try { localStorage.setItem('rules_lang', isEn ? 'en' : 'no'); } catch (_) {}
+  }
+
+  function applyLang(lang) {
+    const isEn = lang === 'en';
+    document.body.classList.toggle('lang-en', isEn);
+    document.getElementById('rulesLangBtn').textContent = isEn ? 'EN' : 'NO';
+  }
+
+  // Restore from localStorage
+  try {
+    const saved = localStorage.getItem('rules_lang');
+    if (saved) applyLang(saved);
+  } catch (_) {}
+
+  // Listen for postMessage from parent frame
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.lang) applyLang(e.data.lang);
+  });
+</script>
 </body>
 </html>
