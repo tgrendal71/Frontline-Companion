@@ -55,6 +55,19 @@ function defaultState() {
   };
 }
 
+function seedFacilities() {
+  for (const [terrId, fac] of Object.entries(STARTING_FACILITIES)) {
+    if (!state.facilities[terrId]) {
+      state.facilities[terrId] = { ic: fac.ic, airBase: fac.airBase, navalBase: fac.navalBase };
+    }
+  }
+  for (const terrId of Object.keys(state.facilities)) {
+    if (!state.facilityDamage[terrId]) {
+      state.facilityDamage[terrId] = { ic: 0, airBase: 0, navalBase: 0 };
+    }
+  }
+}
+
 function getController(territoryId) {
   return state.territories[territoryId] ?? TERRITORIES.find(t => t.id === territoryId)?.startController ?? 'neutral';
 }
@@ -406,6 +419,7 @@ function importState(file) {
           });
         }
         state = loaded;
+        seedFacilities();
         // Force nation cards to be fully rebuilt (not just updated)
         const grid = document.getElementById('nationsGrid');
         if (grid) grid.dataset.built = '';
@@ -516,6 +530,7 @@ async function loadFromServer(encodedName) {
       });
     }
     state = loaded;
+    seedFacilities();
     const grid = document.getElementById('nationsGrid');
     if (grid) grid.dataset.built = '';
     saveState();
@@ -1702,11 +1717,27 @@ function stepMission(tid, mid, delta) {
   m.aaHits = null; m.survivors = null; m.damage = null;
   const el = document.getElementById('bomb-count-' + tid + '-' + mid);
   if (el) el.textContent = m.assigned;
-  const aaInput = document.getElementById('bomb-aa-hits-' + tid + '-' + mid);
-  if (aaInput) { aaInput.value = ''; aaInput.max = m.assigned; }
+  const aaValEl = document.getElementById('bomb-aa-val-' + tid + '-' + mid);
+  if (aaValEl) { aaValEl.value = ''; aaValEl.max = m.assigned; }
   updateMissionSurvivors(tid, mid);
   updateBombingTotal(tid);
   updateApplyAllBtn(tid);
+}
+
+function stepMissionAA(tid, mid, delta) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  onMissionAAInput(tid, mid, (m.aaHits ?? 0) + delta);
+  const el = document.getElementById('bomb-aa-val-' + tid + '-' + mid);
+  if (el) el.value = m.aaHits ?? 0;
+}
+
+function stepMissionDamage(tid, mid, delta) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m) return;
+  onMissionDamageInput(tid, mid, (m.damage ?? 0) + delta);
+  const el = document.getElementById('bomb-dmg-input-' + tid + '-' + mid);
+  if (el) el.value = m.damage ?? 0;
 }
 
 function updateBombingTotal(tid) {
@@ -1720,20 +1751,12 @@ function updateMissionTerr(tid, mid, terrId) {
   if (!m) return;
   m.terrId = terrId;
   m.aaHits = null; m.survivors = null; m.damage = null;
-  const facSel = document.getElementById('bomb-factype-' + tid + '-' + mid);
-  if (facSel && terrId) {
+  if (terrId) {
     const fac = getFacility(terrId);
-    const opts = [];
-    if (fac.ic)        opts.push('<option value="ic">Fabrikk (IC)</option>');
-    if (fac.airBase)   opts.push('<option value="airBase">Luftbase</option>');
-    if (fac.navalBase) opts.push('<option value="navalBase">Marinebase</option>');
-    if (opts.length) { facSel.innerHTML = opts.join(''); m.facType = facSel.value; }
+    m.facType = fac.ic ? 'ic' : fac.airBase ? 'airBase' : 'navalBase';
   }
-  const aaEl  = document.getElementById('bomb-aa-'  + tid + '-' + mid);
-  const dmgEl = document.getElementById('bomb-dmg-' + tid + '-' + mid);
-  if (aaEl)  aaEl.innerHTML  = '';
-  if (dmgEl) dmgEl.innerHTML = '';
   updateApplyAllBtn(tid);
+  renderBombingMissions(tid);
 }
 
 function updateMissionFacType(tid, mid, facType) {
@@ -1742,6 +1765,8 @@ function updateMissionFacType(tid, mid, facType) {
   m.facType = facType; m.damage = null;
   const dmgInput = document.getElementById('bomb-dmg-input-' + tid + '-' + mid);
   if (dmgInput) dmgInput.value = '';
+  document.querySelectorAll('#bomb-seg-fac-' + tid + '-' + mid + ' .bomb-seg-btn')
+    .forEach(btn => btn.classList.toggle('bomb-seg-active', btn.dataset.val === facType));
   updateMissionFacBar(tid, mid);
   updateApplyAllBtn(tid);
 }
@@ -1755,6 +1780,8 @@ function updateMissionFlyType(tid, mid, flyType) {
   // Update hint text
   const hintEl = document.getElementById('bomb-dmg-hint-' + tid + '-' + mid);
   if (hintEl) hintEl.textContent = flyType === 'strategic' ? t('bomb.damage_hint_strat') : t('bomb.damage_hint_tact');
+  document.querySelectorAll('#bomb-seg-fly-' + tid + '-' + mid + ' .bomb-seg-btn')
+    .forEach(btn => btn.classList.toggle('bomb-seg-active', btn.dataset.val === flyType));
   updateApplyAllBtn(tid);
 }
 
@@ -1813,6 +1840,9 @@ function updateMissionSurvivors(tid, mid) {
     badge.textContent = t('bomb.survivors_label') + ' ' + m.survivors;
     badge.className = 'bomb-survivors-badge' + (m.survivors === 0 ? ' bomb-survivors-zero' : '');
   }
+  // Sync AA stepper input value
+  const aaValEl = document.getElementById('bomb-aa-val-' + tid + '-' + mid);
+  if (aaValEl) aaValEl.value = m.aaHits ?? 0;
   // Disable damage input if no survivors
   const dmgWrap = document.getElementById('bomb-dmg-wrap-' + tid + '-' + mid);
   if (dmgWrap) dmgWrap.classList.toggle('bomb-input-disabled', m.survivors === 0);
@@ -1876,25 +1906,48 @@ function applyAllBombingDamage(tid) {
 
 function buildMissionRowHTML(tid, m, idx, bombTerrOpts) {
   const mid = m.id;
-  let facOpts = '<option value="ic">' + t('bomb.fac_ic') + '</option>'
-    + '<option value="airBase">' + t('bomb.fac_airbase') + '</option>'
-    + '<option value="navalBase">' + t('bomb.fac_navalbase') + '</option>';
+
+  // Target select with current value pre-selected
+  const terrOptsSel = m.terrId
+    ? bombTerrOpts.replace('value="' + m.terrId + '"', 'value="' + m.terrId + '" selected')
+    : bombTerrOpts;
+
+  // Facility segmented buttons \u2014 dim unavailable facilities if territory is selected
+  let facAvail = { ic: true, airBase: true, navalBase: true };
   if (m.terrId) {
     const fac = getFacility(m.terrId);
-    const opts = [];
-    if (fac.ic)        opts.push('<option value="ic"'        + (m.facType === 'ic'        ? ' selected' : '') + '>' + t('bomb.fac_ic')       + '</option>');
-    if (fac.airBase)   opts.push('<option value="airBase"'   + (m.facType === 'airBase'   ? ' selected' : '') + '>' + t('bomb.fac_airbase')  + '</option>');
-    if (fac.navalBase) opts.push('<option value="navalBase"' + (m.facType === 'navalBase' ? ' selected' : '') + '>' + t('bomb.fac_navalbase')+ '</option>');
-    if (opts.length) facOpts = opts.join('');
+    facAvail = { ic: !!fac.ic, airBase: !!fac.airBase, navalBase: !!fac.navalBase };
   }
-  const terrOptsSel = m.terrId ? bombTerrOpts.replace('value="' + m.terrId + '"', 'value="' + m.terrId + '" selected') : bombTerrOpts;
+  const facBtns = [
+    { val: 'ic',        label: '\uD83C\uDFED ' + t('bomb.fac_ic') },
+    { val: 'airBase',   label: '\u2708\uFE0F ' + t('bomb.fac_airbase') },
+    { val: 'navalBase', label: '\u2693 ' + t('bomb.fac_navalbase') },
+  ].map(b => {
+    const active  = m.facType === b.val ? ' bomb-seg-active' : '';
+    const unavail = !facAvail[b.val]   ? ' bomb-seg-unavail' : '';
+    return '<button type="button" class="bomb-seg-btn' + active + unavail + '" data-val="' + b.val
+      + '" onclick="updateMissionFacType(\'' + tid + '\',' + mid + ',\'' + b.val + '\')">' + b.label + '</button>';
+  }).join('');
+
+  // Fly type segmented buttons
+  const flyBtns = [
+    { val: 'strategic', label: t('bomb.strategic') },
+    { val: 'tactical',  label: t('bomb.tactical') },
+  ].map(b => {
+    const active = m.flyType === b.val ? ' bomb-seg-active' : '';
+    return '<button type="button" class="bomb-seg-btn' + active + '" data-val="' + b.val
+      + '" onclick="updateMissionFlyType(\'' + tid + '\',' + mid + ',\'' + b.val + '\')">' + b.label + '</button>';
+  }).join('');
+
+  // State for AA / survivors / damage
+  const aaVal = m.aaHits !== null ? m.aaHits : '';
   const survivorsText = m.survivors === null ? '\u2014' : String(m.survivors);
   const survivorsZero = m.survivors === 0;
-  const dmgDisabledAttr = survivorsZero ? ' disabled' : '';
-  const dmgWrapClass = 'bomb-input-group' + (survivorsZero ? ' bomb-input-disabled' : '');
+  const dmgVal = m.damage !== null ? m.damage : '';
+  const dmgWrapClass = 'bomb-section' + (survivorsZero ? ' bomb-input-disabled' : '');
   const dmgHint = m.flyType === 'strategic' ? t('bomb.damage_hint_strat') : t('bomb.damage_hint_tact');
 
-  // Facility HP bar (shown when territory and facility are selected)
+  // Facility HP bar (shown when territory is selected)
   let facBarHTML = '';
   if (m.terrId) {
     const fac = getFacility(m.terrId);
@@ -1926,55 +1979,65 @@ function buildMissionRowHTML(tid, m, idx, bombTerrOpts) {
   }
 
   return '<div class="bomb-mission" id="bomb-mission-' + tid + '-' + mid + '">'
+    // Header
     + '<div class="bomb-mission-hdr">'
-    + '<span class="bomb-mission-title">' + t('bomb.mission_title') + ' ' + (idx + 1) + '</span>'
+    + '<span class="bomb-mission-title">\uD83D\uDCA3 ' + t('bomb.mission_title') + ' ' + (idx + 1) + '</span>'
     + '<button type="button" class="btn btn-ghost btn-xs" onclick="removeBombingMission(\'' + tid + '\',' + mid + ')" title="' + t('bomb.remove_title') + '">\uD83D\uDDD1</button>'
     + '</div>'
-    // Target
-    + '<div class="bombing-row"><label class="bombing-label">' + t('bomb.target') + '</label>'
-    + '<select class="bombing-select" id="bomb-terr-' + tid + '-' + mid + '" onchange="updateMissionTerr(\'' + tid + '\',' + mid + ',this.value)">'
-    + terrOptsSel + '</select></div>'
-    // Facility
-    + '<div class="bombing-row"><label class="bombing-label">' + t('bomb.facility') + '</label>'
-    + '<select class="bombing-select" id="bomb-factype-' + tid + '-' + mid + '" onchange="updateMissionFacType(\'' + tid + '\',' + mid + ',this.value)">'
-    + facOpts + '</select></div>'
-    // Aircraft type
-    + '<div class="bombing-row"><label class="bombing-label">' + t('bomb.fly_type') + '</label>'
-    + '<select class="bombing-select" id="bomb-flytype-' + tid + '-' + mid + '" onchange="updateMissionFlyType(\'' + tid + '\',' + mid + ',this.value)">'
-    + '<option value="strategic"' + (m.flyType === 'strategic' ? ' selected' : '') + '>' + t('bomb.strategic') + '</option>'
-    + '<option value="tactical"'  + (m.flyType === 'tactical'  ? ' selected' : '') + '>' + t('bomb.tactical')  + '</option>'
-    + '</select></div>'
-    // Bomber count
-    + '<div class="bombing-row"><label class="bombing-label">' + t('bomb.bomber_count') + '</label>'
-    + '<div class="pc-qty-ctrl">'
-    + '<button type="button" class="btn btn-ghost btn-sm" onclick="stepMission(\'' + tid + '\',' + mid + ',-1)">\u2212</button>'
-    + '<span class="pc-qty" id="bomb-count-' + tid + '-' + mid + '">' + m.assigned + '</span>'
-    + '<button type="button" class="btn btn-ghost btn-sm" onclick="stepMission(\'' + tid + '\',' + mid + ',+1)">+</button>'
-    + '</div></div>'
-    // Manual inputs section
-    + '<div class="bomb-manual-inputs">'
-    // AA hits
-    + '<div class="bomb-input-group">'
-    + '<label class="bomb-input-label" for="bomb-aa-hits-' + tid + '-' + mid + '">'
-    + t('bomb.aa_hits_label')
-    + '<span class="bomb-hint">' + t('bomb.aa_hint') + '</span></label>'
-    + '<input type="number" class="bomb-number-input" id="bomb-aa-hits-' + tid + '-' + mid + '"'
-    + ' min="0" max="' + m.assigned + '" value="' + (m.aaHits !== null ? m.aaHits : '') + '"'
-    + ' placeholder="0" title="' + t('bomb.aa_hits_label') + '"'
-    + ' oninput="onMissionAAInput(\'' + tid + '\',' + mid + ',this.value)">'
+    // M\u00C5L \u2014 full-width target select
+    + '<div class="bomb-section">'
+    + '<div class="bomb-section-label">' + t('bomb.target') + '</div>'
+    + '<select class="bomb-target-select" id="bomb-terr-' + tid + '-' + mid + '" onchange="updateMissionTerr(\'' + tid + '\',' + mid + ',this.value)">'
+    + terrOptsSel + '</select>'
+    + '</div>'
+    // FASILITET \u2014 segmented buttons
+    + '<div class="bomb-section">'
+    + '<div class="bomb-section-label">' + t('bomb.facility') + '</div>'
+    + '<div class="bomb-seg-group" id="bomb-seg-fac-' + tid + '-' + mid + '">' + facBtns + '</div>'
+    + '</div>'
+    // FLYTYPE + ANTALL FLY \u2014 2-col grid
+    + '<div class="bomb-config-row">'
+    + '<div class="bomb-section">'
+    + '<div class="bomb-section-label">' + t('bomb.fly_type') + '</div>'
+    + '<div class="bomb-seg-group" id="bomb-seg-fly-' + tid + '-' + mid + '">' + flyBtns + '</div>'
+    + '</div>'
+    + '<div class="bomb-section">'
+    + '<div class="bomb-section-label">' + t('bomb.bomber_count') + '</div>'
+    + '<div class="bomb-stepper">'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepMission(\'' + tid + '\',' + mid + ',-1)">\u2212</button>'
+    + '<span class="bomb-stepper-val" id="bomb-count-' + tid + '-' + mid + '">' + m.assigned + '</span>'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepMission(\'' + tid + '\',' + mid + ',+1)">+</button>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+    // \u2500\u2500 Dice roll divider \u2500\u2500
+    + '<div class="bomb-dice-divider">' + t('bomb.dice_divider') + '</div>'
+    // AA-TREFF
+    + '<div class="bomb-section">'
+    + '<div class="bomb-section-header">'
+    + '<span class="bomb-section-label" style="margin:0">' + t('bomb.aa_hits_label') + '</span>'
+    + '<span class="bomb-hint">' + t('bomb.aa_hint') + '</span>'
+    + '</div>'
+    + '<div class="bomb-stepper-row">'
+    + '<div class="bomb-stepper">'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepMissionAA(\'' + tid + '\',' + mid + ',-1)">\u2212</button>'
+    + '<input type="number" class="bomb-stepper-input" id="bomb-aa-val-' + tid + '-' + mid + '" min="0" max="' + m.assigned + '" value="' + aaVal + '" oninput="onMissionAAInput(\'' + tid + '\',' + mid + ',this.value)">'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepMissionAA(\'' + tid + '\',' + mid + ',+1)">+</button>'
+    + '</div>'
     + '<span class="bomb-survivors-badge' + (survivorsZero ? ' bomb-survivors-zero' : '') + '" id="bomb-survivors-' + tid + '-' + mid + '">'
     + t('bomb.survivors_label') + ' ' + survivorsText + '</span>'
     + '</div>'
-    // Damage
+    + '</div>'
+    // SKADE P\u00C5F\u00D8RT
     + '<div class="' + dmgWrapClass + '" id="bomb-dmg-wrap-' + tid + '-' + mid + '">'
-    + '<label class="bomb-input-label" for="bomb-dmg-input-' + tid + '-' + mid + '">'
-    + t('bomb.damage_label')
-    + '<span class="bomb-hint" id="bomb-dmg-hint-' + tid + '-' + mid + '">' + dmgHint + '</span></label>'
-    + '<input type="number" class="bomb-number-input" id="bomb-dmg-input-' + tid + '-' + mid + '"'
-    + ' min="0" value="' + (m.damage !== null ? m.damage : '') + '"'
-    + ' placeholder="0" title="' + t('bomb.damage_label') + '"'
-    + dmgDisabledAttr
-    + ' oninput="onMissionDamageInput(\'' + tid + '\',' + mid + ',this.value)">'
+    + '<div class="bomb-section-header">'
+    + '<span class="bomb-section-label" style="margin:0">' + t('bomb.damage_label') + '</span>'
+    + '<span class="bomb-hint" id="bomb-dmg-hint-' + tid + '-' + mid + '">' + dmgHint + '</span>'
+    + '</div>'
+    + '<div class="bomb-stepper">'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepMissionDamage(\'' + tid + '\',' + mid + ',-1)">\u2212</button>'
+    + '<input type="number" class="bomb-stepper-input" id="bomb-dmg-input-' + tid + '-' + mid + '" min="0" value="' + dmgVal + '" oninput="onMissionDamageInput(\'' + tid + '\',' + mid + ',this.value)">'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepMissionDamage(\'' + tid + '\',' + mid + ',+1)">+</button>'
     + '</div>'
     + '</div>'
     // Facility HP bar
@@ -3471,6 +3534,7 @@ function closeNewGameModal() {
 }
 function startNewGame() {
   state = defaultState();
+  seedFacilities();
   saveState();
   // Reset built flag so nation cards are rebuilt
   const ng = document.getElementById('nationsGrid');
@@ -3897,18 +3961,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   state = loadState() || defaultState();
 
-  // Seed starting facilities from STARTING_FACILITIES if state.facilities is empty
-  if (Object.keys(state.facilities).length === 0) {
-    for (const [terrId, fac] of Object.entries(STARTING_FACILITIES)) {
-      state.facilities[terrId] = { ic: fac.ic, airBase: fac.airBase, navalBase: fac.navalBase };
-    }
-  }
-  // Ensure facilityDamage exists for each territory that has facilities
-  for (const terrId of Object.keys(state.facilities)) {
-    if (!state.facilityDamage[terrId]) {
-      state.facilityDamage[terrId] = { ic: 0, airBase: 0, navalBase: 0 };
-    }
-  }
+  seedFacilities();
   saveState();
 
   // Keep header and tab-bar fixed; push main content down accordingly

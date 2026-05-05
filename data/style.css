@@ -3663,6 +3663,96 @@ main {
   color: var(--gold);
 }
 
+/* ── Bombing card sections ─────────────────────────────────── */
+.bomb-section { padding: .4rem 0; }
+.bomb-section + .bomb-section { border-top: 1px solid var(--border); }
+.bomb-section-label {
+  font-size: .65rem; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: .3rem;
+}
+.bomb-section-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: .3rem;
+}
+
+/* ── Bombing target select ─────────────────────────────────── */
+.bomb-target-select {
+  width: 100%; min-height: 44px; padding: .4rem .65rem;
+  font-size: .85rem; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); cursor: pointer; box-sizing: border-box;
+}
+.bomb-target-select:focus { outline: none; border-color: var(--gold); }
+
+/* ── Segmented buttons ─────────────────────────────────────── */
+.bomb-seg-group { display: flex; gap: .3rem; }
+.bomb-seg-btn {
+  flex: 1; min-height: 42px; padding: .35rem .25rem;
+  font-size: .74rem; font-weight: 600; text-align: center; line-height: 1.2;
+  background: var(--bg3); border: 2px solid var(--border);
+  border-radius: 8px; color: var(--text-dim); cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.bomb-seg-btn:active { transform: scale(.96); }
+.bomb-seg-btn.bomb-seg-active {
+  border-color: var(--gold); color: var(--gold);
+  background: color-mix(in srgb, var(--bg3) 82%, var(--gold) 8%);
+}
+.bomb-seg-btn.bomb-seg-unavail { opacity: .22; pointer-events: none; }
+
+/* ── 2-col config row ──────────────────────────────────────── */
+.bomb-config-row { display: grid; grid-template-columns: 1fr auto; gap: .5rem; align-items: start; }
+
+/* ── Steppers ──────────────────────────────────────────────── */
+.bomb-stepper     { display: flex; align-items: center; gap: .4rem; }
+.bomb-stepper-row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.bomb-stepper-btn {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  font-size: 1.3rem; font-weight: 700; line-height: 1;
+  background: var(--bg3); border: 2px solid var(--border);
+  color: var(--text-dim); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, color .15s;
+}
+.bomb-stepper-btn:hover  { border-color: var(--gold); color: var(--gold); }
+.bomb-stepper-btn:active { transform: scale(.91); }
+.bomb-stepper-val {
+  min-width: 32px; text-align: center;
+  font-size: 1.3rem; font-weight: 700; color: var(--text);
+}
+.bomb-stepper-input {
+  width: 56px; min-height: 44px; text-align: center;
+  font-size: 1.2rem; font-weight: 700; border-radius: 8px;
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.bomb-stepper-input::-webkit-inner-spin-button,
+.bomb-stepper-input::-webkit-outer-spin-button { display: none; }
+.bomb-stepper-input:focus { outline: none; border-color: var(--gold); }
+
+/* ── Dice roll divider ─────────────────────────────────────── */
+.bomb-dice-divider {
+  display: flex; align-items: center; gap: .5rem; margin: .3rem 0;
+  color: var(--text-muted); font-size: .65rem; letter-spacing: .07em;
+  text-transform: uppercase; font-weight: 600;
+}
+.bomb-dice-divider::before,
+.bomb-dice-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Disabled damage section ───────────────────────────────── */
+.bomb-input-disabled .bomb-stepper-btn,
+.bomb-input-disabled .bomb-stepper-input { opacity: .35; pointer-events: none; }
+
+/* ── Survivors badge ───────────────────────────────────────── */
+.bomb-survivors-badge { font-size: .82rem; color: var(--text-dim); white-space: nowrap; }
+.bomb-survivors-zero  { color: var(--red); font-weight: 700; }
+
+/* ── Small screen: stack config row ───────────────────────── */
+@media (max-width: 480px) {
+  .bomb-config-row { grid-template-columns: 1fr; }
+  .bomb-stepper-btn { width: 44px; height: 44px; }
+}
+
 /* ── Battle board — manual hit inputs ───────────────────────── */
 .battle-hit-inputs {
   display: flex;

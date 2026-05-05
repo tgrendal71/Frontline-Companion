@@ -165,6 +165,7 @@ const UI_TEXT = {
     'bomb.fac_label.minor_ic': 'Liten fabrikk (IC)',
     'bomb.fac_label.airbase':  'Luftbase',
     'bomb.fac_label.navalbase':'Marinebase',
+    'bomb.dice_divider':       'Etter terningkast',
 
     // ── Rockets ──────────────────────────────────────────────────
     'rocket.section_title':    '🚀 Raketter',
@@ -636,6 +637,7 @@ const UI_TEXT = {
     'bomb.fac_label.minor_ic': 'Minor Factory (IC)',
     'bomb.fac_label.airbase':  'Air Base',
     'bomb.fac_label.navalbase':'Naval Base',
+    'bomb.dice_divider':       'After dice roll',
 
     // ── Rockets ──────────────────────────────────────────────────
     'rocket.section_title':    '🚀 Rockets',
