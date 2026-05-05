@@ -1321,7 +1321,7 @@ function buildNationCard(tid) {
   ensureBombingMissions(tid);
   const bombTerrOptsWithBlank = `<option value="">${t('bomb.target_ph')}</option>` + bombTerrOptions;
   const initialMissionsHTML = bombingMissions[tid].map((m, idx) => buildMissionRowHTML(tid, m, idx, bombTerrOptsWithBlank)).join('');
-  const bombingHasAnyDamage = bombingMissions[tid].some(m => m.damage > 0 && m.survivors > 0);
+  const bombingHasAnyDamage = bombingMissions[tid].some(m => m.damage > 0 && (m.survivors === null || m.survivors > 0));
   const bombingTotalAllokert = bombingMissions[tid].reduce((s, m) => s + (m.assigned || 1), 0);
   const fase3Block = `
   <div class="phase-block${p3Done ? ' phase-done' : ''}" id="pb-p3-${tid}">
@@ -1601,20 +1601,20 @@ function buildRepairDetailHTML(tid) {
     if (tid === 'uk_pacific') {
       const ukeDamaged = getDamagedFacilitiesForNation('uk_europe');
       if (ukeDamaged.length) {
-        return '<div class="repair-empty">Ingen skadede fasiliteter for UK Pacific.</div>' +
-          '<div class="repair-empty">Skade i London/UK Europe vises under UKE-kortet. ' +
-          '<button class="btn btn-ghost btn-sm" onclick="switchTab(\'nations\');scrollToNation(\'uk_europe\')">G\u00E5 til UKE</button></div>';
+        return '<div class="repair-empty">' + t('repair.ukp_no_damage') + '</div>' +
+          '<div class="repair-empty">' + t('repair.ukp_redir') + ' ' +
+          '<button class="btn btn-ghost btn-sm" onclick="switchTab(\'nations\');scrollToNation(\'uk_europe\')">' + t('repair.goto_uke') + '</button></div>';
       }
     }
     if (tid === 'uk_europe') {
       const ukpDamaged = getDamagedFacilitiesForNation('uk_pacific');
       if (ukpDamaged.length) {
-        return '<div class="repair-empty">Ingen skadede fasiliteter for UK Europe.</div>' +
-          '<div class="repair-empty">Skade i India/UK Pacific vises under UKP-kortet. ' +
-          '<button class="btn btn-ghost btn-sm" onclick="switchTab(\'nations\');scrollToNation(\'uk_pacific\')">G\u00E5 til UKP</button></div>';
+        return '<div class="repair-empty">' + t('repair.uke_no_damage') + '</div>' +
+          '<div class="repair-empty">' + t('repair.uke_redir') + ' ' +
+          '<button class="btn btn-ghost btn-sm" onclick="switchTab(\'nations\');scrollToNation(\'uk_pacific\')">' + t('repair.goto_ukp') + '</button></div>';
       }
     }
-    return '<div class="repair-empty">Ingen skadede fasiliteter.</div>';
+    return '<div class="repair-empty">' + t('repair.no_damage') + '</div>';
   }
   const hasIFP = state.nations[tid].technologies.includes('comb_bombardment');
   const plan = getRepairPlan(tid);
@@ -1622,10 +1622,10 @@ function buildRepairDetailHTML(tid) {
     const key = repairKey(d.terrId, d.type);
     const selected = Math.min(plan[key] || 0, d.damage);
     const repairCost = hasIFP ? Math.ceil(selected / 2) : selected;
-    const operative = (d.type !== 'ic' && d.damage >= 6) ? ' <span class="inoperative-badge">Inoperativ</span>' : '';
+    const operative = (d.type !== 'ic' && d.damage >= 6) ? ' <span class="inoperative-badge">' + t('repair.inoperative') + '</span>' : '';
     return `<div class="repair-fac-row">
       <span class="repair-fac-name">${d.label} \u2014 ${d.terrName}${operative}</span>
-      <span class="repair-fac-dmg">${d.damage}/${d.maxDamage} skade</span>
+      <span class="repair-fac-dmg">${t('repair.dmg_label', { cur: d.damage, max: d.maxDamage })}</span>
       <div class="pc-qty-ctrl repair-qty-ctrl">
         <button class="btn btn-ghost btn-sm" onclick="stepRepairTarget('${tid}','${d.terrId}','${d.type}',-1)">−</button>
         <span class="pc-qty">${selected}</span>
@@ -1786,7 +1786,7 @@ function updateMissionFlyType(tid, mid, flyType) {
 }
 
 function updateApplyAllBtn(tid) {
-  const hasAny = (bombingMissions[tid] || []).some(m => m.damage > 0 && m.survivors > 0);
+  const hasAny = (bombingMissions[tid] || []).some(m => m.damage > 0 && (m.survivors === null || m.survivors > 0));
   const btn = document.getElementById('bomb-apply-all-' + tid);
   if (btn) btn.style.display = hasAny ? '' : 'none';
 }
@@ -1879,7 +1879,7 @@ function updateMissionFacBar(tid, mid) {
 }
 
 function applyAllBombingDamage(tid) {
-  const missions = (bombingMissions[tid] || []).filter(m => m.damage > 0 && m.survivors > 0);
+  const missions = (bombingMissions[tid] || []).filter(m => m.damage > 0 && (m.survivors === null || m.survivors > 0));
   if (!missions.length) { toast(t('toast.no_damage'), 'error'); return; }
   const affectedControllers = new Set();
   const summary = [];
@@ -2326,6 +2326,8 @@ function updateNationCards() {
     updateRDPanel(tid);
     updateNationCardDoneState(tid);
     refreshObjectivesSection(tid);
+    const repairEl = document.getElementById('pc-repair-detail-' + tid);
+    if (repairEl) repairEl.innerHTML = buildRepairDetailHTML(tid);
   });
 }
 
