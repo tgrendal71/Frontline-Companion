@@ -57,7 +57,7 @@ body {
 a { color: var(--gold); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-button { cursor: pointer; font-family: inherit; }
+button { cursor: pointer; font-family: inherit; touch-action: manipulation; }
 
 input, select, textarea {
   font-family: inherit;
@@ -266,6 +266,18 @@ header > .logo {
 .btn-success:hover { background: #166534; }
 .btn-accent    { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb; }
 .btn-accent:hover  { background: #2563eb; }
+
+/* Active/pressed states — instant haptic-like feedback on touch */
+.btn:active              { opacity: .75; transform: scale(.96); }
+.tab-btn:active          { background: var(--bg3); }
+.turn-node:active        { transform: scale(.94); }
+.phase-block-hdr:active  { background: var(--bg3); }
+.phase-item:active,
+.phase-row:active        { background: var(--bg3); }
+.ong-row:active,
+.oc-nat-row:active,
+.overview-nation-row:active { background: var(--bg3); }
+.history-entry-header:active { background: var(--border); }
 
 /* ── Tab Nav ───────────────────────────────────────────────── */
 .tab-bar {
@@ -522,13 +534,6 @@ main {
   .oc-nations { max-height: 340px; }
 }
 
-/* ── Overview grid (keeping for side panels if still used) ──── */
-.ov-dashboard {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
 
 .side-panel {
   background: var(--bg2);
@@ -2789,13 +2794,19 @@ main {
   .territory-table { display: block; overflow-x: auto; }
 }
 
+/* ── Bottom Navigation (mobile only) ──────────────────────── */
+.bottom-nav { display: none; } /* hidden on tablet/desktop */
+
 /* ── Responsive: Mobile only (<640px) ─────────────────────── */
 @media (max-width: 639px) {
   .overview-grid  { grid-template-columns: 1fr; }
   .vc-summary     { flex-direction: column; align-items: center; }
   .tech-chart-grid { grid-template-columns: 1fr; }
   .nc-header-fields { flex-wrap: wrap; }
-  .nc-header-left   { min-width: 140px; max-width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  /* Nation card header: stack flag/name block above the field columns on small phones */
+  .nation-card-header { flex-wrap: wrap; }
+  .nc-header-left   { min-width: 0; max-width: 100%; width: 100%; flex-basis: 100%;
+                       border-right: none; border-bottom: 1px solid var(--border); }
   .territory-table { display: block; overflow-x: auto; }
   .vc-grid        { grid-template-columns: 1fr 1fr; }
 
@@ -2813,6 +2824,70 @@ main {
 
   /* D: Hide erobret/mistet header fields — already visible in card body */
   .nchf-terr-block { display: none; }
+
+  /* ── Hide top tab-bar; use bottom nav instead ────────────── */
+  .tab-bar { display: none; }
+
+  /* ── Bottom navigation ─────────────────────────────────────
+     Fixed at bottom, icon + label layout, safe-area aware.   */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: var(--bg2);
+    border-top: 2px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0,0,0,.55);
+    /* iOS notch / home-bar clearance */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .bottom-nav::-webkit-scrollbar { display: none; }
+
+  .bottom-nav .tab-btn {
+    flex: 1 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: .4rem .25rem .3rem;
+    gap: .15rem;
+    border-bottom: none;
+    border-top: 2px solid transparent;
+    font-size: .58rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .bottom-nav .tab-btn:hover { color: var(--text-dim); }
+  .bottom-nav .tab-btn.active {
+    color: var(--gold);
+    border-bottom-color: transparent;
+    border-top-color: var(--gold);
+    font-weight: 700;
+  }
+  .bottom-nav .bn-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bottom-nav .bn-label { font-size: .58rem; }
+
+  /* Push main content above the bottom nav */
+  main {
+    padding-bottom: calc(var(--bottom-nav-h, 62px) + .75rem);
+  }
+
+  /* Push toasts above the bottom nav */
+  .toast-container {
+    bottom: calc(var(--bottom-nav-h, 62px) + .6rem);
+  }
 }
 
 /* ── Print ─────────────────────────────────────────────────── */

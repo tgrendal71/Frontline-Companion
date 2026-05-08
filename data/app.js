@@ -3966,14 +3966,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   seedFacilities();
   saveState();
 
-  // Keep header and tab-bar fixed; push main content down accordingly
+  // Keep header and tab-bar fixed; push main content down accordingly.
+  // On mobile (<640px) the tab-bar moves to the bottom — only count header height for the top spacer,
+  // and expose --bottom-nav-h so CSS can push content above the bottom nav.
   const syncHeaderHeight = () => {
     const hdr = document.querySelector('header');
     const tab = document.querySelector('.tab-bar');
-    const hh = hdr?.offsetHeight ?? 60;
-    const th = tab?.offsetHeight ?? 44;
-    document.documentElement.style.setProperty('--header-h', hh + 'px');
-    document.documentElement.style.setProperty('--top-h', (hh + th) + 'px');
+    const bn  = document.querySelector('.bottom-nav');
+    const hh  = hdr?.offsetHeight ?? 60;
+    const isMobile = window.innerWidth < 640;
+    const th  = isMobile ? 0 : (tab?.offsetHeight ?? 44);
+    const bnh = isMobile ? (bn?.offsetHeight ?? 62) : 0;
+    document.documentElement.style.setProperty('--header-h',    hh  + 'px');
+    document.documentElement.style.setProperty('--top-h',       (hh + th) + 'px');
+    document.documentElement.style.setProperty('--bottom-nav-h', bnh + 'px');
   };
   syncHeaderHeight();
   window.addEventListener('resize', syncHeaderHeight);

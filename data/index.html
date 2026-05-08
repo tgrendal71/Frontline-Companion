@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>A&amp;A Global 1940 — Game Tracker</title>
   <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="4" fill="%230d1117"/><text x="16" y="22" font-size="20" text-anchor="middle" fill="%23f59e0b" font-family="serif">⚔</text></svg>'>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Frontline">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -41,7 +46,7 @@
       </details>
     </header>
 
-    <!-- ══════════════ TAB NAV ══════════════ -->
+    <!-- ══════════════ TAB NAV (tablet/desktop) ══════════════ -->
     <nav class="tab-bar" role="tablist">
       <button class="tab-btn active" data-tab="overview"    role="tab">📊 <span data-i18n="nav.overview">Oversikt</span></button>
       <button class="tab-btn"        data-tab="nations"     role="tab">🌍 <span data-i18n="nav.nations">Nasjoner</span></button>
@@ -50,6 +55,38 @@
       <button class="tab-btn"        data-tab="history"     role="tab">📜 <span data-i18n="nav.history">Historikk</span></button>
       <button class="tab-btn"        data-tab="battle"      role="tab">⚔️ <span data-i18n="nav.battle">Slag</span></button>
       <button class="tab-btn"        data-tab="setup"       role="tab">🎯 <span data-i18n="nav.setup">Oppsett</span></button>
+    </nav>
+
+    <!-- ══════════════ BOTTOM NAV (mobile only) ══════════════ -->
+    <nav class="bottom-nav" role="tablist" aria-label="Navigasjon">
+      <button class="tab-btn active" data-tab="overview" role="tab">
+        <span class="bn-icon">📊</span>
+        <span class="bn-label" data-i18n="nav.overview">Oversikt</span>
+      </button>
+      <button class="tab-btn" data-tab="nations" role="tab">
+        <span class="bn-icon">🌍</span>
+        <span class="bn-label" data-i18n="nav.nations">Nasjoner</span>
+      </button>
+      <button class="tab-btn" data-tab="territories" role="tab">
+        <span class="bn-icon">🗺️</span>
+        <span class="bn-label" data-i18n="nav.territories">Territorier</span>
+      </button>
+      <button class="tab-btn" data-tab="battle" role="tab">
+        <span class="bn-icon">⚔️</span>
+        <span class="bn-label" data-i18n="nav.battle">Slag</span>
+      </button>
+      <button class="tab-btn" data-tab="history" role="tab">
+        <span class="bn-icon">📜</span>
+        <span class="bn-label" data-i18n="nav.history">Historikk</span>
+      </button>
+      <button class="tab-btn" data-tab="rules" role="tab">
+        <span class="bn-icon">📚</span>
+        <span class="bn-label" data-i18n="nav.rules">Regler</span>
+      </button>
+      <button class="tab-btn" data-tab="setup" role="tab">
+        <span class="bn-icon">🎯</span>
+        <span class="bn-label" data-i18n="nav.setup">Oppsett</span>
+      </button>
     </nav>
 
     <!-- ══════════════ MAIN ══════════════ -->
