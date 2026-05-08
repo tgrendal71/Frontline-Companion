@@ -1240,23 +1240,38 @@ function buildNationCard(tid) {
     } else {
       const baseRows = operativeAirBases.map(ab => {
         const abDmg = getFacilityDamage(ab.terrId).airBase || 0;
-        const dmgSpan = abDmg > 0 ? '<span class="facility-dmg-badge">' + t('fac.badge.damage', { n: abDmg + '/6' }) + '</span>' : '';
-        return '<div class="rocket-base-row">' +
-          '<span class="rocket-base-name">✈️ ' + ab.terrName + '</span>' +
-          dmgSpan +
-          '<select class="rocket-target-sel" id="rocket-target-' + tid + '-' + ab.terrId + '">' +
-          '<option value="">' + t('bomb.target_ph') + '</option>' +
-          rocketTargetOptions +
-          '</select>' +
-          '<select class="rocket-factype-sel" id="rocket-factype-' + tid + '-' + ab.terrId + '">' +
-          '<option value="ic">' + t('bomb.fac_ic') + '</option>' +
-          '<option value="airBase">' + t('bomb.fac_airbase') + '</option>' +
-          '<option value="navalBase">' + t('bomb.fac_navalbase') + '</option>' +
-          '</select>' +
-          '<label class="rocket-dmg-label">' + t('rocket.damage_label') + '</label>' +
-          '<input type="number" class="rocket-dmg-input" id="rocket-dmg-' + tid + '-' + ab.terrId + '" min="1" max="6" placeholder="' + t('rocket.damage_ph') + '" title="' + t('rocket.damage_label') + '">' +
-          '<button type="button" class="btn btn-sm btn-danger" onclick="launchRocket(\'' + tid + '\',\'' + ab.terrId + '\')">' + t('rocket.launch_btn') + '</button>' +
-          '</div>';
+        const dmgBadge = abDmg > 0 ? ' <span class="damage-badge">' + t('fac.badge.damage', { n: abDmg + '/6' }) + '</span>' : '';
+        const ftid = tid, fterrId = ab.terrId;
+        return '<div class="rocket-base-card">'
+          + '<div class="bomb-mission-hdr"><span class="rocket-base-name">🚀 ' + ab.terrName + dmgBadge + '</span></div>'
+          + '<div class="bomb-section">'
+          + '<div class="bomb-section-label">' + t('bomb.target') + '</div>'
+          + '<select class="bomb-target-select" id="rocket-target-' + ftid + '-' + fterrId + '">'
+          + '<option value="">' + t('bomb.target_ph') + '</option>'
+          + rocketTargetOptions
+          + '</select>'
+          + '</div>'
+          + '<div class="bomb-section">'
+          + '<div class="bomb-section-label">' + t('bomb.facility') + '</div>'
+          + '<div class="seg-group" id="rocket-seg-fac-' + ftid + '-' + fterrId + '">'
+          + '<button class="seg-btn seg-active" data-val="ic" onclick="updateRocketFacType(\'' + ftid + '\',\'' + fterrId + '\',\'ic\')">' + t('bomb.fac_ic') + '</button>'
+          + '<button class="seg-btn" data-val="airBase" onclick="updateRocketFacType(\'' + ftid + '\',\'' + fterrId + '\',\'airBase\')">' + t('bomb.fac_airbase') + '</button>'
+          + '<button class="seg-btn" data-val="navalBase" onclick="updateRocketFacType(\'' + ftid + '\',\'' + fterrId + '\',\'navalBase\')">' + t('bomb.fac_navalbase') + '</button>'
+          + '</div>'
+          + '<input type="hidden" id="rocket-factype-' + ftid + '-' + fterrId + '" value="ic">'
+          + '</div>'
+          + '<div class="bomb-section">'
+          + '<div class="section-header"><span class="bomb-section-label">' + t('rocket.damage_label') + '</span><span class="section-hint">1–6</span></div>'
+          + '<div class="stepper">'
+          + '<button class="stepper-btn" onclick="stepRocketDmg(\'' + ftid + '\',\'' + fterrId + '\',-1)">−</button>'
+          + '<input type="number" class="stepper-input" id="rocket-dmg-' + ftid + '-' + fterrId + '" min="1" max="6" value="1">'
+          + '<button class="stepper-btn" onclick="stepRocketDmg(\'' + ftid + '\',\'' + fterrId + '\',1)">+</button>'
+          + '</div>'
+          + '</div>'
+          + '<div style="padding:.4rem 0">'
+          + '<button type="button" class="btn btn-primary" style="width:100%" onclick="launchRocket(\'' + ftid + '\',\'' + fterrId + '\')">' + t('rocket.launch_btn') + '</button>'
+          + '</div>'
+          + '</div>';
       }).join('');
       rocketsBodyHTML = '<div class="rockets-section" id="rockets-body-' + tid + '">' + baseRows + '</div>';
     }
@@ -1407,12 +1422,12 @@ function buildNationCard(tid) {
       <div class="pc-unit-row income-stepper-row adj-treasury-row">
         <span class="pc-unit-name">${t('nc.manual_adj')}</span>
         <span class="pc-unit-cost" style="color:var(--text-dim)">± IPC</span>
-        <div class="pc-qty-ctrl" style="gap:.15rem">
-          <button class="btn btn-ghost btn-sm" onclick="stepManualAdjust('${tid}', -5)" title="Trekk fra 5 IPC">−5</button>
-          <button class="btn btn-ghost btn-sm" onclick="stepManualAdjust('${tid}', -1)" title="Trekk fra 1 IPC">−1</button>
+        <div class="pc-qty-ctrl adj-qty-ctrl">
+          <button class="btn btn-ghost adj-btn" onclick="stepManualAdjust('${tid}', -5)" title="${t('nc.adj_minus5')}">−5</button>
+          <button class="btn btn-ghost adj-btn" onclick="stepManualAdjust('${tid}', -1)" title="${t('nc.adj_minus1')}">−1</button>
           <span class="pc-qty" id="manualadjust-${tid}">${ns.manualAdjust || 0}</span>
-          <button class="btn btn-ghost btn-sm" onclick="stepManualAdjust('${tid}', +1)" title="Legg til 1 IPC">+1</button>
-          <button class="btn btn-ghost btn-sm" onclick="stepManualAdjust('${tid}', +5)" title="Legg til 5 IPC">+5</button>
+          <button class="btn btn-ghost adj-btn" onclick="stepManualAdjust('${tid}', +1)" title="${t('nc.adj_plus1')}">+1</button>
+          <button class="btn btn-ghost adj-btn" onclick="stepManualAdjust('${tid}', +5)" title="${t('nc.adj_plus5')}">+5</button>
         </div>
       </div>
       <div class="nc-income-hero">
@@ -1622,16 +1637,21 @@ function buildRepairDetailHTML(tid) {
     const key = repairKey(d.terrId, d.type);
     const selected = Math.min(plan[key] || 0, d.damage);
     const repairCost = hasIFP ? Math.ceil(selected / 2) : selected;
-    const operative = (d.type !== 'ic' && d.damage >= 6) ? ' <span class="inoperative-badge">' + t('repair.inoperative') + '</span>' : '';
+    const inopBadge = (d.type !== 'ic' && d.damage >= 6)
+      ? ' <span class="inoperative-badge">' + t('repair.inoperative') + '</span>' : '';
     return `<div class="repair-fac-row">
-      <span class="repair-fac-name">${d.label} \u2014 ${d.terrName}${operative}</span>
-      <span class="repair-fac-dmg">${t('repair.dmg_label', { cur: d.damage, max: d.maxDamage })}</span>
-      <div class="pc-qty-ctrl repair-qty-ctrl">
-        <button class="btn btn-ghost btn-sm" onclick="stepRepairTarget('${tid}','${d.terrId}','${d.type}',-1)">−</button>
-        <span class="pc-qty">${selected}</span>
-        <button class="btn btn-ghost btn-sm" onclick="stepRepairTarget('${tid}','${d.terrId}','${d.type}',1)">+</button>
+      <div class="repair-fac-header">
+        <span class="repair-fac-name">${d.label} — ${d.terrName}${inopBadge}</span>
+        <span class="repair-fac-dmg">${t('repair.dmg_label', { cur: d.damage, max: d.maxDamage })}</span>
       </div>
-      <span class="repair-fac-cost">${repairCost > 0 ? repairCost + ' IPC' : '—'}</span>
+      <div class="repair-fac-controls">
+        <div class="stepper">
+          <button class="stepper-btn compact" onclick="stepRepairTarget('${tid}','${d.terrId}','${d.type}',-1)">−</button>
+          <span class="stepper-val compact">${selected}</span>
+          <button class="stepper-btn compact" onclick="stepRepairTarget('${tid}','${d.terrId}','${d.type}',1)">+</button>
+        </div>
+        <span class="repair-fac-cost">${repairCost > 0 ? repairCost + ' IPC' : '—'}</span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -2064,6 +2084,19 @@ function renderBombingMissions(tid) {
   updateApplyAllBtn(tid);
 }
 
+function updateRocketFacType(tid, sourceTerrId, val) {
+  const hidden = document.getElementById('rocket-factype-' + tid + '-' + sourceTerrId);
+  if (hidden) hidden.value = val;
+  document.querySelectorAll('#rocket-seg-fac-' + tid + '-' + sourceTerrId + ' .seg-btn')
+    .forEach(btn => btn.classList.toggle('seg-active', btn.dataset.val === val));
+}
+
+function stepRocketDmg(tid, sourceTerrId, delta) {
+  const el = document.getElementById('rocket-dmg-' + tid + '-' + sourceTerrId);
+  if (!el) return;
+  el.value = Math.max(1, Math.min(6, (parseInt(el.value) || 1) + delta));
+}
+
 function launchRocket(tid, sourceTerrId) {
   const targetSel  = document.getElementById('rocket-target-'  + tid + '-' + sourceTerrId);
   const factypeSel = document.getElementById('rocket-factype-' + tid + '-' + sourceTerrId);
@@ -2343,8 +2376,8 @@ function buildRDSectionHTML(tid) {
   const ns    = state.nations[tid];
   if (tid === 'china') return `
     <div class="nc-section nc-s-rd">
-      <div class="nc-section-title">🎲 Forskning & Utvikling</div>
-      <div class="rd-china-note">Kina kan ikke forske (regelbok).</div>
+      <div class="nc-section-title">${t('rd.title')}</div>
+      <div class="rd-china-note">${t('nc.china_no_rd')}</div>
     </div>`;
 
   // UK shared R&D section
@@ -2386,7 +2419,9 @@ function buildRDSectionHTML(tid) {
   return `
     <div class="nc-section nc-s-rd" id="rd-section-${tid}">
       <div class="nc-section-title">${t('rd.title')} <span class="rd-phase-badge">${t('rd.phase_badge')}</span></div>
-      <div class="rd-cost-hint">${t('rd.cost_hint')}</div>
+      <div class="section-header" style="margin-bottom:.4rem">
+        <span class="section-label">${t('rd.cost_hint')}</span>
+      </div>
       <div class="rd-stepper">
         <button class="rd-step-btn" onclick="buyResearchDice('${tid}', -1)">−</button>
         <div class="rd-step-display">
@@ -2470,14 +2505,14 @@ function showUKSplitBuy(tid) {
   el.style.display = 'block';
   el.innerHTML = `
     <div class="rd-split-box">
-      <div class="rd-split-title">Del 5 IPC mellom UKE og UKP:</div>
+      <div class="rd-split-title">${t('rd.uk_split_dialog_title')}</div>
       <div class="rd-split-inputs">
-        <label>🇬🇧 UKE: <input type="number" id="rd-split-uke-${tid}" value="3" min="0" max="5" style="width:50px" onchange="onUKSplitChange('${tid}','uke',this.value)"> IPC (har ${ukeNs.treasury})</label>
-        <label>🏴 UKP: <input type="number" id="rd-split-ukp-${tid}" value="2" min="0" max="5" style="width:50px" onchange="onUKSplitChange('${tid}','ukp',this.value)"> IPC (har ${ukpNs.treasury})</label>
+        <label>🇬🇧 UKE: <input type="number" id="rd-split-uke-${tid}" value="3" min="0" max="5" style="width:50px" onchange="onUKSplitChange('${tid}','uke',this.value)"> IPC (${t('rd.uk_split_has')} ${ukeNs.treasury})</label>
+        <label>🏴 UKP: <input type="number" id="rd-split-ukp-${tid}" value="2" min="0" max="5" style="width:50px" onchange="onUKSplitChange('${tid}','ukp',this.value)"> IPC (${t('rd.uk_split_has')} ${ukpNs.treasury})</label>
       </div>
       <div id="rd-split-err-${tid}" style="color:var(--red);font-size:.75rem"></div>
-      <button class="btn btn-success btn-sm" onclick="confirmUKSplitBuy('${tid}')">✅ Bekreft spleis</button>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rd-split-ui-${tid}').style.display='none'">Avbryt</button>
+      <button class="btn btn-success btn-sm" onclick="confirmUKSplitBuy('${tid}')">${t('rd.uk_split_confirm')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rd-split-ui-${tid}').style.display='none'">${t('ui.cancel')}</button>
     </div>`;
 }
 
@@ -3393,7 +3428,7 @@ function renderHistory() {
         <span>${nationIconHTML(nat, 'nation-icon--xs')} ${nat.name}</span>
         <span style="color:var(--text-dim);flex:1;margin-left:.5rem">${t('hist.income_label')}</span>
         <span class="history-delta ${cls}">${delta >= 0 ? '+' : ''}${delta} IPC</span>
-        <span style="color:var(--text-muted);margin-left:.5rem;font-size:.75rem">→ ${nd.endTreasury} IPC</span>
+        <span style="color:var(--text-muted);margin-left:.5rem;font-size:.75rem">${t('hist.treasury_arrow')} ${nd.endTreasury} ${t('ui.ipc')}</span>
         ${purchaseHtml}
       </div>`;
     }).join('');
@@ -3437,9 +3472,9 @@ function renderHistory() {
       <div class="history-entry-header" onclick="toggleHistory('${id}')">
         <span class="history-round-badge">${t('hist.round_badge', { n: h.round })}</span>
         <span style="color:var(--text-dim);font-size:.82rem">
-          Axis ${h.axisVC} VC · Allies ${h.alliesVC} VC
-          ${(h.territoryChanges ?? []).length ? `· ${h.territoryChanges.length} terr.` : ''}
-          ${bombingEvs.length ? `· ${bombingEvs.length} 💣` : ''}
+          ${t('hist.stats_axis', { n: h.axisVC })} · ${t('hist.stats_allies', { n: h.alliesVC })}
+          ${(h.territoryChanges ?? []).length ? ` · ${t('hist.stats_terr', { n: h.territoryChanges.length })}` : ''}
+          ${bombingEvs.length ? ` · ${bombingEvs.length} 💣` : ''}
         </span>
         <span class="history-date">${h.date}</span>
       </div>
@@ -3480,7 +3515,7 @@ function endRound() {
   // Snapshot history
   const snapshot = {
     round:    state.round,
-    date:     new Date().toLocaleString('no-NO'),
+    date:     new Date().toLocaleString(state.lang === 'en' ? 'en-GB' : 'nb-NO'),
     axisVC:   getAxisVC(),
     alliesVC: getAlliesVC(),
     nations:  {},
@@ -3693,11 +3728,11 @@ function calcBattleDice(side) {
     const mechPaired   = advArt ? Math.min(mech, artRemaining) : 0;
     const mechUnpaired = mech - mechPaired;
 
-    if (infPaired > 0)   dice.push({ label:`Infanteri (paret m/artilleri)`, val:2, qty:infPaired });
-    if (infUnpaired > 0) dice.push({ label:`Infanteri`,                      val:1, qty:infUnpaired });
-    if (mechPaired > 0)  dice.push({ label:`Mek.Inf. (Adv.Art. boost)`,     val:2, qty:mechPaired });
-    if (mechUnpaired > 0) dice.push({ label:`Mek. Infanteri`,                val:1, qty:mechUnpaired });
-    if (art > 0)         dice.push({ label:`Artilleri`,                      val:2, qty:art });
+    if (infPaired > 0)    dice.push({ label: t('battle.dice_inf_paired'),  val: 2, qty: infPaired });
+    if (infUnpaired > 0)  dice.push({ label: t('unit.infantry'),           val: 1, qty: infUnpaired });
+    if (mechPaired > 0)   dice.push({ label: t('battle.dice_mech_boost'),  val: 2, qty: mechPaired });
+    if (mechUnpaired > 0) dice.push({ label: t('unit.mech_inf'),           val: 1, qty: mechUnpaired });
+    if (art > 0)          dice.push({ label: t('unit.artillery'),          val: 2, qty: art });
 
     // All other units (not infantry/mech/artillery/aaa/transport)
     BATTLE_UNITS.forEach(u => {

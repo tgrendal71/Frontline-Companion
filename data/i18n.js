@@ -110,6 +110,10 @@ const UI_TEXT = {
     'nc.convoy_loss':       'Konvoi-tap',
     'nc.war_bonds':         'Krigsobligasjoner',
     'nc.manual_adj':        '🔧 Manuell justering',
+    'nc.adj_minus5':        'Trekk fra 5 IPC',
+    'nc.adj_minus1':        'Trekk fra 1 IPC',
+    'nc.adj_plus1':         'Legg til 1 IPC',
+    'nc.adj_plus5':         'Legg til 5 IPC',
     'nc.next_purchase':     '🏦 Neste kjøp',
     'nc.objectives':        '🎯 Nasjonale mål',
     'nc.at_war':            '⚔️ Krig',
@@ -207,6 +211,8 @@ const UI_TEXT = {
     'battle.inf_unpaired':      '{n}× uparet',
     'battle.mech_boosted':      '{n}× boosted',
     'battle.mech_normal':       '{n}× normal',
+    'battle.dice_inf_paired':   'Infanteri (paret m/artilleri)',
+    'battle.dice_mech_boost':   'Mek.Inf. (Adv.Art. boost)',
 
     // ── Unit names (battle board) ────────────────────────────────
     'unit.infantry':       'Infanteri',
@@ -411,6 +417,10 @@ const UI_TEXT = {
     'hist.round_badge':     'Runde {n}',
     'hist.bombing_section': 'Strategisk bombing',
     'hist.bombing_dmg':     'skade',
+    'hist.stats_axis':      'Axis {n} SB',
+    'hist.stats_allies':    'Allierte {n} SB',
+    'hist.stats_terr':      '{n} terr.',
+    'hist.treasury_arrow':  '→',
 
     // ── R&D section ──────────────────────────────────────────────
     'rd.title_uk':           '🎲 Forskning & Utvikling — Fase 0 (valgfritt)',
@@ -425,10 +435,13 @@ const UI_TEXT = {
     'rd.uk_buy_uke_title':   'Betal 5 IPC fra UK Europe',
     'rd.uk_buy_ukp':         '+ Kjøp fra UKP (5 IPC)',
     'rd.uk_buy_ukp_title':   'Betal 5 IPC fra UK Pacific',
-    'rd.uk_split_btn':       '✂️ Spleis (5 IPC)',
-    'rd.uk_split_title':     'Del kostnaden mellom UKE og UKP',
-    'rd.remove_title':       'Fjern 1 terning (5 IPC refunderes til sist betalende)',
-    'rd.reset_btn':          '🗑️ Nullstill',
+    'rd.uk_split_btn':          '✂️ Spleis (5 IPC)',
+    'rd.uk_split_title':        'Del kostnaden mellom UKE og UKP',
+    'rd.uk_split_dialog_title': 'Del 5 IPC mellom UKE og UKP:',
+    'rd.uk_split_confirm':      '✅ Bekreft spleis',
+    'rd.uk_split_has':          'har',
+    'rd.remove_title':          'Fjern 1 terning (5 IPC refunderes til sist betalende)',
+    'rd.reset_btn':             '🗑️ Nullstill',
 
     // ── Nation card header field ─────────────────────────────────
     'nc.now':                'Nå:',
@@ -591,6 +604,10 @@ const UI_TEXT = {
     'nc.convoy_loss':       'Convoy loss',
     'nc.war_bonds':         'War bonds',
     'nc.manual_adj':        '🔧 Manual adjustment',
+    'nc.adj_minus5':        'Subtract 5 IPC',
+    'nc.adj_minus1':        'Subtract 1 IPC',
+    'nc.adj_plus1':         'Add 1 IPC',
+    'nc.adj_plus5':         'Add 5 IPC',
     'nc.next_purchase':     '🏦 Next purchase',
     'nc.objectives':        '🎯 National objectives',
     'nc.at_war':            '⚔️ At War',
@@ -688,6 +705,8 @@ const UI_TEXT = {
     'battle.inf_unpaired':      '{n}× unpaired',
     'battle.mech_boosted':      '{n}× boosted',
     'battle.mech_normal':       '{n}× normal',
+    'battle.dice_inf_paired':   'Infantry (paired w/artillery)',
+    'battle.dice_mech_boost':   'Mech.Inf. (Adv.Art. boost)',
 
     // ── Unit names (battle board) ────────────────────────────────
     'unit.infantry':       'Infantry',
@@ -892,6 +911,10 @@ const UI_TEXT = {
     'hist.round_badge':     'Round {n}',
     'hist.bombing_section': 'Strategic bombing',
     'hist.bombing_dmg':     'dmg',
+    'hist.stats_axis':      'Axis {n} VC',
+    'hist.stats_allies':    'Allies {n} VC',
+    'hist.stats_terr':      '{n} terr.',
+    'hist.treasury_arrow':  '→',
 
     // ── R&D section ──────────────────────────────────────────────
     'rd.title_uk':           '🎲 Research & Development — Phase 0 (optional)',
@@ -906,10 +929,13 @@ const UI_TEXT = {
     'rd.uk_buy_uke_title':   'Pay 5 IPC from UK Europe',
     'rd.uk_buy_ukp':         '+ Buy from UKP (5 IPC)',
     'rd.uk_buy_ukp_title':   'Pay 5 IPC from UK Pacific',
-    'rd.uk_split_btn':       '✂️ Split (5 IPC)',
-    'rd.uk_split_title':     'Split the cost between UKE and UKP',
-    'rd.remove_title':       'Remove 1 die (5 IPC refunded to last payer)',
-    'rd.reset_btn':          '🗑️ Reset',
+    'rd.uk_split_btn':          '✂️ Split (5 IPC)',
+    'rd.uk_split_title':        'Split the cost between UKE and UKP',
+    'rd.uk_split_dialog_title': 'Split 5 IPC between UKE and UKP:',
+    'rd.uk_split_confirm':      '✅ Confirm split',
+    'rd.uk_split_has':          'has',
+    'rd.remove_title':          'Remove 1 die (5 IPC refunded to last payer)',
+    'rd.reset_btn':             '🗑️ Reset',
 
     // ── Nation card header field ─────────────────────────────────
     'nc.now':                'Now:',
