@@ -1199,7 +1199,8 @@ function buildNationCard(tid) {
       </div>
       <div id="pc-groups-${tid}">${buildPurchaseUnitRows(tid)}</div>
       <div class="pc-group">
-        <div class="pc-group-label">${t('nc.repairs_label')}</div>
+        <div class="pc-group-label" onclick="togglePcGroup(this)"><span>${t('nc.repairs_label')}</span><span class="pc-group-chevron">▼</span></div>
+        <div class="pc-group-body">
         <div id="pc-repair-detail-${tid}">${buildRepairDetailHTML(tid)}</div>
         <div class="pc-unit-row pc-repair-total-row">
           <span class="pc-unit-name">${t('nc.repair_total')}</span>
@@ -1208,6 +1209,7 @@ function buildNationCard(tid) {
             <span class="pc-qty" id="pc-repair-marks-${tid}">0</span>
           </div>
           <span class="pc-subtotal" id="pc-repair-sub-${tid}">—</span>
+        </div>
         </div>
       </div>
       <div class="pc-actions">
@@ -1586,8 +1588,12 @@ function buildPurchaseUnitRows(tid) {
         <span class="pc-subtotal" id="pc-sub-${tid}-${u.id}">${sub > 0 ? sub + ' IPC' : '—'}</span>
       </div>${placementRow}`;
     }).join('');
-    return `<div class="pc-group"><div class="pc-group-label">${t(g.labelKey)}</div>${rows}</div>`;
+    return `<div class="pc-group"><div class="pc-group-label" onclick="togglePcGroup(this)"><span>${t(g.labelKey)}</span><span class="pc-group-chevron">▼</span></div><div class="pc-group-body">${rows}</div></div>`;
   }).join('');
+}
+
+function togglePcGroup(labelEl) {
+  labelEl.closest('.pc-group').classList.toggle('collapsed');
 }
 
 function buildPastPurchasesHTML(tid) {
