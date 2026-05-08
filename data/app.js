@@ -11,7 +11,8 @@ const AXIS_WIN_VC  = 13;
 const ALLIES_WIN_VC = 8;  // Allies win by holding fewer Axis VCs (keep Axis below 13)
 
 // ── State ─────────────────────────────────────────────────────
-let state = null;
+// var (not let) so window.state is always in sync — window.t() in i18n.js reads window.state.lang
+var state = null; // eslint-disable-line no-var
 let purchaseCart = {};   // { [nationId]: { [unitId]: qty } } — per-session cart, not persisted
 let buildPlacements = {}; // { [nationId]: { [unitId]: territoryId } } — building territory selections
 let repairTokens = {};  // { [nationId]: { [terrId|type]: marksToRepair } } — per-facility repair selection
@@ -440,7 +441,7 @@ const API_BASE = '/api/saves';
 function openServerSaveModal() {
   // Pre-fill with a suggested name based on round
   const input = document.getElementById('ssaveName');
-  if (!input.value) input.value = `Runde ${state.round}`;
+  if (!input.value) input.value = `${t('header.round')} ${state.round}`;
   document.getElementById('serverSaveModal').classList.remove('hidden');
   loadSavesList();
 }
@@ -451,7 +452,7 @@ function closeServerSaveModal() {
 
 async function loadSavesList() {
   const list = document.getElementById('ssaveList');
-  list.innerHTML = '<div class="ssave-empty">Laster…</div>';
+  list.innerHTML = `<div class="ssave-empty">${t('modal.save.loading')}</div>`;
   try {
     const res = await fetch(API_BASE);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -606,7 +607,7 @@ function nationIconHTML(nat, cls = '') {
 
 // ── Header ────────────────────────────────────────────────────
 function renderHeader() {
-  document.getElementById('roundBadge').textContent = `Runde ${state.round}`;
+  document.getElementById('roundBadge').textContent = `${t('header.round')} ${state.round}`;
 
   const tid = TURN_ORDER[state.turnIndex];
   const nat = NATIONS[tid];
@@ -751,7 +752,7 @@ function renderSidePanels() {
     const vcTotal = nationIds.reduce((s, n) => s + (vcCounts[n] || 0), 0);
 
     document.getElementById(`${side}VcCount`).textContent =
-      `${vcTotal} / ${totalVCs()} seiersbyer`;
+      t('ov.vc_total', { n: vcTotal, total: totalVCs() });
 
     container.innerHTML = nationIds.map(tid => {
       const nat    = NATIONS[tid];
@@ -814,7 +815,7 @@ function renderFocusCard() {
   const capStatus = nat.mainCapital
     ? (capHeld
         ? `<span class="ofc-cap-held">🏛️ ${capLabel} ✓</span>`
-        : `<span class="ofc-cap-lost">🏛️ ${capLabel} TAPT</span>`)
+        : `<span class="ofc-cap-lost">🏛️ ${capLabel} ${t('ov.cap_lost')}</span>`)
     : '';
 
   const bonusHtml      = bonus > 0 ? `<span class="ofc-bonus">+${bonus} bonus</span>` : '';
@@ -1011,9 +1012,9 @@ function renderVictoryMeter() {
 
   let winMsg = '';
   if (axisVC >= AXIS_WIN_VC) {
-    winMsg = `<span class="win-axis">⚔️ AKSEN VINNER! (${axisVC} seiersbyer)</span>`;
+    winMsg = `<span class="win-axis">${t('ov.axis_wins', { n: axisVC })}</span>`;
   } else if (axisVC < totalVCs() - AXIS_WIN_VC + 1) {
-    winMsg = `<span class="win-allies">🏳️ DE ALLIERTE VINNER!</span>`;
+    winMsg = `<span class="win-allies">${t('ov.allies_win', { n: axisVC })}</span>`;
   }
   document.getElementById('winIndicator').innerHTML = winMsg;
 }
@@ -1116,7 +1117,7 @@ function buildNationHeaderFieldsInner(tid) {
 
   return `
     <div class="nc-hfield nchf-ipc-block">
-      <div class="nc-hfield-label">Start IPC</div>
+      <div class="nc-hfield-label">${t('nc.start_ipc')}</div>
       <div class="nchf-start-val">${startIncome} <span class="nchf-ipc-unit">IPC</span></div>
       <div class="nchf-curr-row">
         <span class="nchf-curr-label">${t('nc.now')}</span>
@@ -1126,11 +1127,11 @@ function buildNationHeaderFieldsInner(tid) {
       </div>
     </div>
     <div class="nc-hfield nchf-terr-block">
-      <div class="nc-hfield-label">⚔️ Erobret denne runden</div>
+      <div class="nc-hfield-label">${t('nc.conquered_hdr')}</div>
       <div class="nchf-terr-list" id="nchf-conquered-${tid}">${terrList(conquered)}</div>
     </div>
     <div class="nc-hfield nchf-terr-block">
-      <div class="nc-hfield-label">💀 Mistet denne runden</div>
+      <div class="nc-hfield-label">${t('nc.lost_hdr')}</div>
       <div class="nchf-terr-list" id="nchf-lost-${tid}">${terrList(lost)}</div>
     </div>`;
 }
@@ -1175,7 +1176,7 @@ function buildNationCard(tid) {
     </div>
     <div class="phase-block-body${openIf(!rdDone)}" id="pbb-rd-${tid}">
       ${buildRDSectionHTML(tid)}
-      <div class="phase-sub-hdr">🧬 Teknologi</div>
+      <div class="phase-sub-hdr">${t('phase.tech_label')}</div>
       <div id="tech-${tid}">${techsHTML}</div>
     </div>
   </div>`;

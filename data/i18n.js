@@ -95,8 +95,9 @@ const UI_TEXT = {
     'phase.p6':       'Fase 6: Samle inn inntekt',
     'phase.convoy':   '↳ Gjennomfør konvoidisrupsjon',
     'phase.war_only': 'Kun ved krig',
-    'phase.optional': 'valgfritt',
+    'phase.optional':   'valgfritt',
     'phase.done_count': '{n} faser fullført',
+    'phase.tech_label': '🧬 Teknologi',
 
     // ── Nation card ──────────────────────────────────────────────
     'nc.treasury':          'Skattkammer',
@@ -245,6 +246,8 @@ const UI_TEXT = {
     'ov.allies_win':        '🏆 Allierte vinner — Akse har bare {n} seiersbyer!',
     'ov.vc_count_axis':     'Akse: {n}',
     'ov.vc_count_allies':   'Allierte: {n}',
+    'ov.vc_total':          '{n} / {total} seiersbyer',
+    'ov.cap_lost':          'TAPT',
 
     // ── Territory tab ────────────────────────────────────────────
     'ter.search_ph':        '🔍 Søk territorier…',
@@ -445,6 +448,9 @@ const UI_TEXT = {
 
     // ── Nation card header field ─────────────────────────────────
     'nc.now':                'Nå:',
+    'nc.start_ipc':          'Start IPC',
+    'nc.conquered_hdr':      '⚔️ Erobret denne runden',
+    'nc.lost_hdr':           '💀 Mistet denne runden',
 
     // ── Victory Cities ───────────────────────────────────────────
     'vc.axis_header':        '⚔️ Aksen — {n} byer',
@@ -589,8 +595,9 @@ const UI_TEXT = {
     'phase.p6':       'Phase 6: Collect income',
     'phase.convoy':   '↳ Conduct convoy disruption',
     'phase.war_only': 'War only',
-    'phase.optional': 'optional',
+    'phase.optional':   'optional',
     'phase.done_count': '{n} phases complete',
+    'phase.tech_label': '🧬 Technology',
 
     // ── Nation card ──────────────────────────────────────────────
     'nc.treasury':          'Treasury',
@@ -739,6 +746,8 @@ const UI_TEXT = {
     'ov.allies_win':        '🏆 Allies win — Axis has only {n} victory cities!',
     'ov.vc_count_axis':     'Axis: {n}',
     'ov.vc_count_allies':   'Allies: {n}',
+    'ov.vc_total':          '{n} / {total} victory cities',
+    'ov.cap_lost':          'LOST',
 
     // ── Territory tab ────────────────────────────────────────────
     'ter.search_ph':        '🔍 Search territories…',
@@ -939,6 +948,9 @@ const UI_TEXT = {
 
     // ── Nation card header field ─────────────────────────────────
     'nc.now':                'Now:',
+    'nc.start_ipc':          'Start IPC',
+    'nc.conquered_hdr':      '⚔️ Conquered this round',
+    'nc.lost_hdr':           '💀 Lost this round',
 
     // ── Victory Cities ───────────────────────────────────────────
     'vc.axis_header':        '⚔️ Axis — {n} cities',

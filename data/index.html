@@ -19,7 +19,7 @@
     <header>
       <span class="logo">⚔️</span>
 
-      <button class="btn btn-ghost btn-sm hdr-nav-btn" id="btnPrevTurn" title="Forrige tur">◀</button>
+      <button class="btn btn-ghost btn-sm hdr-nav-btn" id="btnPrevTurn" data-i18n-attr-title="header.prev_title" title="Forrige tur">◀</button>
 
       <div class="hdr-turn-pill" id="turnPill">
         <span class="htp-flag" id="turnFlag">🇩🇪</span>
@@ -28,18 +28,18 @@
         <span class="htp-round" id="roundBadge">Runde 1</span>
       </div>
 
-      <button class="btn btn-primary btn-sm hdr-nav-btn hdr-next-btn" id="btnNextTurn" title="Neste tur" data-i18n-attr-title="header.next_title">Neste ▶</button>
+      <button class="btn btn-primary btn-sm hdr-nav-btn hdr-next-btn" id="btnNextTurn" data-i18n="header.next_btn" data-i18n-attr-title="header.next_title" title="Neste tur">Neste ▶</button>
 
       <button class="btn btn-ghost btn-sm lang-toggle" id="btnLang" onclick="toggleLang()" title="Bytt språk / Switch language">NO</button>
 
       <details class="action-menu" id="actionMenu">
-        <summary class="btn btn-ghost btn-sm action-menu-trigger" title="Meny">⋮</summary>
+        <summary class="btn btn-ghost btn-sm action-menu-trigger" data-i18n-attr-title="header.menu_title" title="Meny">⋮</summary>
         <div class="action-menu-dropdown">
-          <button class="action-menu-item" id="btnNewGame">🎮 Nytt spill</button>
-          <button class="action-menu-item action-menu-item--accent" id="btnServerSave">☁️ Lagring</button>
-          <button class="action-menu-item" id="btnExport">💾 Eksporter</button>
+          <button class="action-menu-item" id="btnNewGame" data-i18n="menu.new_game">🎮 Nytt spill</button>
+          <button class="action-menu-item action-menu-item--accent" id="btnServerSave" data-i18n="menu.save">☁️ Lagring</button>
+          <button class="action-menu-item" id="btnExport" data-i18n="menu.export">💾 Eksporter</button>
           <label class="action-menu-item" style="cursor:pointer">
-            📂 Importer
+            <span data-i18n="menu.import">📂 Importer</span>
             <input type="file" id="importFile" accept="application/json" class="hidden">
           </label>
         </div>
