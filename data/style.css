@@ -3204,6 +3204,97 @@ main {
 .bp-icon { font-size: .9rem; }
 .bp-text b { color: var(--text); }
 
+/* Tech row in pairing box */
+.bp-tech-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin-top: .4rem;
+  padding-top: .35rem;
+  border-top: 1px solid rgba(255,255,255,.07);
+  align-items: center;
+}
+.bp-tech-label {
+  font-size: .7rem;
+  color: var(--text-muted);
+  margin-right: .2rem;
+}
+.bp-tech-tag {
+  font-size: .67rem;
+  background: rgba(59,130,246,.18);
+  color: #93c5fd;
+  border: 1px solid rgba(59,130,246,.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* Multi-defender chips */
+.defender-side .battle-nation-select-wrap {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: .4rem .6rem;
+}
+.def-nations-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  min-height: 1.8rem;
+  align-items: center;
+  padding: .25rem .5rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.def-nations-empty {
+  font-size: .8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.def-nation-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  font-size: .78rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 8px 2px 10px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.def-chip-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: .8rem;
+  padding: 0;
+  line-height: 1;
+}
+.def-chip-remove:hover { color: #f87171; }
+.def-add-row .battle-nation-select {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+/* Tech badge on unit rows */
+.bu-tech-badge {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 700;
+  background: rgba(245,158,11,.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245,158,11,.4);
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-left: .25rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 /* VS column pairing area */
 .battle-pairing-info {
   width: 100%;
@@ -3224,6 +3315,144 @@ main {
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+/* ── Battle Matrix / Casualty Zone ──────────────────────────── */
+.battle-matrix-section {
+  margin-top: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.bm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .55rem 1rem;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.bm-round-badge {
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--gold);
+}
+.bm-header-btns { display: flex; gap: .4rem; }
+
+.bm-board {
+  display: grid;
+  grid-template-columns: 1fr 2rem 1fr;
+}
+.bm-vs-sep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  writing-mode: vertical-rl;
+}
+.bm-side {
+  padding: .6rem .5rem;
+}
+.bm-side-hdr {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: .5rem;
+  letter-spacing: .04em;
+}
+.bm-atk .bm-side-hdr { color: #f87171; }
+.bm-def .bm-side-hdr { color: #60a5fa; }
+
+.bm-columns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .25rem;
+  margin-bottom: .6rem;
+}
+.bm-col {
+  min-height: 56px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bm-col-hdr {
+  font-size: .68rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 0;
+}
+.bm-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+}
+.bm-unit-tile {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  padding: 3px 5px;
+  border: none;
+  background: var(--bg3);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: .8rem;
+  color: var(--text);
+  width: 100%;
+  text-align: left;
+  transition: background .1s;
+}
+.bm-unit-tile:hover { background: rgba(220,38,38,.2); }
+.bm-unit-icon { font-size: 1rem; line-height: 1; }
+.bm-unit-qty { font-size: .75rem; font-weight: 700; }
+.bm-col-empty { font-size: .7rem; color: var(--text-muted); text-align: center; padding: .4rem .2rem; }
+.bm-no-units { font-size: .8rem; color: var(--text-muted); padding: .5rem; text-align: center; font-style: italic; }
+
+.bm-casualty {
+  background: rgba(220,38,38,.06);
+  border: 1px solid rgba(220,38,38,.22);
+  border-radius: 4px;
+  padding: .35rem .5rem;
+}
+.bm-casualty-lbl {
+  font-size: .7rem;
+  font-weight: 700;
+  color: #f87171;
+  margin-bottom: .3rem;
+}
+.bm-casualty-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  min-height: 1.4rem;
+  align-items: center;
+}
+.bm-cas-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  font-size: .75rem;
+  background: rgba(220,38,38,.18);
+  border: 1px solid rgba(220,38,38,.35);
+  border-radius: 3px;
+  padding: 2px 7px;
+  cursor: pointer;
+  color: #fca5a5;
+  transition: background .1s;
+}
+.bm-cas-tile:hover { background: rgba(220,38,38,.32); }
+.bm-cas-empty { font-size: .75rem; color: var(--text-muted); font-style: italic; }
+
+@media (max-width: 700px) {
+  .bm-columns { grid-template-columns: repeat(2, 1fr); }
+  .bm-board { grid-template-columns: 1fr; }
+  .bm-vs-sep { display: none; }
 }
 
 @media (max-width: 700px) {
@@ -3710,6 +3939,11 @@ main {
   color: var(--text-muted);
   margin-left: .1rem;
 }
+.bomb-dice-hint {
+  font-size: .7rem;
+  color: var(--text-muted);
+  margin-top: .2rem;
+}
 .bomb-number-input {
   width: 4rem;
   min-height: 44px;
@@ -3808,8 +4042,14 @@ main {
 }
 .bomb-seg-btn.bomb-seg-unavail { opacity: .22; pointer-events: none; }
 
-/* ── 2-col config row ──────────────────────────────────────── */
-.bomb-config-row { display: grid; grid-template-columns: 1fr auto; gap: .5rem; align-items: start; }
+/* ── Config rows ───────────────────────────────────────────── */
+.bomb-config-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; align-items: start; }
+.bomb-config-row--3 { grid-template-columns: 1fr 1fr 1fr; }
+.bomb-total-col { text-align: center; }
+.bomb-total-val {
+  font-size: 1.8rem; font-weight: 700; line-height: 1.1;
+  color: var(--text-bright);
+}
 
 /* ── Steppers ──────────────────────────────────────────────── */
 .bomb-stepper     { display: flex; align-items: center; gap: .4rem; }
@@ -3858,7 +4098,8 @@ main {
 
 /* ── Small screen: stack config row ───────────────────────── */
 @media (max-width: 480px) {
-  .bomb-config-row { grid-template-columns: 1fr; }
+  .bomb-config-row,
+  .bomb-config-row--3 { grid-template-columns: 1fr; }
   .bomb-stepper-btn { width: 44px; height: 44px; }
 }
 

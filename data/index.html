@@ -270,9 +270,12 @@
               <span class="battle-side-dice" id="def-total-dice">0 terninger</span>
             </div>
             <div class="battle-nation-select-wrap">
-              <select class="battle-nation-select" id="battle-nation-def" onchange="onBattleNationChange()">
-                <option value="" data-i18n="battle.select_nation">— Velg nasjon —</option>
-              </select>
+              <div id="def-nations-chips" class="def-nations-chips"></div>
+              <div class="def-add-row">
+                <select class="battle-nation-select" id="battle-nation-def-add" title="Add defender nation" onchange="addDefenderNation(this.value); this.value=''">
+                  <option value="" data-i18n="battle.add_defender">+ Legg til forsvarer</option>
+                </select>
+              </div>
             </div>
             <div class="battle-units" id="def-units"></div>
           </div>
@@ -286,6 +289,9 @@
           <div class="bl-item"><span class="bl-dot" style="background:#ea580c"></span><span data-i18n="battle.legend3">Treffer på 1–3</span></div>
           <div class="bl-item"><span class="bl-dot" style="background:#dc2626"></span><span data-i18n="battle.legend4">Treffer på 1–4</span></div>
         </div>
+
+        <!-- Battle Matrix / Casualty Zone -->
+        <div id="battle-matrix-section" class="battle-matrix-section"></div>
 
       </div>
 

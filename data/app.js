@@ -1176,8 +1176,11 @@ function buildNationCard(tid) {
     </div>
     <div class="phase-block-body${openIf(!rdDone)}" id="pbb-rd-${tid}">
       ${buildRDSectionHTML(tid)}
-      <div class="phase-sub-hdr">${t('phase.tech_label')}</div>
-      <div id="tech-${tid}">${techsHTML}</div>
+      <div class="phase-sub-hdr" style="cursor:pointer" onclick="toggleTechCharts('${tid}')">
+        ${t('phase.tech_label')}
+        <span class="phase-chevron" id="tech-chev-${tid}">▸</span>
+      </div>
+      <div id="tech-${tid}" style="display:none">${techsHTML}</div>
     </div>
   </div>`;
 
@@ -1340,7 +1343,7 @@ function buildNationCard(tid) {
   const bombTerrOptsWithBlank = `<option value="">${t('bomb.target_ph')}</option>` + bombTerrOptions;
   const initialMissionsHTML = bombingMissions[tid].map((m, idx) => buildMissionRowHTML(tid, m, idx, bombTerrOptsWithBlank)).join('');
   const bombingHasAnyDamage = bombingMissions[tid].some(m => m.damage > 0 && (m.survivors === null || m.survivors > 0));
-  const bombingTotalAllokert = bombingMissions[tid].reduce((s, m) => s + (m.assigned || 1), 0);
+  const bombingTotalAllokert = bombingMissions[tid].reduce((s, m) => s + missionTotal(m), 0);
   const fase3Block = `
   <div class="phase-block${p3Done ? ' phase-done' : ''}" id="pb-p3-${tid}">
     <div class="phase-block-hdr" onclick="togglePhaseBlock('${tid}','p3')">
@@ -1708,14 +1711,16 @@ function stepRepairTarget(tid, terrId, type, delta) {
 }
 
 // ── Bombing / Rockets session state ──────────────────────────
-// Mission shape: { id, terrId, facType, flyType, assigned, aaHits, survivors, damage }
+// Mission shape: { id, terrId, facType, strategic, tactical, aaHits, survivors, damage }
 let bombingMissions = {}; // { [nationId]: Mission[] }
 let _missionIdCounter = 0;
 
 function _newMission() {
-  return { id: ++_missionIdCounter, terrId: '', facType: 'ic', flyType: 'strategic', assigned: 1,
-           aaHits: null, survivors: null, damage: null };
+  return { id: ++_missionIdCounter, terrId: '', facType: 'ic',
+           strategic: 1, tactical: 0, aaHits: null, survivors: null, damage: null };
 }
+
+function missionTotal(m) { return (m.strategic || 0) + (m.tactical || 0); }
 
 function ensureBombingMissions(tid) {
   if (!bombingMissions[tid] || bombingMissions[tid].length === 0) {
@@ -1736,20 +1741,42 @@ function removeBombingMission(tid, mid) {
   renderBombingMissions(tid);
 }
 
-function stepMission(tid, mid, delta) {
+function stepStrategic(tid, mid, delta) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
-  m.assigned = Math.max(1, m.assigned + delta);
-  // Reset AA/damage when count changes
+  m.strategic = Math.max(0, (m.strategic || 0) + delta);
+  if (missionTotal(m) < 1) m.strategic = 1;
   m.aaHits = null; m.survivors = null; m.damage = null;
-  const el = document.getElementById('bomb-count-' + tid + '-' + mid);
-  if (el) el.textContent = m.assigned;
+  const el = document.getElementById('bomb-strat-count-' + tid + '-' + mid);
+  if (el) el.textContent = m.strategic;
+  _refreshMissionTotal(tid, mid, m);
   const aaValEl = document.getElementById('bomb-aa-val-' + tid + '-' + mid);
-  if (aaValEl) { aaValEl.value = ''; aaValEl.max = m.assigned; }
+  if (aaValEl) { aaValEl.value = ''; aaValEl.max = missionTotal(m); }
   updateMissionSurvivors(tid, mid);
   updateBombingTotal(tid);
   updateApplyAllBtn(tid);
 }
+
+function stepTactical(tid, mid, delta) {
+  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
+  if (!m || m.facType === 'ic') return;
+  m.tactical = Math.max(0, (m.tactical || 0) + delta);
+  m.aaHits = null; m.survivors = null; m.damage = null;
+  const el = document.getElementById('bomb-tact-count-' + tid + '-' + mid);
+  if (el) el.textContent = m.tactical;
+  _refreshMissionTotal(tid, mid, m);
+  const aaValEl = document.getElementById('bomb-aa-val-' + tid + '-' + mid);
+  if (aaValEl) { aaValEl.value = ''; aaValEl.max = missionTotal(m); }
+  updateMissionSurvivors(tid, mid);
+  updateBombingTotal(tid);
+  updateApplyAllBtn(tid);
+}
+
+function _refreshMissionTotal(tid, mid, m) {
+  const el = document.getElementById('bomb-total-center-' + tid + '-' + mid);
+  if (el) el.textContent = missionTotal(m);
+}
+
 
 function stepMissionAA(tid, mid, delta) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
@@ -1768,7 +1795,7 @@ function stepMissionDamage(tid, mid, delta) {
 }
 
 function updateBombingTotal(tid) {
-  const total = (bombingMissions[tid] || []).reduce((s, m) => s + (m.assigned || 1), 0);
+  const total = (bombingMissions[tid] || []).reduce((s, m) => s + missionTotal(m), 0);
   const el = document.getElementById('bomb-total-' + tid);
   if (el) el.textContent = total;
 }
@@ -1790,30 +1817,18 @@ function updateMissionFacType(tid, mid, facType) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
   m.facType = facType; m.damage = null;
+  if (facType === 'ic') m.tactical = 0;
   const dmgInput = document.getElementById('bomb-dmg-input-' + tid + '-' + mid);
   if (dmgInput) dmgInput.value = '';
   document.querySelectorAll('#bomb-seg-fac-' + tid + '-' + mid + ' .bomb-seg-btn')
     .forEach(btn => btn.classList.toggle('bomb-seg-active', btn.dataset.val === facType));
-  updateMissionFacBar(tid, mid);
-  updateApplyAllBtn(tid);
+  // Re-render tact stepper disabled state and damage hint
+  renderBombingMissions(tid);
 }
 
-function updateMissionFlyType(tid, mid, flyType) {
-  const m = (bombingMissions[tid] || []).find(m => m.id === mid);
-  if (!m) return;
-  m.flyType = flyType; m.damage = null;
-  const dmgInput = document.getElementById('bomb-dmg-input-' + tid + '-' + mid);
-  if (dmgInput) dmgInput.value = '';
-  // Update hint text
-  const hintEl = document.getElementById('bomb-dmg-hint-' + tid + '-' + mid);
-  if (hintEl) hintEl.textContent = flyType === 'strategic' ? t('bomb.damage_hint_strat') : t('bomb.damage_hint_tact');
-  document.querySelectorAll('#bomb-seg-fly-' + tid + '-' + mid + ' .bomb-seg-btn')
-    .forEach(btn => btn.classList.toggle('bomb-seg-active', btn.dataset.val === flyType));
-  updateApplyAllBtn(tid);
-}
 
 function updateApplyAllBtn(tid) {
-  const hasAny = (bombingMissions[tid] || []).some(m => m.damage > 0 && (m.survivors === null || m.survivors > 0));
+  const hasAny = (bombingMissions[tid] || []).some(m => m.terrId && m.damage > 0 && (m.survivors === null || m.survivors > 0));
   const btn = document.getElementById('bomb-apply-all-' + tid);
   if (btn) btn.style.display = hasAny ? '' : 'none';
 }
@@ -1822,9 +1837,10 @@ function updateApplyAllBtn(tid) {
 function onMissionAAInput(tid, mid, rawVal) {
   const m = (bombingMissions[tid] || []).find(m => m.id === mid);
   if (!m) return;
-  const hits = Math.min(Math.max(parseInt(rawVal) || 0, 0), m.assigned);
+  const total = missionTotal(m);
+  const hits = Math.min(Math.max(parseInt(rawVal) || 0, 0), total);
   m.aaHits = hits;
-  m.survivors = m.assigned - hits;
+  m.survivors = total - hits;
   m.damage = null;
   updateMissionSurvivors(tid, mid);
   // Reset damage input when AA changes
@@ -1906,7 +1922,7 @@ function updateMissionFacBar(tid, mid) {
 }
 
 function applyAllBombingDamage(tid) {
-  const missions = (bombingMissions[tid] || []).filter(m => m.damage > 0 && (m.survivors === null || m.survivors > 0));
+  const missions = (bombingMissions[tid] || []).filter(m => m.terrId && m.damage > 0 && (m.survivors === null || m.survivors > 0));
   if (!missions.length) { toast(t('toast.no_damage'), 'error'); return; }
   const affectedControllers = new Set();
   const summary = [];
@@ -1956,15 +1972,12 @@ function buildMissionRowHTML(tid, m, idx, bombTerrOpts) {
       + '" onclick="updateMissionFacType(\'' + tid + '\',' + mid + ',\'' + b.val + '\')">' + b.label + '</button>';
   }).join('');
 
-  // Fly type segmented buttons
-  const flyBtns = [
-    { val: 'strategic', label: t('bomb.strategic') },
-    { val: 'tactical',  label: t('bomb.tactical') },
-  ].map(b => {
-    const active = m.flyType === b.val ? ' bomb-seg-active' : '';
-    return '<button type="button" class="bomb-seg-btn' + active + '" data-val="' + b.val
-      + '" onclick="updateMissionFlyType(\'' + tid + '\',' + mid + ',\'' + b.val + '\')">' + b.label + '</button>';
-  }).join('');
+  // Bomber counts and tact disabled state
+  const stratCount = m.strategic || 0;
+  const tactCount  = m.tactical  || 0;
+  const tactDisabled = m.facType === 'ic';
+  const stratDiceHint = m.facType === 'ic' ? t('bomb.strat_dice_ic') : t('bomb.strat_dice_base');
+  const tactDiceHint  = tactDisabled ? t('bomb.tact_ic_block') : t('bomb.tact_dice');
 
   // State for AA / survivors / damage
   const aaVal = m.aaHits !== null ? m.aaHits : '';
@@ -1972,7 +1985,7 @@ function buildMissionRowHTML(tid, m, idx, bombTerrOpts) {
   const survivorsZero = m.survivors === 0;
   const dmgVal = m.damage !== null ? m.damage : '';
   const dmgWrapClass = 'bomb-section' + (survivorsZero ? ' bomb-input-disabled' : '');
-  const dmgHint = m.flyType === 'strategic' ? t('bomb.damage_hint_strat') : t('bomb.damage_hint_tact');
+  const dmgHint = m.facType === 'ic' ? t('bomb.damage_hint_strat') : t('bomb.damage_hint_base');
 
   // Facility HP bar (shown when territory is selected)
   let facBarHTML = '';
@@ -2022,19 +2035,30 @@ function buildMissionRowHTML(tid, m, idx, bombTerrOpts) {
     + '<div class="bomb-section-label">' + t('bomb.facility') + '</div>'
     + '<div class="bomb-seg-group" id="bomb-seg-fac-' + tid + '-' + mid + '">' + facBtns + '</div>'
     + '</div>'
-    // FLYTYPE + ANTALL FLY \u2014 2-col grid
-    + '<div class="bomb-config-row">'
+    // STRATEGISKE | TAKTISKE | TOTALT \u2014 3-col grid
+    + '<div class="bomb-config-row bomb-config-row--3">'
     + '<div class="bomb-section">'
-    + '<div class="bomb-section-label">' + t('bomb.fly_type') + '</div>'
-    + '<div class="bomb-seg-group" id="bomb-seg-fly-' + tid + '-' + mid + '">' + flyBtns + '</div>'
-    + '</div>'
-    + '<div class="bomb-section">'
-    + '<div class="bomb-section-label">' + t('bomb.bomber_count') + '</div>'
+    + '<div class="bomb-section-label">' + t('bomb.strat_label') + '</div>'
     + '<div class="bomb-stepper">'
-    + '<button type="button" class="bomb-stepper-btn" onclick="stepMission(\'' + tid + '\',' + mid + ',-1)">\u2212</button>'
-    + '<span class="bomb-stepper-val" id="bomb-count-' + tid + '-' + mid + '">' + m.assigned + '</span>'
-    + '<button type="button" class="bomb-stepper-btn" onclick="stepMission(\'' + tid + '\',' + mid + ',+1)">+</button>'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepStrategic(\'' + tid + '\',' + mid + ',-1)">\u2212</button>'
+    + '<span class="bomb-stepper-val" id="bomb-strat-count-' + tid + '-' + mid + '">' + stratCount + '</span>'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepStrategic(\'' + tid + '\',' + mid + ',+1)">+</button>'
     + '</div>'
+    + '<div class="bomb-dice-hint">' + stratDiceHint + '</div>'
+    + '</div>'
+    + '<div class="bomb-section' + (tactDisabled ? ' bomb-input-disabled' : '') + '">'
+    + '<div class="bomb-section-label">' + t('bomb.tact_label') + '</div>'
+    + '<div class="bomb-stepper">'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepTactical(\'' + tid + '\',' + mid + ',-1)"' + (tactDisabled ? ' disabled' : '') + '>\u2212</button>'
+    + '<span class="bomb-stepper-val" id="bomb-tact-count-' + tid + '-' + mid + '">' + tactCount + '</span>'
+    + '<button type="button" class="bomb-stepper-btn" onclick="stepTactical(\'' + tid + '\',' + mid + ',+1)"' + (tactDisabled ? ' disabled' : '') + '>+</button>'
+    + '</div>'
+    + '<div class="bomb-dice-hint">' + tactDiceHint + '</div>'
+    + '</div>'
+    + '<div class="bomb-section bomb-total-col">'
+    + '<div class="bomb-section-label">' + t('bomb.total_label') + '</div>'
+    + '<div class="bomb-total-val" id="bomb-total-center-' + tid + '-' + mid + '">' + missionTotal(m) + '</div>'
+    + '<div class="bomb-dice-hint">' + t('bomb.planes') + '</div>'
     + '</div>'
     + '</div>'
     // \u2500\u2500 Dice roll divider \u2500\u2500
@@ -2048,7 +2072,7 @@ function buildMissionRowHTML(tid, m, idx, bombTerrOpts) {
     + '<div class="bomb-stepper-row">'
     + '<div class="bomb-stepper">'
     + '<button type="button" class="bomb-stepper-btn" onclick="stepMissionAA(\'' + tid + '\',' + mid + ',-1)">\u2212</button>'
-    + '<input type="number" class="bomb-stepper-input" id="bomb-aa-val-' + tid + '-' + mid + '" min="0" max="' + m.assigned + '" value="' + aaVal + '" oninput="onMissionAAInput(\'' + tid + '\',' + mid + ',this.value)">'
+    + '<input type="number" class="bomb-stepper-input" id="bomb-aa-val-' + tid + '-' + mid + '" min="0" max="' + missionTotal(m) + '" value="' + aaVal + '" oninput="onMissionAAInput(\'' + tid + '\',' + mid + ',this.value)">'
     + '<button type="button" class="bomb-stepper-btn" onclick="stepMissionAA(\'' + tid + '\',' + mid + ',+1)">+</button>'
     + '</div>'
     + '<span class="bomb-survivors-badge' + (survivorsZero ? ' bomb-survivors-zero' : '') + '" id="bomb-survivors-' + tid + '-' + mid + '">'
@@ -2415,7 +2439,7 @@ function buildRDSectionHTML(tid) {
       </div>
       <div id="rd-split-ui-${tid}" style="display:none"></div>
       <div class="rd-actions">
-        <button class="btn btn-ghost btn-sm" onclick="resetResearchDice('${tid}')">${t('rd.reset_btn')}</button>
+        <button class="btn btn-success btn-sm" onclick="onBreakthroughBtn('${tid}')">${t('rd.breakthrough_btn')}</button>
       </div>
       <div id="rd-result-${tid}"></div>
     </div>`;
@@ -2438,7 +2462,7 @@ function buildRDSectionHTML(tid) {
         </div>
         <button class="rd-step-btn rd-step-add" onclick="buyResearchDice('${tid}', 1)">+ 5 IPC</button>
       </div>
-      <button class="btn btn-ghost btn-sm rd-reset-btn" onclick="resetResearchDice('${tid}')">${t('rd.reset_btn')}</button>
+      <button class="btn btn-success btn-sm rd-reset-btn" onclick="onBreakthroughBtn('${tid}')">${t('rd.breakthrough_btn')}</button>
       <div id="rd-result-${tid}"></div>
     </div>`;
 }
@@ -2570,6 +2594,29 @@ function resetResearchDice(tid) {
     updateRDPanel(tid);
     const rdResult = document.getElementById(`rd-result-${tid}`);
     if (rdResult) rdResult.innerHTML = '';
+  }
+}
+
+function onBreakthroughBtn(tid) {
+  resetResearchDice(tid);
+  const tids = isUK(tid) ? ['uk_europe', 'uk_pacific'] : [tid];
+  for (const uid of tids) {
+    const techBody = document.getElementById(`tech-${uid}`);
+    const chevron  = document.getElementById(`tech-chev-${uid}`);
+    if (techBody) techBody.style.display = '';
+    if (chevron)  chevron.textContent = '▾';
+  }
+}
+
+function toggleTechCharts(tid) {
+  const tids     = isUK(tid) ? ['uk_europe', 'uk_pacific'] : [tid];
+  const techBody = document.getElementById(`tech-${tids[0]}`);
+  const isOpen   = techBody && techBody.style.display !== 'none';
+  for (const uid of tids) {
+    const body    = document.getElementById(`tech-${uid}`);
+    const chevron = document.getElementById(`tech-chev-${uid}`);
+    if (body)    body.style.display = isOpen ? 'none' : '';
+    if (chevron) chevron.textContent = isOpen ? '▸' : '▾';
   }
 }
 
@@ -2770,6 +2817,11 @@ function addNationCardListeners() {
   document.querySelectorAll('.tech-item input[data-tech]').forEach(cb => {
     cb.addEventListener('change', () => {
       const { nation, tech } = cb.dataset;
+      if (cb.checked) {
+        if (isUK(nation)) { setUKSharedDice(0); updateRDPanel('uk_europe'); updateRDPanel('uk_pacific'); }
+        else { state.nations[nation].researchDice = 0; updateRDPanel(nation); }
+        togglePhase(nation, 'rd', true);
+      }
       const nationsToSync = isUK(nation) ? ['uk_europe','uk_pacific'] : [nation];
       for (const uid of nationsToSync) {
         const ns = state.nations[uid];
@@ -3039,10 +3091,11 @@ let continentCollapsed = {};
 
 function goToTerritories(tid) {
   const sel = document.getElementById('terFilterNation');
-  if (sel) sel.value = tid;
+  if (sel) sel.value = '';
   const sel2 = document.getElementById('terFilterNation2');
-  if (sel2) sel2.value = '';
-  terFilterNation = tid;
+  if (sel2) sel2.value = tid;
+  terFilterNation  = '';
+  terFilterNation2 = tid;
   switchTab('territories');
 }
 
@@ -3623,6 +3676,9 @@ const BATTLE_GROUPS = [
 ];
 
 let battleUnits = { atk: {}, def: {} };
+let battleDefNations = []; // array of nation IDs defending in current battle
+let battleRound = 1;
+let battleCasualties = { atk: {}, def: {} };
 
 function hitColor(val) {
   if (val <= 0) return '#4b5563';
@@ -3637,16 +3693,22 @@ function getBattleNation(side) {
   return sel ? sel.value : '';
 }
 
-function hasAdvArtillery() {
-  // Check if attacking nation has Advanced Artillery tech
+function hasTechAtk(techId) {
   const tid = getBattleNation('atk');
-  return tid ? (state.nations[tid]?.technologies?.includes('adv_artillery') ?? false) : false;
+  return tid ? (state.nations[tid]?.technologies?.includes(techId) ?? false) : false;
+}
+
+function hasTechDef(techId) {
+  return battleDefNations.some(tid => state.nations[tid]?.technologies?.includes(techId) ?? false);
+}
+
+function hasAdvArtillery() {
+  return hasTechAtk('adv_artillery');
 }
 
 function populateBattleNationSelects() {
-  ['atk','def'].forEach(side => {
-    const sel = document.getElementById(`battle-nation-${side}`);
-    if (!sel || sel.dataset.built === '1') return;
+  const sel = document.getElementById('battle-nation-atk');
+  if (sel && sel.dataset.built !== '1') {
     sel.innerHTML = `<option value="">${t('battle.select_ph')}</option>`;
     TURN_ORDER.forEach(tid => {
       const n = NATIONS[tid];
@@ -3656,14 +3718,63 @@ function populateBattleNationSelects() {
       sel.appendChild(opt);
     });
     sel.dataset.built = '1';
-  });
+  }
+  populateDefAddSelect();
+  buildDefNationChips();
+}
+
+function buildDefNationChips() {
+  const el = document.getElementById('def-nations-chips');
+  if (!el) return;
+  if (battleDefNations.length === 0) {
+    el.innerHTML = `<span class="def-nations-empty">${t('battle.select_nation')}</span>`;
+    return;
+  }
+  el.innerHTML = battleDefNations.map(tid => {
+    const n = NATIONS[tid];
+    return `<span class="def-nation-chip">${n.shortName} ${n.name}<button class="def-chip-remove" onclick="removeDefenderNation('${tid}')" title="${t('ui.close')}">✕</button></span>`;
+  }).join('');
+}
+
+function populateDefAddSelect() {
+  const sel = document.getElementById('battle-nation-def-add');
+  if (!sel) return;
+  const placeholder = `<option value="">${t('battle.add_defender')}</option>`;
+  const options = TURN_ORDER
+    .filter(tid => !battleDefNations.includes(tid))
+    .map(tid => {
+      const n = NATIONS[tid];
+      return `<option value="${tid}">${n.shortName} ${n.name}</option>`;
+    }).join('');
+  sel.innerHTML = placeholder + options;
+}
+
+function addDefenderNation(tid) {
+  if (!tid || battleDefNations.includes(tid)) return;
+  battleDefNations.push(tid);
+  buildDefNationChips();
+  populateDefAddSelect();
+  const defEl = document.getElementById('def-units');
+  if (defEl) defEl.innerHTML = buildBattleUnitRows('def');
+  updateBattleSummary();
+}
+
+function removeDefenderNation(tid) {
+  battleDefNations = battleDefNations.filter(n => n !== tid);
+  buildDefNationChips();
+  populateDefAddSelect();
+  const defEl = document.getElementById('def-units');
+  if (defEl) defEl.innerHTML = buildBattleUnitRows('def');
+  updateBattleSummary();
 }
 
 function onBattleNationChange() {
-  // Show/hide Advanced Artillery badge on attacker
   const advArt = hasAdvArtillery();
   const badge = document.getElementById('adv-art-badge');
   if (badge) badge.classList.toggle('hidden', !advArt);
+  // Rebuild atk unit rows so tech badges (super_subs, heavy_bombers) reflect current nation
+  const atkEl = document.getElementById('atk-units');
+  if (atkEl) atkEl.innerHTML = buildBattleUnitRows('atk');
   updateBattleSummary();
 }
 
@@ -3681,19 +3792,43 @@ function renderBattle() {
 }
 
 function buildBattleUnitRows(side) {
+  const superSub = side === 'atk' && hasTechAtk('super_submarines');
+  const heavyBom = side === 'atk' && hasTechAtk('heavy_bombers');
+  const jetPower = side === 'def' && hasTechDef('jet_power');
+  const radar    = side === 'def' && hasTechDef('radar');
+
   return BATTLE_GROUPS.map(g => {
     const rows = BATTLE_UNITS.filter(g.filter).map(u => {
-      const val  = side === 'atk' ? u.attack : u.defense;
-      const qty  = (battleUnits[side][u.id] || 0);
-      const dot  = `<div class="bu-hit-dot" style="background:${hitColor(val)}"></div>`;
-      const note = u.aaOnly ? 'AA' : (val === 0 ? '—' : `≤${val}`);
+      let val = side === 'atk' ? u.attack : u.defense;
+      const qty = (battleUnits[side][u.id] || 0);
+      let badge = '';
+
+      if (side === 'atk' && u.id === 'submarine' && superSub) {
+        val = 3;
+        badge = `<span class="bu-tech-badge">≤3</span>`;
+      } else if (side === 'atk' && u.id === 'str_bomber' && heavyBom) {
+        badge = `<span class="bu-tech-badge">×2↑</span>`;
+      } else if (side === 'def' && u.id === 'fighter' && jetPower) {
+        val = 5;
+        badge = `<span class="bu-tech-badge">⚡+1</span>`;
+      } else if (side === 'def' && u.aaOnly && radar) {
+        badge = `<span class="bu-tech-badge">≤2</span>`;
+      }
+
+      const dot = `<div class="bu-hit-dot" style="background:${hitColor(val)}"></div>`;
+      let note;
+      if (u.aaOnly) {
+        note = radar ? '≤2' : '≤1';
+      } else {
+        note = val === 0 ? '—' : `≤${val}`;
+      }
       const aaNote = u.aaOnly
         ? `<div style="font-size:.7rem;color:var(--text-muted)">${t('battle.unit.aa_note')}</div>`
         : '';
       return `<div class="bu-row">
         ${dot}
         <div><div class="bu-name">${u.icon} ${t(u.nameKey)}</div>${aaNote}</div>
-        <div class="bu-val">${note}</div>
+        <div class="bu-val">${note}${badge}</div>
         <div class="bu-ctrl">
           <button class="bu-btn" onclick="changeBattleUnit('${side}','${u.id}',-1)">−</button>
           <span class="bu-count${qty === 0 ? ' zero' : ''}" id="bu-qty-${side}-${u.id}">${qty}</span>
@@ -3716,46 +3851,82 @@ function changeBattleUnit(side, unitId, delta) {
   updateBattleSummary();
 }
 
-// Returns array of {label, val, qty} considering Artillery/Infantry pairing rules
+// Returns array of {label, val, qty, probability?} with full A&A pairing rules
 function calcBattleDice(side) {
   const dice = [];
 
   if (side === 'atk') {
-    const inf  = battleUnits.atk['infantry']  || 0;
-    const art  = battleUnits.atk['artillery'] || 0;
-    const mech = battleUnits.atk['mech_inf']  || 0;
-    const advArt = hasAdvArtillery();
+    const inf  = battleUnits.atk['infantry']   || 0;
+    const art  = battleUnits.atk['artillery']  || 0;
+    const mech = battleUnits.atk['mech_inf']   || 0;
+    const tank = battleUnits.atk['tank']        || 0;
+    const tac  = battleUnits.atk['tac_bomber'] || 0;
+    const fig  = battleUnits.atk['fighter']    || 0;
 
-    // Pair infantry with artillery
-    const infPaired   = Math.min(inf, art);
+    const advArt   = hasTechAtk('adv_artillery');
+    const mechArt  = hasTechAtk('mech_artillery');
+    const superSub = hasTechAtk('super_submarines');
+    const heavyBom = hasTechAtk('heavy_bombers');
+
+    // Infantry + artillery pairing (AdvArt: each art supports 2 inf)
+    const artSupport  = art * (advArt ? 2 : 1);
+    const infPaired   = Math.min(inf, artSupport);
     const infUnpaired = inf - infPaired;
-    const artRemaining = art - infPaired;
 
-    // If Advanced Artillery: pair remaining artillery with mech infantry
-    const mechPaired   = advArt ? Math.min(mech, artRemaining) : 0;
-    const mechUnpaired = mech - mechPaired;
+    // Improved Mech Inf: mech inf paired with tank → attack @2
+    const mechTankPaired = mechArt ? Math.min(mech, tank) : 0;
+    const mechUnpaired   = mech - mechTankPaired;
 
-    if (infPaired > 0)    dice.push({ label: t('battle.dice_inf_paired'),  val: 2, qty: infPaired });
-    if (infUnpaired > 0)  dice.push({ label: t('unit.infantry'),           val: 1, qty: infUnpaired });
-    if (mechPaired > 0)   dice.push({ label: t('battle.dice_mech_boost'),  val: 2, qty: mechPaired });
-    if (mechUnpaired > 0) dice.push({ label: t('unit.mech_inf'),           val: 1, qty: mechUnpaired });
-    if (art > 0)          dice.push({ label: t('unit.artillery'),          val: 2, qty: art });
+    // Tac bomber combined arms: tac bomber + tank/fighter → attack @4
+    const tanksForTac    = Math.max(0, tank - mechTankPaired);
+    const tacWithTank    = Math.min(tac, tanksForTac);
+    const tacWithFighter = Math.min(tac - tacWithTank, fig);
+    const tacPaired      = tacWithTank + tacWithFighter;
+    const tacUnpaired    = tac - tacPaired;
 
-    // All other units (not infantry/mech/artillery/aaa/transport)
+    if (infPaired > 0)      dice.push({ label: t('battle.dice_inf_paired'),   val: 2, qty: infPaired,      unitId: 'infantry' });
+    if (infUnpaired > 0)    dice.push({ label: t('unit.infantry'),             val: 1, qty: infUnpaired,    unitId: 'infantry' });
+    if (art > 0)            dice.push({ label: t('unit.artillery'),            val: 2, qty: art,            unitId: 'artillery' });
+    if (mechTankPaired > 0) dice.push({ label: t('battle.dice_mech_tank'),    val: 2, qty: mechTankPaired, unitId: 'mech_inf' });
+    if (mechUnpaired > 0)   dice.push({ label: t('unit.mech_inf'),            val: 1, qty: mechUnpaired,   unitId: 'mech_inf' });
+    if (tank > 0)           dice.push({ label: t('unit.tank'),                val: 3, qty: tank,           unitId: 'tank' });
+    if (tacPaired > 0)      dice.push({ label: t('battle.dice_tac_paired'),   val: 4, qty: tacPaired,      unitId: 'tac_bomber' });
+    if (tacUnpaired > 0)    dice.push({ label: t('battle.dice_tac_unpaired'), val: 3, qty: tacUnpaired,    unitId: 'tac_bomber' });
+    if (fig > 0)            dice.push({ label: t('unit.fighter'),             val: 3, qty: fig,            unitId: 'fighter' });
+
+    const subQty = battleUnits.atk['submarine'] || 0;
+    if (subQty > 0) dice.push({ label: t('unit.submarine'), val: superSub ? 3 : 2, qty: subQty, unitId: 'submarine' });
+
+    const strBomQty = battleUnits.atk['str_bomber'] || 0;
+    if (strBomQty > 0) {
+      if (heavyBom) {
+        // 2d6 keep highest, hit on ≤4: P(hit) = 1 − (2/6)²
+        dice.push({ label: t('unit.strat_bomb'), val: 4, qty: strBomQty, probability: 1 - Math.pow(2 / 6, 2), unitId: 'str_bomber' });
+      } else {
+        dice.push({ label: t('unit.strat_bomb'), val: 4, qty: strBomQty, unitId: 'str_bomber' });
+      }
+    }
+
+    // Remaining sea units (destroyer, cruiser, carrier, battleship)
+    const handledIds = new Set(['infantry','mech_inf','artillery','tank','tac_bomber','fighter','submarine','str_bomber','aaa','transport']);
     BATTLE_UNITS.forEach(u => {
-      if (['infantry','mech_inf','artillery','aaa','transport'].includes(u.id)) return;
-      const qty = (battleUnits.atk[u.id] || 0);
+      if (handledIds.has(u.id)) return;
+      const qty = battleUnits.atk[u.id] || 0;
       if (qty <= 0 || u.attack <= 0) return;
-      dice.push({ label: t(u.nameKey), val: u.attack, qty });
+      dice.push({ label: t(u.nameKey), val: u.attack, qty, unitId: u.id });
     });
 
   } else {
-    // Defense — no pairing
+    // Defense: jet_power boosts fighter defense to 5
+    const jetPower      = hasTechDef('jet_power');
+    const fighterDefVal = jetPower ? 5 : 4;
+
     BATTLE_UNITS.forEach(u => {
       if (u.aaOnly || u.id === 'transport') return;
-      const qty = (battleUnits.def[u.id] || 0);
+      const qty = battleUnits.def[u.id] || 0;
       if (qty <= 0 || u.defense <= 0) return;
-      dice.push({ label: t(u.nameKey), val: u.defense, qty });
+      const defVal = u.id === 'fighter' ? fighterDefVal : u.defense;
+      dice.push({ label: t(u.nameKey), val: defVal, qty, unitId: u.id });
     });
   }
 
@@ -3767,8 +3938,8 @@ function updateBattleSummary() {
   const defDice     = calcBattleDice('def');
   const atkTotal    = atkDice.reduce((s, d) => s + d.qty, 0);
   const defTotal    = defDice.reduce((s, d) => s + d.qty, 0);
-  const atkExpected = atkDice.reduce((s, d) => s + d.qty * (d.val / 6), 0);
-  const defExpected = defDice.reduce((s, d) => s + d.qty * (d.val / 6), 0);
+  const atkExpected = atkDice.reduce((s, d) => s + d.qty * (d.probability !== undefined ? d.probability : d.val / 6), 0);
+  const defExpected = defDice.reduce((s, d) => s + d.qty * (d.probability !== undefined ? d.probability : d.val / 6), 0);
 
   const atkDiceEl = document.getElementById('atk-total-dice');
   if (atkDiceEl) atkDiceEl.textContent = `${atkTotal} ${atkTotal === 1 ? t('battle.dice_singular') : t('battle.dice_plural')}`;
@@ -3789,35 +3960,66 @@ function updateBattleSummary() {
 
   // Pairing info panel
   const pairingEl = document.getElementById('battle-pairing-info');
-  if (pairingEl) {
-    const inf  = battleUnits.atk['infantry']  || 0;
-    const art  = battleUnits.atk['artillery'] || 0;
-    const mech = battleUnits.atk['mech_inf']  || 0;
-    const advArt = hasAdvArtillery();
+  if (!pairingEl) return;
 
-    if ((inf > 0 || mech > 0) && art > 0) {
-      const infPaired    = Math.min(inf, art);
-      const infUnpaired  = inf - infPaired;
-      const artRem       = art - infPaired;
-      const mechPaired   = advArt ? Math.min(mech, artRem) : 0;
-      const mechUnpaired = mech - mechPaired;
+  const inf  = battleUnits.atk['infantry']   || 0;
+  const art  = battleUnits.atk['artillery']  || 0;
+  const mech = battleUnits.atk['mech_inf']   || 0;
+  const tank = battleUnits.atk['tank']        || 0;
+  const tac  = battleUnits.atk['tac_bomber'] || 0;
+  const fig  = battleUnits.atk['fighter']    || 0;
 
-      // Only show pairing box if something is actually being paired/boosted
-      const showInfPairing  = inf > 0 && infPaired > 0;
-      const showMechPairing = advArt && mech > 0 && artRem > 0;
+  const advArt   = hasTechAtk('adv_artillery');
+  const mechArt  = hasTechAtk('mech_artillery');
+  const superSub = hasTechAtk('super_submarines');
+  const heavyBom = hasTechAtk('heavy_bombers');
+  const jetPower = hasTechDef('jet_power');
+  const radar    = hasTechDef('radar');
 
-      if (showInfPairing || showMechPairing) {
-        let rows = '';
-        if (showInfPairing) rows += `<div class="bp-row"><span class="bp-icon">🪖</span><span class="bp-text">${infPaired}× paret <b>≤2</b>${infUnpaired > 0 ? `, ${infUnpaired}× uparet <b>≤1</b>` : ''}</span></div>`;
-        if (showMechPairing) rows += `<div class="bp-row"><span class="bp-icon">🚛</span><span class="bp-text">${mechPaired > 0 ? `${mechPaired}× boosted <b>≤2</b>` : ''}${mechPaired > 0 && mechUnpaired > 0 ? `, ${mechUnpaired}× normal <b>≤1</b>` : ''}</span></div>`;
-        pairingEl.innerHTML = `<div class="battle-pairing-box"><div class="bp-title">🔗 Paring</div>${rows}</div>`;
-      } else {
-        pairingEl.innerHTML = '';
-      }
-    } else {
-      pairingEl.innerHTML = '';
-    }
+  const artSupport     = art * (advArt ? 2 : 1);
+  const infPaired      = Math.min(inf, artSupport);
+  const infUnpaired    = inf - infPaired;
+  const mechTankPaired = mechArt ? Math.min(mech, tank) : 0;
+  const mechUnpaired   = mech - mechTankPaired;
+  const tanksForTac    = Math.max(0, tank - mechTankPaired);
+  const tacWithTank    = Math.min(tac, tanksForTac);
+  const tacWithFighter = Math.min(tac - tacWithTank, fig);
+  const tacPaired      = tacWithTank + tacWithFighter;
+  const tacUnpaired    = tac - tacPaired;
+
+  let rows = '';
+  if (infPaired > 0) {
+    const unpairedPart = infUnpaired > 0 ? `, ${infUnpaired}× ${t('unit.infantry')} <b>≤1</b>` : '';
+    rows += `<div class="bp-row"><span class="bp-icon">🪖</span><span class="bp-text">${infPaired}× ${t('battle.dice_inf_paired')} <b>≤2</b>${unpairedPart}</span></div>`;
   }
+  if (mechTankPaired > 0) {
+    const unpairedPart = mechUnpaired > 0 ? `, ${mechUnpaired}× ${t('unit.mech_inf')} <b>≤1</b>` : '';
+    rows += `<div class="bp-row"><span class="bp-icon">🚛</span><span class="bp-text">${mechTankPaired}× ${t('battle.dice_mech_tank')} <b>≤2</b>${unpairedPart}</span></div>`;
+  }
+  if (tac > 0 && tacPaired > 0) {
+    const unpairedPart = tacUnpaired > 0 ? `, ${tacUnpaired}× ${t('battle.dice_tac_unpaired')} <b>≤3</b>` : '';
+    rows += `<div class="bp-row"><span class="bp-icon">💥</span><span class="bp-text">${tacPaired}× ${t('battle.dice_tac_paired')} <b>≤4</b>${unpairedPart}</span></div>`;
+  }
+
+  const techTags = [];
+  if (jetPower) techTags.push(`<span class="bp-tech-tag">${t('battle.tech_jet')}</span>`);
+  if (radar)    techTags.push(`<span class="bp-tech-tag">${t('battle.tech_radar')}</span>`);
+  if (superSub) techTags.push(`<span class="bp-tech-tag">${t('battle.tech_supersub')}</span>`);
+  if (heavyBom) techTags.push(`<span class="bp-tech-tag">${t('battle.tech_heavybomb')}</span>`);
+  if (advArt)   techTags.push(`<span class="bp-tech-tag">${t('battle.tech_advart')}</span>`);
+  if (mechArt)  techTags.push(`<span class="bp-tech-tag">${t('battle.tech_mechartillery')}</span>`);
+
+  if (rows || techTags.length > 0) {
+    let html = `<div class="battle-pairing-box">`;
+    if (rows) html += `<div class="bp-title">${t('battle.pairing')}</div>${rows}`;
+    if (techTags.length > 0) html += `<div class="bp-tech-row"><span class="bp-tech-label">${t('battle.tech_active')}</span>${techTags.join('')}</div>`;
+    html += `</div>`;
+    pairingEl.innerHTML = html;
+  } else {
+    pairingEl.innerHTML = '';
+  }
+
+  renderBattleMatrix();
 }
 
 function onBattleHitsChange() {
@@ -3832,9 +4034,10 @@ function applyBattleHits() {
   const atkHits = Math.max(0, parseInt(document.getElementById('battle-atk-hits')?.value) || 0);
   const defHits = Math.max(0, parseInt(document.getElementById('battle-def-hits')?.value) || 0);
   const atkNat  = getBattleNation('atk');
-  const defNat  = getBattleNation('def');
   const atkName = atkNat ? `${NATIONS[atkNat].flag} ${NATIONS[atkNat].name}` : t('battle.attacker_default');
-  const defName = defNat ? `${NATIONS[defNat].flag} ${NATIONS[defNat].name}` : t('battle.defender_default');
+  const defName = battleDefNations.length > 0
+    ? battleDefNations.map(tid => `${NATIONS[tid].flag} ${NATIONS[tid].name}`).join(', ')
+    : t('battle.defender_default');
 
   const atkLossKey = atkHits === 1 ? 'battle.result.loses' : 'battle.result.loses_pl';
   const defLossKey = defHits === 1 ? 'battle.result.loses' : 'battle.result.loses_pl';
@@ -3861,6 +4064,7 @@ function applyBattleHits() {
 
 function resetBattle() {
   battleUnits = { atk: {}, def: {} };
+  battleDefNations = [];
   ['atk-units','def-units'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.dataset.built = '';
@@ -3875,7 +4079,134 @@ function resetBattle() {
   if (defHitsEl) defHitsEl.value = '0';
   const applyBtn = document.getElementById('btnBattleApply');
   if (applyBtn) applyBtn.disabled = true;
+  const advBadge = document.getElementById('adv-art-badge');
+  if (advBadge) advBadge.classList.add('hidden');
+  const atkSel = document.getElementById('battle-nation-atk');
+  if (atkSel) atkSel.value = '';
+  battleRound = 1;
+  battleCasualties = { atk: {}, def: {} };
   renderBattle();
+}
+
+// ── Battle Matrix / Casualty Zone ──────────────────────────────
+
+function takeCasualty(side, unitId) {
+  if ((battleUnits[side][unitId] || 0) <= 0) return;
+  battleUnits[side][unitId]--;
+  battleCasualties[side][unitId] = (battleCasualties[side][unitId] || 0) + 1;
+  const qtyEl = document.getElementById(`bu-qty-${side}-${unitId}`);
+  if (qtyEl) {
+    qtyEl.textContent = battleUnits[side][unitId];
+    qtyEl.className = `bu-count${battleUnits[side][unitId] === 0 ? ' zero' : ''}`;
+  }
+  updateBattleSummary();
+}
+
+function restoreCasualty(side, unitId) {
+  if ((battleCasualties[side][unitId] || 0) <= 0) return;
+  battleCasualties[side][unitId]--;
+  battleUnits[side][unitId] = (battleUnits[side][unitId] || 0) + 1;
+  const qtyEl = document.getElementById(`bu-qty-${side}-${unitId}`);
+  if (qtyEl) {
+    qtyEl.textContent = battleUnits[side][unitId];
+    qtyEl.className = `bu-count${battleUnits[side][unitId] === 0 ? ' zero' : ''}`;
+  }
+  updateBattleSummary();
+}
+
+function advanceBattleRound() {
+  battleRound++;
+  updateBattleSummary();
+}
+
+function retreatBattle() {
+  toast(t('battle.retreated'), 'info');
+}
+
+function renderBattleMatrix() {
+  const el = document.getElementById('battle-matrix-section');
+  if (!el) return;
+
+  function buildSide(side) {
+    const dice = calcBattleDice(side);
+    const casEntries = Object.entries(battleCasualties[side]).filter(([, qty]) => qty > 0);
+    const totalActive = dice.reduce((s, d) => s + d.qty, 0);
+
+    // Group active dice by hit value column
+    const cols = {};
+    dice.forEach(d => {
+      if (d.qty <= 0) return;
+      const v = d.val;
+      if (!cols[v]) cols[v] = [];
+      cols[v].push(d);
+    });
+
+    const allVals = [...Object.keys(cols).map(Number)];
+    const maxVal = Math.max(4, ...allVals, 1);
+    const colValues = [];
+    for (let v = 1; v <= maxVal; v++) colValues.push(v);
+
+    let colsHtml = '';
+    if (totalActive === 0 && casEntries.length === 0) {
+      colsHtml = `<div class="bm-no-units">${t('battle.no_units')}</div>`;
+    } else {
+      colsHtml = colValues.map(v => {
+        const entries = cols[v] || [];
+        const bodyHtml = entries.length > 0
+          ? entries.map(d => {
+              const unitDef = BATTLE_UNITS.find(u => u.id === d.unitId);
+              const icon = unitDef?.icon || '?';
+              const nameKey = unitDef?.nameKey;
+              return `<button class="bm-unit-tile" onclick="takeCasualty('${side}','${d.unitId}')" title="${t('battle.take_casualty')}: ${nameKey ? t(nameKey) : d.unitId}">
+                <span class="bm-unit-icon">${icon}</span>
+                <span class="bm-unit-qty">×${d.qty}</span>
+              </button>`;
+            }).join('')
+          : `<div class="bm-col-empty">—</div>`;
+        return `<div class="bm-col">
+          <div class="bm-col-hdr" style="background:${hitColor(v)};color:${v === 1 ? '#6b7280' : '#fff'}">≤${v}</div>
+          <div class="bm-col-body">${bodyHtml}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // Casualty zone
+    const casHtml = casEntries.length === 0
+      ? `<span class="bm-cas-empty">${t('battle.no_casualties')}</span>`
+      : casEntries.map(([uid, qty]) => {
+          const u = BATTLE_UNITS.find(bu => bu.id === uid);
+          if (!u) return '';
+          return `<button class="bm-cas-tile" onclick="restoreCasualty('${side}','${uid}')" title="${t('battle.restore')}">
+            <span>${u.icon}</span><span>×${qty}</span>
+          </button>`;
+        }).join('');
+
+    const sideIcon = side === 'atk' ? '🗡️' : '🛡️';
+    const sideLabel = side === 'atk' ? t('battle.attacker') : t('battle.defender');
+
+    return `<div class="bm-side bm-${side}">
+      <div class="bm-side-hdr">${sideIcon} ${sideLabel}</div>
+      <div class="bm-columns">${colsHtml}</div>
+      <div class="bm-casualty">
+        <div class="bm-casualty-lbl">💀 ${t('battle.casualty_zone')}</div>
+        <div class="bm-casualty-units">${casHtml}</div>
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="bm-header">
+      <span class="bm-round-badge">⚔️ ${t('battle.round')} ${battleRound}</span>
+      <div class="bm-header-btns">
+        <button class="btn btn-sm btn-primary" onclick="advanceBattleRound()">${t('battle.next_round')}</button>
+        <button class="btn btn-sm btn-ghost" onclick="retreatBattle()">${t('battle.retreat')}</button>
+      </div>
+    </div>
+    <div class="bm-board">
+      ${buildSide('atk')}
+      <div class="bm-vs-sep">VS</div>
+      ${buildSide('def')}
+    </div>`;
 }
 
 // ── CSV Territory Loader ───────────────────────────────────────
