@@ -1232,11 +1232,6 @@ function buildNationCard(tid) {
     const c = getController(t.id);
     return c !== tid && c !== 'neutral' && c !== 'dutch' && hasFacility(t.id);
   }) : [];
-  const rocketTargetOptions = enemyTerrWithFacs.map(terr => {
-    const fac = getFacility(terr.id);
-    const facs = [fac.ic ? (fac.ic === 'major' ? t('repair.major_ic') : t('repair.minor_ic')) : null, fac.airBase ? t('repair.airbase') : null, fac.navalBase ? t('repair.navalbase') : null].filter(Boolean).join(', ');
-    return `<option value="${terr.id}">${terr.name} [${facs}]</option>`;
-  }).join('');
   let rocketsBodyHTML = '';
   if (hasRockets) {
     if (operativeAirBases.length === 0) {
@@ -1248,6 +1243,18 @@ function buildNationCard(tid) {
         const abDmg = getFacilityDamage(ab.terrId).airBase || 0;
         const dmgBadge = abDmg > 0 ? ' <span class="damage-badge">' + t('fac.badge.damage', { n: abDmg + '/6' }) + '</span>' : '';
         const ftid = tid, fterrId = ab.terrId;
+        // Per-base range filter: if adjacency data exists, limit to 3 hops; otherwise show all
+        const hasGraph = (TERRITORY_GRAPH[ab.terrId] ?? []).length > 0;
+        const inRange  = hasGraph ? getTerritoriesInRange(ab.terrId, 3) : null;
+        const rocketTargetOptions = enemyTerrWithFacs
+          .filter(terr => !inRange || inRange.has(terr.id))
+          .map(terr => {
+            const fac  = getFacility(terr.id);
+            const facs = [fac.ic ? (fac.ic === 'major' ? t('repair.major_ic') : t('repair.minor_ic')) : null, fac.airBase ? t('repair.airbase') : null, fac.navalBase ? t('repair.navalbase') : null].filter(Boolean).join(', ');
+            const dist = inRange?.get(terr.id);
+            const hop  = dist !== undefined ? ' (' + dist + ' hopp)' : '';
+            return '<option value="' + terr.id + '">' + terr.name + ' [' + facs + ']' + hop + '</option>';
+          }).join('');
         return '<div class="rocket-base-card">'
           + '<div class="bomb-mission-hdr"><span class="rocket-base-name">🚀 ' + ab.terrName + dmgBadge + '</span></div>'
           + '<div class="bomb-section">'
@@ -1279,7 +1286,20 @@ function buildNationCard(tid) {
           + '</div>'
           + '</div>';
       }).join('');
-      rocketsBodyHTML = '<div class="rockets-section" id="rockets-body-' + tid + '">' + baseRows + '</div>';
+      const ynYes = rocketsEnabled[tid] ? ' phase-yn-active' : '';
+      const ynNo  = rocketsEnabled[tid] ? '' : ' phase-yn-active';
+      rocketsBodyHTML = '<div class="rockets-section" id="rockets-body-' + tid + '">'
+        + '<div class="phase-yn-row">'
+        + '<span>' + t('rocket.yn_question') + '</span>'
+        + '<div class="phase-yn-group" id="rockets-toggle-btns-' + tid + '">'
+        + '<button class="phase-yn-btn' + ynYes + '" data-val="yes" onclick="toggleRocketsEnabled(\'' + tid + '\',true)">' + t('common.yes') + '</button>'
+        + '<button class="phase-yn-btn' + ynNo  + '" data-val="no"  onclick="toggleRocketsEnabled(\'' + tid + '\',false)">' + t('common.no')  + '</button>'
+        + '</div>'
+        + '</div>'
+        + '<div id="rockets-toggle-body-' + tid + '" style="' + (rocketsEnabled[tid] ? '' : 'display:none') + '">'
+        + baseRows
+        + '</div>'
+        + '</div>';
     }
   }
   const rocketsRow  = !hasRockets ? '' : `
@@ -1359,13 +1379,24 @@ function buildNationCard(tid) {
       </button>
       <div class="bombing-section">
         <div class="phase-sub-hdr">${t('bomb.section_title')}</div>
-        <div class="bomb-total-bar">${t('bomb.total_bar')} <span id="bomb-total-${tid}">${bombingTotalAllokert}</span> ${t('bomb.planes')}</div>
-        <div id="bomb-missions-${tid}">${initialMissionsHTML}</div>
-        <div class="bombing-row">
-          <button type="button" class="btn btn-sm btn-ghost" onclick="addBombingMission('${tid}')">${t('bomb.add_mission')}</button>
+        <div class="phase-yn-row">
+          <span>${t('bomb.yn_question')}</span>
+          <div class="phase-yn-group" id="bomb-toggle-btns-${tid}">
+            <button class="phase-yn-btn${bombingEnabled[tid] ? ' phase-yn-active' : ''}" data-val="yes"
+              onclick="toggleBombingEnabled('${tid}',true)">${t('common.yes')}</button>
+            <button class="phase-yn-btn${!bombingEnabled[tid] ? ' phase-yn-active' : ''}" data-val="no"
+              onclick="toggleBombingEnabled('${tid}',false)">${t('common.no')}</button>
+          </div>
         </div>
-        <div class="bombing-row" id="bomb-apply-all-${tid}" style="${bombingHasAnyDamage ? '' : 'display:none'}">
-          <button type="button" class="btn btn-sm btn-success" onclick="applyAllBombingDamage('${tid}')">${t('bomb.apply_all')}</button>
+        <div id="bomb-toggle-body-${tid}" style="${bombingEnabled[tid] ? '' : 'display:none'}">
+          <div class="bomb-total-bar">${t('bomb.total_bar')} <span id="bomb-total-${tid}">${bombingTotalAllokert}</span> ${t('bomb.planes')}</div>
+          <div id="bomb-missions-${tid}">${initialMissionsHTML}</div>
+          <div class="bombing-row">
+            <button type="button" class="btn btn-sm btn-ghost" onclick="addBombingMission('${tid}')">${t('bomb.add_mission')}</button>
+          </div>
+          <div class="bombing-row" id="bomb-apply-all-${tid}" style="${bombingHasAnyDamage ? '' : 'display:none'}">
+            <button type="button" class="btn btn-sm btn-success" onclick="applyAllBombingDamage('${tid}')">${t('bomb.apply_all')}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1710,10 +1741,33 @@ function stepRepairTarget(tid, terrId, type, delta) {
   updatePurchaseDisplay(tid);
 }
 
+// ── Territory adjacency graph (built from CSV neighbors column) ──
+let TERRITORY_GRAPH = {}; // { [territoryId]: string[] } — includes sea zones
+
+// BFS: returns Map<territoryId, distance> for all reachable territories within maxRange hops
+function getTerritoriesInRange(startId, maxRange) {
+  const visited = new Map();
+  const queue = [[startId, 0]];
+  visited.set(startId, 0);
+  while (queue.length) {
+    const [id, dist] = queue.shift();
+    if (dist >= maxRange) continue;
+    for (const nbId of (TERRITORY_GRAPH[id] || [])) {
+      if (!visited.has(nbId)) {
+        visited.set(nbId, dist + 1);
+        queue.push([nbId, dist + 1]);
+      }
+    }
+  }
+  return visited;
+}
+
 // ── Bombing / Rockets session state ──────────────────────────
 // Mission shape: { id, terrId, facType, strategic, tactical, aaHits, survivors, damage }
 let bombingMissions = {}; // { [nationId]: Mission[] }
 let _missionIdCounter = 0;
+let bombingEnabled = {}; // { [nationId]: bool } — JA/NEI gate
+let rocketsEnabled = {}; // { [nationId]: bool } — JA/NEI gate
 
 function _newMission() {
   return { id: ++_missionIdCounter, terrId: '', facType: 'ic',
@@ -1721,6 +1775,24 @@ function _newMission() {
 }
 
 function missionTotal(m) { return (m.strategic || 0) + (m.tactical || 0); }
+
+function toggleBombingEnabled(tid, val) {
+  bombingEnabled[tid] = val;
+  const body = document.getElementById('bomb-toggle-body-' + tid);
+  if (body) body.style.display = val ? '' : 'none';
+  document.querySelectorAll('#bomb-toggle-btns-' + tid + ' .phase-yn-btn').forEach(b => {
+    b.classList.toggle('phase-yn-active', b.dataset.val === (val ? 'yes' : 'no'));
+  });
+}
+
+function toggleRocketsEnabled(tid, val) {
+  rocketsEnabled[tid] = val;
+  const body = document.getElementById('rockets-toggle-body-' + tid);
+  if (body) body.style.display = val ? '' : 'none';
+  document.querySelectorAll('#rockets-toggle-btns-' + tid + ' .phase-yn-btn').forEach(b => {
+    b.classList.toggle('phase-yn-active', b.dataset.val === (val ? 'yes' : 'no'));
+  });
+}
 
 function ensureBombingMissions(tid) {
   if (!bombingMissions[tid] || bombingMissions[tid].length === 0) {
@@ -3678,7 +3750,9 @@ const BATTLE_GROUPS = [
 let battleUnits = { atk: {}, def: {} };
 let battleDefNations = []; // array of nation IDs defending in current battle
 let battleRound = 1;
-let battleCasualties = { atk: {}, def: {} };
+let battleCasualtyZone = { def: {} };    // defender units pending removal (still fire this round)
+let battleRoundRemovals = { atk: {}, def: {} }; // all removals this round (for history)
+let battleHistory = [];                  // [{ round, atk:{unitId:qty}, def:{unitId:qty} }]
 
 function hitColor(val) {
   if (val <= 0) return '#4b5563';
@@ -4084,7 +4158,9 @@ function resetBattle() {
   const atkSel = document.getElementById('battle-nation-atk');
   if (atkSel) atkSel.value = '';
   battleRound = 1;
-  battleCasualties = { atk: {}, def: {} };
+  battleCasualtyZone = { def: {} };
+  battleRoundRemovals = { atk: {}, def: {} };
+  battleHistory = [];
   renderBattle();
 }
 
@@ -4093,7 +4169,10 @@ function resetBattle() {
 function takeCasualty(side, unitId) {
   if ((battleUnits[side][unitId] || 0) <= 0) return;
   battleUnits[side][unitId]--;
-  battleCasualties[side][unitId] = (battleCasualties[side][unitId] || 0) + 1;
+  battleRoundRemovals[side][unitId] = (battleRoundRemovals[side][unitId] || 0) + 1;
+  if (side === 'def') {
+    battleCasualtyZone.def[unitId] = (battleCasualtyZone.def[unitId] || 0) + 1;
+  }
   const qtyEl = document.getElementById(`bu-qty-${side}-${unitId}`);
   if (qtyEl) {
     qtyEl.textContent = battleUnits[side][unitId];
@@ -4102,19 +4181,27 @@ function takeCasualty(side, unitId) {
   updateBattleSummary();
 }
 
-function restoreCasualty(side, unitId) {
-  if ((battleCasualties[side][unitId] || 0) <= 0) return;
-  battleCasualties[side][unitId]--;
-  battleUnits[side][unitId] = (battleUnits[side][unitId] || 0) + 1;
-  const qtyEl = document.getElementById(`bu-qty-${side}-${unitId}`);
+function restoreDefCasualty(unitId) {
+  if ((battleCasualtyZone.def[unitId] || 0) <= 0) return;
+  battleCasualtyZone.def[unitId]--;
+  battleRoundRemovals.def[unitId] = Math.max(0, (battleRoundRemovals.def[unitId] || 0) - 1);
+  battleUnits.def[unitId] = (battleUnits.def[unitId] || 0) + 1;
+  const qtyEl = document.getElementById(`bu-qty-def-${unitId}`);
   if (qtyEl) {
-    qtyEl.textContent = battleUnits[side][unitId];
-    qtyEl.className = `bu-count${battleUnits[side][unitId] === 0 ? ' zero' : ''}`;
+    qtyEl.textContent = battleUnits.def[unitId];
+    qtyEl.className = `bu-count${battleUnits.def[unitId] === 0 ? ' zero' : ''}`;
   }
   updateBattleSummary();
 }
 
 function advanceBattleRound() {
+  const atkTotal = Object.values(battleRoundRemovals.atk).reduce((s, v) => s + v, 0);
+  const defTotal = Object.values(battleRoundRemovals.def).reduce((s, v) => s + v, 0);
+  if (atkTotal > 0 || defTotal > 0) {
+    battleHistory.push({ round: battleRound, atk: { ...battleRoundRemovals.atk }, def: { ...battleRoundRemovals.def } });
+  }
+  battleCasualtyZone.def = {};
+  battleRoundRemovals = { atk: {}, def: {} };
   battleRound++;
   updateBattleSummary();
 }
@@ -4127,72 +4214,74 @@ function renderBattleMatrix() {
   const el = document.getElementById('battle-matrix-section');
   if (!el) return;
 
-  function buildSide(side) {
+  function buildColumns(side) {
     const dice = calcBattleDice(side);
-    const casEntries = Object.entries(battleCasualties[side]).filter(([, qty]) => qty > 0);
     const totalActive = dice.reduce((s, d) => s + d.qty, 0);
-
-    // Group active dice by hit value column
     const cols = {};
     dice.forEach(d => {
       if (d.qty <= 0) return;
-      const v = d.val;
-      if (!cols[v]) cols[v] = [];
-      cols[v].push(d);
+      if (!cols[d.val]) cols[d.val] = [];
+      cols[d.val].push(d);
     });
-
-    const allVals = [...Object.keys(cols).map(Number)];
+    const allVals = Object.keys(cols).map(Number);
     const maxVal = Math.max(4, ...allVals, 1);
-    const colValues = [];
-    for (let v = 1; v <= maxVal; v++) colValues.push(v);
+    const colValues = Array.from({ length: maxVal }, (_, i) => i + 1);
 
-    let colsHtml = '';
-    if (totalActive === 0 && casEntries.length === 0) {
-      colsHtml = `<div class="bm-no-units">${t('battle.no_units')}</div>`;
-    } else {
-      colsHtml = colValues.map(v => {
-        const entries = cols[v] || [];
-        const bodyHtml = entries.length > 0
-          ? entries.map(d => {
-              const unitDef = BATTLE_UNITS.find(u => u.id === d.unitId);
-              const icon = unitDef?.icon || '?';
-              const nameKey = unitDef?.nameKey;
-              return `<button class="bm-unit-tile" onclick="takeCasualty('${side}','${d.unitId}')" title="${t('battle.take_casualty')}: ${nameKey ? t(nameKey) : d.unitId}">
-                <span class="bm-unit-icon">${icon}</span>
-                <span class="bm-unit-qty">×${d.qty}</span>
-              </button>`;
-            }).join('')
-          : `<div class="bm-col-empty">—</div>`;
-        return `<div class="bm-col">
-          <div class="bm-col-hdr" style="background:${hitColor(v)};color:${v === 1 ? '#6b7280' : '#fff'}">≤${v}</div>
-          <div class="bm-col-body">${bodyHtml}</div>
-        </div>`;
-      }).join('');
-    }
-
-    // Casualty zone
-    const casHtml = casEntries.length === 0
-      ? `<span class="bm-cas-empty">${t('battle.no_casualties')}</span>`
-      : casEntries.map(([uid, qty]) => {
-          const u = BATTLE_UNITS.find(bu => bu.id === uid);
-          if (!u) return '';
-          return `<button class="bm-cas-tile" onclick="restoreCasualty('${side}','${uid}')" title="${t('battle.restore')}">
-            <span>${u.icon}</span><span>×${qty}</span>
-          </button>`;
-        }).join('');
-
-    const sideIcon = side === 'atk' ? '🗡️' : '🛡️';
-    const sideLabel = side === 'atk' ? t('battle.attacker') : t('battle.defender');
-
-    return `<div class="bm-side bm-${side}">
-      <div class="bm-side-hdr">${sideIcon} ${sideLabel}</div>
-      <div class="bm-columns">${colsHtml}</div>
-      <div class="bm-casualty">
-        <div class="bm-casualty-lbl">💀 ${t('battle.casualty_zone')}</div>
-        <div class="bm-casualty-units">${casHtml}</div>
-      </div>
-    </div>`;
+    if (totalActive === 0) return `<div class="bm-no-units">${t('battle.no_units')}</div>`;
+    return `<div class="bm-columns">${colValues.map(v => {
+      const entries = cols[v] || [];
+      const bodyHtml = entries.length > 0
+        ? entries.map(d => {
+            const unitDef = BATTLE_UNITS.find(u => u.id === d.unitId);
+            const icon = unitDef?.icon || '?';
+            return `<button class="bm-unit-tile" onclick="takeCasualty('${side}','${d.unitId}')" title="${t('battle.take_casualty')}">
+              <span class="bm-unit-icon">${icon}</span>
+              <span class="bm-unit-qty">×${d.qty}</span>
+            </button>`;
+          }).join('')
+        : `<div class="bm-col-empty">—</div>`;
+      return `<div class="bm-col">
+        <div class="bm-col-hdr" style="background:${hitColor(v)};color:${v === 1 ? '#9ca3af' : '#fff'}">≤${v}</div>
+        <div class="bm-col-body">${bodyHtml}</div>
+      </div>`;
+    }).join('')}</div>`;
   }
+
+  // Attacker: columns + this-round removal summary (no casualty zone)
+  const atkRemovals = Object.entries(battleRoundRemovals.atk).filter(([, q]) => q > 0);
+  const atkRoundSummary = atkRemovals.length > 0
+    ? atkRemovals.map(([uid, qty]) => {
+        const u = BATTLE_UNITS.find(bu => bu.id === uid);
+        return u ? `<span class="bm-hist-unit">${u.icon}×${qty}</span>` : '';
+      }).join('')
+    : `<span class="bm-cas-empty">${t('battle.no_casualties')}</span>`;
+
+  // Defender: columns + casualty zone with restore
+  const defCasEntries = Object.entries(battleCasualtyZone.def).filter(([, q]) => q > 0);
+  const defCasHtml = defCasEntries.length > 0
+    ? defCasEntries.map(([uid, qty]) => {
+        const u = BATTLE_UNITS.find(bu => bu.id === uid);
+        return u ? `<button class="bm-cas-tile" onclick="restoreDefCasualty('${uid}')" title="${t('battle.restore')}">${u.icon} ×${qty}</button>` : '';
+      }).join('')
+    : `<span class="bm-cas-empty">${t('battle.no_casualties')}</span>`;
+
+  // Round history
+  function histUnitSpans(removals) {
+    const entries = Object.entries(removals).filter(([, q]) => q > 0);
+    if (entries.length === 0) return `<span class="bm-hist-none">—</span>`;
+    return entries.map(([uid, qty]) => {
+      const u = BATTLE_UNITS.find(bu => bu.id === uid);
+      return u ? `<span class="bm-hist-unit">${u.icon}×${qty}</span>` : '';
+    }).join('');
+  }
+  const historyHtml = battleHistory.length === 0
+    ? `<div class="bm-hist-empty">${t('battle.no_history')}</div>`
+    : battleHistory.map(h => `
+        <div class="bm-hist-row">
+          <span class="bm-hist-rnd">${t('battle.round')} ${h.round}</span>
+          <span class="bm-hist-side bm-hist-atk">🗡️ ${histUnitSpans(h.atk)}</span>
+          <span class="bm-hist-side bm-hist-def">🛡️ ${histUnitSpans(h.def)}</span>
+        </div>`).join('');
 
   el.innerHTML = `
     <div class="bm-header">
@@ -4203,9 +4292,27 @@ function renderBattleMatrix() {
       </div>
     </div>
     <div class="bm-board">
-      ${buildSide('atk')}
+      <div class="bm-side bm-atk">
+        <div class="bm-side-hdr">🗡️ ${t('battle.attacker')}</div>
+        ${buildColumns('atk')}
+        <div class="bm-atk-removed">
+          <span class="bm-casualty-lbl">${t('battle.removed_this_round')}:</span>
+          <div class="bm-casualty-units">${atkRoundSummary}</div>
+        </div>
+      </div>
       <div class="bm-vs-sep">VS</div>
-      ${buildSide('def')}
+      <div class="bm-side bm-def">
+        <div class="bm-side-hdr">🛡️ ${t('battle.defender')}</div>
+        ${buildColumns('def')}
+        <div class="bm-casualty">
+          <div class="bm-casualty-lbl">💀 ${t('battle.casualty_zone')}</div>
+          <div class="bm-casualty-units">${defCasHtml}</div>
+        </div>
+      </div>
+    </div>
+    <div class="bm-history">
+      <div class="bm-hist-title">📜 ${t('battle.history')}</div>
+      ${historyHtml}
     </div>`;
 }
 
@@ -4236,20 +4343,67 @@ function _parseTerritoriesCSV(csvText) {
   // Build header-name → column-index map (case-insensitive)
   const hdrs = lines[0].split(';').map(h => h.trim().toLowerCase());
   const H = Object.fromEntries(hdrs.map((h, i) => [h, i]));
+  const nbIdx = H['neighbors'];
 
-  const result = [];
+  // Split all rows first
+  const allCols = [];
   for (let i = 1; i < lines.length; i++) {
     const c = lines[i].split(';');
     if (!c[0]?.trim()) continue;
-    if ((c[H['type']] ?? '').trim() === 'Sea Zone') continue;  // skip sea zones
+    allCols.push(c);
+  }
 
+  // Pass 1: build name→id lookup for neighbor resolution
+  const nameToId = {};
+  for (const c of allCols) {
+    const id   = c[H['territoryid']]?.trim();
+    const name = (c[H['name']] ?? '').trim().toLowerCase();
+    if (id && name) nameToId[name] = id;
+  }
+
+  // Resolve a neighbor token (number, name, or full ID) to a territory ID
+  function resolveNb(raw) {
+    const s = raw.trim();
+    if (!s) return null;
+    if (s.includes('-')) return s;                         // already a full ID
+    const n = parseInt(s);
+    if (!isNaN(n) && String(n) === s)                     // sea zone number
+      return n <= 99 ? 'pacific-sea-zone-' + n : 'europe-sea-zone-' + n;
+    return nameToId[s.toLowerCase()] ?? null;             // territory name
+  }
+
+  // Pass 2: build TERRITORY_GRAPH for ALL rows (land + sea zones) so BFS can traverse both
+  // neighbors column is last → multi-values overflow into extra array positions
+  TERRITORY_GRAPH = {};
+  for (const c of allCols) {
+    const id = c[H['territoryid']]?.trim();
+    if (!id || nbIdx === undefined) continue;
+    const rawParts = c.slice(nbIdx).filter(v => v.trim());
+    TERRITORY_GRAPH[id] = rawParts.map(resolveNb).filter(Boolean);
+  }
+  // Add reverse edges: if land territory lists a sea zone, the sea zone also gets that territory.
+  // This way we only need to fill neighbors for land territories — sea zone CSV data stays as-is.
+  for (const [id, nbs] of Object.entries(TERRITORY_GRAPH)) {
+    for (const nb of nbs) {
+      if (!TERRITORY_GRAPH[nb]) TERRITORY_GRAPH[nb] = [];
+      if (!TERRITORY_GRAPH[nb].includes(id)) TERRITORY_GRAPH[nb].push(id);
+    }
+  }
+
+  // Pass 3: build land territory objects (sea zones remain excluded from TERRITORIES)
+  const result = [];
+  for (const c of allCols) {
+    if ((c[H['type']] ?? '').trim() === 'Sea Zone') continue;
+
+    const id         = c[H['territoryid']]?.trim();
+    if (!id) continue;
     const rawCtrl    = (c[H['controller']] ?? '').trim();
     const rawCont    = (c[H['continent']]  ?? '').trim();
     const neutralArmy = parseInt(c[H['army (nutrales)']] ?? '');
     const ntRaw      = (c[H['neutraltype']] ?? '').trim();
 
     result.push({
-      id:              c[H['territoryid']].trim(),
+      id,
       name:            (c[H['name']] ?? '').trim(),
       ipc:             parseInt(c[H['ipc']]) || 0,
       continent:       _CSV_CONT[rawCont] ?? rawCont,
@@ -4258,6 +4412,7 @@ function _parseTerritoriesCSV(csvText) {
       isMainCapital:   (c[H['maincapital']] ?? '').trim().toLowerCase() === 'yes',
       neutralArmy:     neutralArmy > 0 ? neutralArmy : undefined,
       neutralType:     (ntRaw && ntRaw !== 'none') ? ntRaw : undefined,
+      neighbors:       TERRITORY_GRAPH[id] ?? [],
     });
   }
   return result.length > 0 ? result : null;

@@ -179,6 +179,10 @@ const UI_TEXT = {
     'bomb.fac_label.airbase':  'Luftbase',
     'bomb.fac_label.navalbase':'Marinebase',
     'bomb.dice_divider':       'Etter terningkast',
+    'bomb.yn_question':        'Skal det gjennomføres strategisk bombing?',
+    'rocket.yn_question':      'Skal det avfyres raketter?',
+    'common.yes':              'Ja',
+    'common.no':               'Nei',
 
     // ── Rockets ──────────────────────────────────────────────────
     'rocket.section_title':    '🚀 Raketter',
@@ -524,6 +528,9 @@ const UI_TEXT = {
     'battle.take_casualty':       'Ta tap',
     'battle.restore':             'Gjenopprett',
     'battle.retreated':           '🏃 Angriper trekker seg!',
+    'battle.removed_this_round':  'Tap denne runden',
+    'battle.history':             'Historikk',
+    'battle.no_history':          '(ingen runder fullført ennå)',
 
     // ── General UI ───────────────────────────────────────────────
     'ui.close':     '✕',
@@ -718,6 +725,10 @@ const UI_TEXT = {
     'rocket.damage_label':     'Damage (die result):',
     'rocket.damage_ph':        '1–6',
     'rocket.no_bases':         'No operative air bases available.',
+    'bomb.yn_question':        'Will strategic bombing be conducted?',
+    'rocket.yn_question':      'Will rockets be launched?',
+    'common.yes':              'Yes',
+    'common.no':               'No',
 
     // ── Battle board ─────────────────────────────────────────────
     'battle.title':             '⚔️ Battle Board',
@@ -1053,6 +1064,9 @@ const UI_TEXT = {
     'battle.take_casualty':       'Take casualty',
     'battle.restore':             'Restore',
     'battle.retreated':           '🏃 Attacker retreats!',
+    'battle.removed_this_round':  'Removed this round',
+    'battle.history':             'History',
+    'battle.no_history':          '(no rounds completed yet)',
 
     // ── General UI ───────────────────────────────────────────────
     'ui.close':     '✕',

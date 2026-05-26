@@ -3449,6 +3449,52 @@ main {
 .bm-cas-tile:hover { background: rgba(220,38,38,.32); }
 .bm-cas-empty { font-size: .75rem; color: var(--text-muted); font-style: italic; }
 
+/* Attacker removed-this-round summary */
+.bm-atk-removed {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: .35rem .5rem;
+}
+
+/* Battle history */
+.bm-history {
+  border-top: 1px solid var(--border);
+  padding: .5rem .75rem;
+  background: var(--bg2);
+}
+.bm-hist-title {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: .35rem;
+}
+.bm-hist-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  font-size: .78rem;
+  padding: .2rem 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.bm-hist-rnd {
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 4.5rem;
+  flex-shrink: 0;
+}
+.bm-hist-side { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+.bm-hist-atk { color: #fca5a5; }
+.bm-hist-def { color: #93c5fd; }
+.bm-hist-unit {
+  background: var(--bg3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: .72rem;
+}
+.bm-hist-none { color: var(--text-muted); font-style: italic; font-size: .72rem; }
+.bm-hist-empty { font-size: .75rem; color: var(--text-muted); font-style: italic; padding: .2rem 0; }
+
 @media (max-width: 700px) {
   .bm-columns { grid-template-columns: repeat(2, 1fr); }
   .bm-board { grid-template-columns: 1fr; }
@@ -3802,6 +3848,32 @@ main {
 }
 .pc-place-select:hover { border-color: var(--border-light); }
 .pc-place-select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+
+/* ── JA/NEI toggle for bombing / rockets ─────────────────────── */
+.phase-yn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0 8px;
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+.phase-yn-group { display: flex; gap: 4px; }
+.phase-yn-btn {
+  padding: 3px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: .85rem;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.phase-yn-btn.phase-yn-active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: color-mix(in srgb, var(--bg3) 82%, var(--gold) 8%);
+}
 
 /* ── Bombing section in Fase 3 ───────────────────────────────── */
 .bombing-section { padding: .5rem; border-top: 1px solid var(--border); margin-top: .5rem; }
