@@ -36,7 +36,20 @@ function defaultState() {
       conquests:        '',  // land conquered this round (free text)
       losses:           '',  // land lost this round (free text)
       unitLosses:       '',  // unit losses this round (free text)
-      atWar:            false,  // starts at peace; declare war manually (auto-locked true after round 3)
+      // atWarWith: set of nation IDs this power is at war with at game start.
+      // Replaces the old single atWar boolean so each bilateral relation is tracked separately.
+      // Official G40 start: Germany/Italy at war with uk_europe/uk_pacific/anzac/france;
+      // Japan at war with china; USA and Soviet start neutral (at war with no one).
+      atWarWith:        [
+        ...( ['germany','italy'].includes(id)
+               ? ['uk_europe','uk_pacific','anzac','france']
+               : [] ),
+        ...( id === 'uk_europe' || id === 'uk_pacific' || id === 'anzac' || id === 'france'
+               ? ['germany','italy']
+               : [] ),
+        ...( id === 'japan'  ? ['china']        : [] ),
+        ...( id === 'china'  ? ['japan']         : [] ),
+      ],
     };
   }
   return {
@@ -165,6 +178,26 @@ function isAxis(nid)   { return AXIS_SET.has(nid); }
 function isAllied(nid) { return ALLIED_SET.has(nid); }
 function ctrl(tid)     { return getController(tid); }
 
+// Returns the correct atWarWith list for a nation at the very start of the game (round 1).
+// Official G40 start:
+//   Germany/Italy at war with UK-Europe, UK-Pacific, ANZAC, France
+//   UK-Europe/UK-Pacific/ANZAC/France at war with Germany and Italy
+//   Japan at war with China only
+//   China at war with Japan only
+//   USA and Soviet start neutral (at war with no one)
+function _defaultAtWarWith(nid) {
+  const axisVsAllies = ['uk_europe','uk_pacific','anzac','france'];
+  const alliesVsAxis = ['germany','italy'];
+  switch (nid) {
+    case 'germany': case 'italy':   return [...axisVsAllies];
+    case 'uk_europe': case 'uk_pacific':
+    case 'anzac':   case 'france':  return [...alliesVsAxis];
+    case 'japan':                   return ['china'];
+    case 'china':                   return ['japan'];
+    default:                        return [];   // usa, soviet — neutral
+  }
+}
+
 function getSovAxisTerritories() {
   return TERRITORIES.filter(t =>
     (t.startController === 'germany' || t.startController === 'italy') &&
@@ -173,59 +206,103 @@ function getSovAxisTerritories() {
 }
 
 // ── Objective auto-evaluation rules ──────────────────────────
-// Each entry: objId → () => boolean  (return true = objective met)
+// Each entry: objId → () => boolean  (return true = objective met).
+// Rules now use per-relation isAtWarWith() checks instead of a single atWar boolean,
+// matching the official rules where each peace/war bonus depends on a specific bilateral relation.
 const OBJECTIVE_RULES = {
   // ── Germany ────────────────────────────────────────────────
-  ger_leningrad:   () => ctrl('leningrad') === 'germany',
-  ger_volgograd:   () => ctrl('volgograd') === 'germany',
-  ger_moscow:      () => ctrl('moscow')    === 'germany',
-  ger_caucasus:    () => isAxis(ctrl('caucasus')),
-  ger_scandinavia: () => ctrl('denmark') === 'germany'
+  // peaceOnly: ger_peace_soviet — no rule needed, handled by peaceOnly flag + isAtWarWith(germany,soviet)
+  // warOnly objectives below only show/count when Germany is at war with the relevant opponent:
+  ger_leningrad:   () => isAtWarWith('germany','soviet') && ctrl('leningrad') === 'germany',
+  ger_volgograd:   () => isAtWarWith('germany','soviet') && ctrl('volgograd') === 'germany',
+  ger_moscow:      () => isAtWarWith('germany','soviet') && ctrl('moscow')    === 'germany',
+  ger_caucasus:    () => isAtWarWith('germany','soviet') && isAxis(ctrl('caucasus')),
+  // Egypt + Scandinavia require war with UK AND France
+  ger_egypt:       () => isAtWarWith('germany','uk_europe') && isAtWarWith('germany','france')
+                      && isAxis(ctrl('egypt')) && TERRITORIES.some(
+                           t => t.startController === 'germany'
+                             && ['egypt'].includes(t.id) === false
+                             // Any German land unit in Axis-controlled Egypt — kept manual (requires unit tracking)
+                         ),
+  ger_scandinavia: () => isAtWarWith('germany','uk_europe')
+                      && ctrl('denmark') === 'germany'
                       && ctrl('norway')  === 'germany'
                       && !isAllied(ctrl('sweden')),
-  ger_iraq:        () => ctrl('iraq')     === 'germany',
-  ger_persia:      () => ctrl('persia')   === 'germany',
+  ger_iraq:        () => ctrl('iraq')      === 'germany',
+  ger_persia:      () => ctrl('persia')    === 'germany',
   ger_nw_persia:   () => ctrl('nw_persia') === 'germany',
 
   // ── Soviet ─────────────────────────────────────────────────
-  sov_berlin:           () => ctrl('germany') === 'soviet',
-  sov_axis_territories: () => true,  // alltid aktiv i krig; IPC beregnes dynamisk (3 × antall territorier)
+  // sov_lend_lease requires no axis warships in SZ 125 — kept manual (requires sea unit tracking)
+  sov_berlin:           () => isAtWarWith('soviet','germany') && ctrl('germany') === 'soviet',
+  sov_axis_territories: () => isAtWarWith('soviet','germany') || isAtWarWith('soviet','italy'),
+  // IPC beregnes dynamisk (3 × antall territorier) i getObjIpc()
 
   // ── Japan ───────────────────────────────────────────────────
-  jap_perimeter: () => ['guam','midway','wake','gilbert','solomon_islands'].every(t => isAxis(ctrl(t))),
-  jap_india:     () => isAxis(ctrl('india')),
-  jap_sydney:    () => isAxis(ctrl('new_south_wales')),
-  jap_hawaii:    () => isAxis(ctrl('hawaii')),
-  jap_west_us:   () => isAxis(ctrl('western_us')),
-  jap_resources: () => ['sumatra','java','borneo','celebes'].every(t => isAxis(ctrl(t))),
+  // jap_us_trade (peaceOnly): active when Japan is NOT at war with USA — handled by peaceOnly flag.
+  // Additional condition: Japan must not have attacked FIC or made unprovoked DOW vs UK/ANZAC.
+  // Those are manual (require action history). The auto-rule just checks bilateral peace with USA:
+  //   (no OBJECTIVE_RULE entry needed — peaceOnly flag handles it)
+  jap_perimeter: () => isAtWarWithAny('japan',['usa','uk_europe','uk_pacific','anzac','france'])
+                     && ['guam','midway','wake','gilbert','solomon_islands'].every(t => isAxis(ctrl(t))),
+  jap_india:     () => isAtWarWithAny('japan',['usa','uk_europe','uk_pacific','anzac','france'])
+                     && isAxis(ctrl('india')),
+  jap_sydney:    () => isAtWarWithAny('japan',['usa','uk_europe','uk_pacific','anzac','france'])
+                     && isAxis(ctrl('new_south_wales')),
+  jap_hawaii:    () => isAtWarWithAny('japan',['usa','uk_europe','uk_pacific','anzac','france'])
+                     && isAxis(ctrl('hawaii')),
+  jap_west_us:   () => isAtWarWithAny('japan',['usa','uk_europe','uk_pacific','anzac','france'])
+                     && isAxis(ctrl('western_us')),
+  jap_resources: () => isAtWarWithAny('japan',['usa','uk_europe','uk_pacific','anzac','france'])
+                     && ['sumatra','java','borneo','celebes'].every(t => isAxis(ctrl(t))),
 
   // ── USA ─────────────────────────────────────────────────────
-  usa_homeland:    () => ['eastern_us','central_us','western_us'].every(t => ctrl(t) === 'usa'),
-  usa_pacific:     () => ['alaska','aleutian','hawaii','johnston','line_islands'].every(t => ctrl(t) === 'usa'),
-  usa_caribbean:   () => ['mexico','se_mexico','central_america','west_indies'].every(t => ctrl(t) === 'usa'),
-  usa_philippines: () => ctrl('philippines') === 'usa',
+  // All USA objectives require being at war (warOnly flag handles visibility).
+  usa_homeland:    () => isAtWarWith('usa','germany') || isAtWarWith('usa','italy') || isAtWarWith('usa','japan')
+                       ? ['eastern_us','central_us','western_us'].every(t => ctrl(t) === 'usa')
+                       : false,
+  usa_pacific:     () => (isAtWarWith('usa','germany') || isAtWarWith('usa','italy') || isAtWarWith('usa','japan'))
+                       && ['alaska','aleutian','hawaii','johnston','line_islands'].every(t => ctrl(t) === 'usa'),
+  usa_caribbean:   () => (isAtWarWith('usa','germany') || isAtWarWith('usa','italy') || isAtWarWith('usa','japan'))
+                       && ['mexico','se_mexico','central_america','west_indies'].every(t => ctrl(t) === 'usa'),
+  usa_philippines: () => (isAtWarWith('usa','germany') || isAtWarWith('usa','italy') || isAtWarWith('usa','japan'))
+                       && ctrl('philippines') === 'usa',
+  usa_france:      () => (isAtWarWith('usa','germany') || isAtWarWith('usa','italy') || isAtWarWith('usa','japan')),
+  // usa_france: at least 1 US land unit in France — kept manual (requires unit tracking)
 
   // ── China ───────────────────────────────────────────────────
-  chi_burma_road: () => !isAxis(ctrl('india')) && !isAxis(ctrl('burma'))
+  // China is always at war with Japan from start — Burma Road check is purely territorial.
+  chi_burma_road: () => isAtWarWith('china','japan')
+                     && !isAxis(ctrl('india')) && !isAxis(ctrl('burma'))
                      && !isAxis(ctrl('yunnan')) && !isAxis(ctrl('szechwan')),
 
   // ── UK Europe ───────────────────────────────────────────────
-  uke_empire: () => TERRITORIES.filter(t => t.startController === 'uk_europe').every(t => ctrl(t.id) === 'uk_europe'),
+  uke_empire: () => isAtWarWith('uk_europe','germany')
+               && TERRITORIES.filter(t => t.startController === 'uk_europe').every(t => ctrl(t.id) === 'uk_europe'),
 
   // ── UK Pacific ──────────────────────────────────────────────
-  ukp_far_east: () => ctrl('kwangtung') === 'uk_pacific' && ctrl('malaya') === 'uk_pacific',
+  ukp_far_east: () => isAtWarWith('uk_pacific','japan')
+               && ctrl('kwangtung') === 'uk_pacific' && ctrl('malaya') === 'uk_pacific',
 
   // ── Italy ───────────────────────────────────────────────────
-  ita_mediterranean_land: () => ['gibraltar','southern_france','greece','egypt'].filter(t => isAxis(ctrl(t))).length >= 3,
-  ita_north_africa: () => ['morocco','algeria','tunisia','libya','tobruk','alexandria'].every(t => isAxis(ctrl(t))),
-  ita_iraq:      () => ctrl('iraq')     === 'italy',
-  ita_persia:    () => ctrl('persia')   === 'italy',
+  ita_mediterranean_land: () => (isAtWarWith('italy','uk_europe') || isAtWarWith('italy','usa'))
+                              && ['gibraltar','southern_france','greece','egypt'].filter(t => isAxis(ctrl(t))).length >= 3,
+  ita_sea_control:  () => isAtWarWith('italy','uk_europe') || isAtWarWith('italy','usa'),
+  // No Allied surface warships in Med (SZ 92–99) — kept manual (requires sea unit tracking)
+  ita_north_africa: () => (isAtWarWith('italy','uk_europe') || isAtWarWith('italy','usa'))
+                        && ['morocco','algeria','tunisia','libya','tobruk','alexandria'].every(t => isAxis(ctrl(t))),
+  ita_iraq:      () => ctrl('iraq')      === 'italy',
+  ita_persia:    () => ctrl('persia')    === 'italy',
   ita_nw_persia: () => ctrl('nw_persia') === 'italy',
 
   // ── ANZAC ────────────────────────────────────────────────────
-  anz_malaya:    () => !isAxis(ctrl('malaya'))
+  // anz_malaya: Allied power controls Malaya AND ANZAC controls all original territories
+  anz_malaya:    () => isAtWarWith('anzac','japan')
+                    && isAllied(ctrl('malaya'))
                     && TERRITORIES.filter(t => t.startController === 'anzac').every(t => ctrl(t.id) === 'anzac'),
-  anz_perimeter: () => ['dutch_new_guinea','new_guinea','new_britain','solomon_islands'].every(t => !isAxis(ctrl(t))),
+  // anz_perimeter: Allies (not Dutch) control all four island territories
+  anz_perimeter: () => isAtWarWith('anzac','japan')
+                    && ['dutch_new_guinea','new_guinea','new_britain','solomon_islands'].every(t => isAllied(ctrl(t))),
 };
 
 function evalObjectivesForNation(tid) {
@@ -234,11 +311,13 @@ function evalObjectivesForNation(tid) {
   if (!ns.objectives)        ns.objectives        = {};
   if (!ns.objectivesClaimed) ns.objectivesClaimed = {};
   const objs = NATIONAL_OBJECTIVES[tid] ?? [];
-  const atWar = getEffectiveAtWar(tid);
   objs.forEach(o => {
-    // Uncheck peace objectives when at war, and war objectives when at peace
+    // peaceOnly: this objective applies only when the nation is at peace with ALL enemies.
+    // warOnly: this objective applies only when at war with at least one enemy.
+    // Both use getEffectiveAtWar() which checks atWarWith.length > 0.
+    const atWar = getEffectiveAtWar(tid);
     if (o.peaceOnly && atWar)  { ns.objectives[o.id] = false; return; }
-    if (o.warOnly  && !atWar) { ns.objectives[o.id] = false; return; }
+    if (o.warOnly  && !atWar)  { ns.objectives[o.id] = false; return; }
     const rule = OBJECTIVE_RULES[o.id];
     if (!rule) return;                                    // no auto rule → keep manual
     if (o.oneTime && ns.objectivesClaimed[o.id]) return; // already claimed → don't re-check
@@ -367,8 +446,18 @@ function loadState() {
           if (ns.losses        === undefined) ns.losses        = '';
           if (ns.unitLosses    === undefined) ns.unitLosses    = '';
           if (ns.manualAdjust  === undefined) ns.manualAdjust  = 0;
-          // always reset atWar to false (peace) on load — user sets war status manually each session
-          ns.atWar = false;
+          // Migrate old single atWar boolean → atWarWith array.
+          // Old saves had atWar:true/false; new saves have atWarWith:[...].
+          if (!Array.isArray(ns.atWarWith)) {
+            const hadWar = ns.atWar === true;
+            // Reconstruct correct starting relations; for saves mid-game where
+            // atWar was true we add all enemies from the other side as a safe default.
+            const defaultWarWith = _defaultAtWarWith(id);
+            ns.atWarWith = hadWar
+              ? [...new Set([...defaultWarWith, ...(isAxis(id) ? [...ALLIED_SET] : [...AXIS_SET])])]
+              : defaultWarWith;
+            delete ns.atWar;
+          }
           // ensure peaceOnly objectives are checked by default if not already set
           (NATIONAL_OBJECTIVES[id] ?? []).filter(o => o.peaceOnly).forEach(o => {
             if (ns.objectives[o.id] === undefined) ns.objectives[o.id] = true;
@@ -414,7 +503,15 @@ function importState(file) {
           if (ns.losses          === undefined) ns.losses          = '';
           if (ns.unitLosses      === undefined) ns.unitLosses      = '';
           if (ns.manualAdjust    === undefined) ns.manualAdjust    = 0;
-          ns.atWar = false;
+          // Migrate old atWar boolean → atWarWith array
+          if (!Array.isArray(ns.atWarWith)) {
+            const hadWar = ns.atWar === true;
+            const defaultWarWith = _defaultAtWarWith(id);
+            ns.atWarWith = hadWar
+              ? [...new Set([...defaultWarWith, ...(isAxis(id) ? [...ALLIED_SET] : [...AXIS_SET])])]
+              : defaultWarWith;
+            delete ns.atWar;
+          }
           (NATIONAL_OBJECTIVES[id] ?? []).filter(o => o.peaceOnly).forEach(o => {
             if (ns.objectives[o.id] === undefined) ns.objectives[o.id] = true;
           });
@@ -525,7 +622,15 @@ async function loadFromServer(encodedName) {
       if (ns.manualAdjust    === undefined) ns.manualAdjust    = 0;
       if (!loaded.turnPhases)   loaded.turnPhases   = {};
       if (!loaded.purchaseLogs) loaded.purchaseLogs = [];
-      ns.atWar = false;
+      // Migrate old atWar boolean → atWarWith array
+      if (!Array.isArray(ns.atWarWith)) {
+        const hadWar = ns.atWar === true;
+        const defaultWarWith = _defaultAtWarWith(id);
+        ns.atWarWith = hadWar
+          ? [...new Set([...defaultWarWith, ...(isAxis(id) ? [...ALLIED_SET] : [...AXIS_SET])])]
+          : defaultWarWith;
+        delete ns.atWar;
+      }
       (NATIONAL_OBJECTIVES[id] ?? []).filter(o => o.peaceOnly).forEach(o => {
         if (ns.objectives[o.id] === undefined) ns.objectives[o.id] = true;
       });
@@ -1426,10 +1531,9 @@ function buildNationCard(tid) {
       <div class="phase-sub-hdr">${t('nc.objectives')}</div>
       <div class="obj-section-header">
         <div class="obj-war-controls">
-          <label class="obj-war-label${getEffectiveAtWar(tid) ? ' active' : ''}${state.round > 3 ? ' obj-war-locked' : ''}" title="${state.round > 3 ? t('nc.war_auto_locked') : (getEffectiveAtWar(tid) ? t('nc.set_peacetime') : t('nc.set_war'))}">
-            <input type="checkbox" id="obj-atwar-${tid}" ${getEffectiveAtWar(tid) ? 'checked' : ''} ${state.round > 3 ? 'disabled' : ''} onchange="toggleAtWar('${tid}', this.checked)">
-            ${t('nc.at_war')}${state.round > 3 ? ' 🔒' : ''}
-          </label>
+          <div class="obj-war-enemies" id="obj-war-enemies-${tid}">
+            ${buildWarStatusHTML(tid)}
+          </div>
           <label class="obj-showall-label" title="${t('nc.show_all_bonuses')}">
             <input type="checkbox" id="obj-showall-${tid}" onchange="toggleObjShowAll('${tid}', this.checked)">
             ${t('nc.show_all')}
@@ -2981,27 +3085,88 @@ function stepManualAdjust(tid, delta) {
 }
 
 // ── War status helpers ─────────────────────────────────────────
-function getEffectiveAtWar(tid) {
-  return state.round > 3 || (state.nations[tid]?.atWar ?? false);
+// Returns true if 'tid' is at war with 'enemyId' right now.
+function isAtWarWith(tid, enemyId) {
+  const ns = state.nations[tid];
+  if (!ns) return false;
+  return (ns.atWarWith ?? []).includes(enemyId);
 }
 
-function toggleAtWar(tid, checked) {
-  if (state.round > 3) return; // auto-locked after round 3
-  state.nations[tid].atWar = checked;
+// Declare war between two nations (bilateral). Idempotent.
+function declareWar(tidA, tidB) {
+  const nsA = state.nations[tidA];
+  const nsB = state.nations[tidB];
+  if (!nsA || !nsB) return;
+  if (!nsA.atWarWith) nsA.atWarWith = [];
+  if (!nsB.atWarWith) nsB.atWarWith = [];
+  if (!nsA.atWarWith.includes(tidB)) nsA.atWarWith.push(tidB);
+  if (!nsB.atWarWith.includes(tidA)) nsB.atWarWith.push(tidA);
+}
+
+// Declare peace between two nations (bilateral).
+function declarePeace(tidA, tidB) {
+  const nsA = state.nations[tidA];
+  const nsB = state.nations[tidB];
+  if (!nsA || !nsB) return;
+  if (nsA.atWarWith) nsA.atWarWith = nsA.atWarWith.filter(e => e !== tidB);
+  if (nsB.atWarWith) nsB.atWarWith = nsB.atWarWith.filter(e => e !== tidA);
+}
+
+// Returns true if 'tid' is at war with ANY nation in the given array.
+function isAtWarWithAny(tid, enemies) {
+  return enemies.some(e => isAtWarWith(tid, e));
+}
+
+// Returns true if 'tid' is at war with at least one Axis nation (used for Allied warOnly objectives).
+function isAtWarInEurope(tid) {
+  return isAtWarWithAny(tid, ['germany', 'italy']);
+}
+
+// Returns true if 'tid' is at war with Japan (used for Pacific-theatre warOnly objectives).
+function isAtWarInPacific(tid) {
+  return isAtWarWith(tid, 'japan');
+}
+
+// Backwards-compatible helper: returns true if this nation is at war with ANYONE.
+// Used for general warOnly/peaceOnly objective filtering where the objective itself
+// already encodes which conflict it belongs to.
+function getEffectiveAtWar(tid) {
   const ns = state.nations[tid];
-  if (checked) {
-    // switching to war: uncheck all peaceOnly objectives
-    (NATIONAL_OBJECTIVES[tid] ?? []).filter(o => o.peaceOnly).forEach(o => {
-      ns.objectives[o.id] = false;
-    });
+  if (!ns) return false;
+  return (ns.atWarWith ?? []).length > 0;
+}
+
+// Toggle war between 'tid' and a specific opponent — used by the UI dropdowns.
+function toggleAtWar(tid, enemyId, shouldBeAtWar) {
+  if (shouldBeAtWar) {
+    declareWar(tid, enemyId);
+    // When this nation goes to war, uncheck the peaceOnly objectives that
+    // depended on peace with that specific enemy.
+    _syncObjectivesAfterWarChange(tid);
+    _syncObjectivesAfterWarChange(enemyId);
   } else {
-    // switching to peace: auto-check all peaceOnly objectives
-    (NATIONAL_OBJECTIVES[tid] ?? []).filter(o => o.peaceOnly).forEach(o => {
-      if (!ns.objectivesClaimed?.[o.id]) ns.objectives[o.id] = true;
-    });
+    declarePeace(tid, enemyId);
+    _syncObjectivesAfterWarChange(tid);
+    _syncObjectivesAfterWarChange(enemyId);
   }
   saveState();
   refreshObjectivesSection(tid);
+  refreshObjectivesSection(enemyId);
+}
+
+// Sync objective checked-state after a war/peace change for one nation.
+function _syncObjectivesAfterWarChange(tid) {
+  const ns = state.nations[tid];
+  if (!ns) return;
+  if (!ns.objectives) ns.objectives = {};
+  const atWar = getEffectiveAtWar(tid);
+  (NATIONAL_OBJECTIVES[tid] ?? []).forEach(o => {
+    if (o.peaceOnly && atWar)  { ns.objectives[o.id] = false; }
+    if (o.warOnly  && !atWar)  { ns.objectives[o.id] = false; }
+    if (o.peaceOnly && !atWar && !ns.objectivesClaimed?.[o.id]) {
+      ns.objectives[o.id] = true;
+    }
+  });
 }
 
 function toggleObjShowAll(tid, checked) {
@@ -3009,22 +3174,49 @@ function toggleObjShowAll(tid, checked) {
   refreshObjectivesSection(tid);
 }
 
+// Builds the per-opponent war-status toggle buttons for nation 'tid'.
+// Shows all possible opponents (the other side's powers present in the game),
+// each as a small ⚔️/🌿 toggle chip that calls toggleAtWar(tid, enemyId, bool).
+function buildWarStatusHTML(tid) {
+  const ns = state.nations[tid];
+  if (!ns) return '';
+  const atWarWith = ns.atWarWith ?? [];
+
+  // Which opponents to show depends on which side 'tid' is on:
+  //   Axis nations can go to war with any Allied nation (and vice versa).
+  //   Same-side nations are never at war with each other.
+  const potentialEnemies = isAxis(tid)
+    ? [...ALLIED_SET].filter(e => TURN_ORDER.includes(e))
+    : [...AXIS_SET].filter(e => TURN_ORDER.includes(e));
+
+  // Also include non-default relations that are currently active
+  // (e.g. Soviet at war with Japan, or Germany at war with Soviet)
+  const allRelevant = [...new Set([...potentialEnemies, ...atWarWith])].filter(e => e !== tid);
+
+  if (!allRelevant.length) return `<span class="obj-war-neutral">⚪ ${t('nc.no_enemies')}</span>`;
+
+  return `<span class="obj-war-group-label">${t('nc.wars')}:</span>` +
+    allRelevant.map(enemyId => {
+      const enemy   = NATIONS[enemyId];
+      if (!enemy) return '';
+      const isWar   = atWarWith.includes(enemyId);
+      const cls     = isWar ? 'obj-war-chip war' : 'obj-war-chip peace';
+      const icon    = isWar ? '⚔️' : '🌿';
+      const title   = isWar
+        ? `${t('nc.at_war_with')} ${enemy.name} — ${t('nc.click_peace')}`
+        : `${t('nc.at_peace_with')} ${enemy.name} — ${t('nc.click_war')}`;
+      return `<button class="${cls}" title="${title}"
+                onclick="toggleAtWar('${tid}','${enemyId}',${!isWar})"
+              >${icon} ${enemy.shortName}</button>`;
+    }).join('');
+}
+
 function refreshObjectivesSection(tid) {
   const listEl = document.getElementById(`obj-list-${tid}`);
   if (listEl) listEl.innerHTML = buildObjectivesHTML(tid);
-  const cbWar = document.getElementById(`obj-atwar-${tid}`);
-  if (cbWar) {
-    const isWar = getEffectiveAtWar(tid);
-    cbWar.checked  = isWar;
-    cbWar.disabled = state.round > 3;
-    const lbl = cbWar.closest('label');
-    if (lbl) {
-      lbl.classList.toggle('obj-war-locked', state.round > 3);
-      lbl.classList.toggle('active', isWar);
-      const textEl = lbl.querySelector('.obj-war-text');
-      if (textEl) textEl.textContent = `${isWar ? '\u2694\ufe0f Krig' : '\u2618\ufe0f Fred'}${state.round > 3 ? ' \ud83d\udd12' : ''}`;
-    }
-  }
+  // Refresh the per-opponent war-status chips
+  const warEl = document.getElementById(`obj-war-enemies-${tid}`);
+  if (warEl) warEl.innerHTML = buildWarStatusHTML(tid);
 }
 
 function onNotesChange(tid, val) {
